@@ -1,0 +1,17 @@
+{
+  "name": "visual-data-structures-editor",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "core-engine",
+    "game-system",
+    "storage",
+    "ui-editor",
+    "app"
+  ],
+  "scripts": {
+    "check:generated-src": "node scripts/check-no-generated-in-src.mjs",
+    "build": "npm run check:generated-src && npm run build -w core-engine && npm run build -w game-system && npm run build -w storage && npm run build -w ui-editor && npm run build -w app && npm run check:generated-src",
+    "dev": "npm run dev -w app"
+  }
+}

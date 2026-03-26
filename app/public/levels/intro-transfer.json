@@ -1,0 +1,71 @@
+{
+  "id": "intro-transfer",
+  "title": "First Transfer",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2, 3],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [8],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [8, 3],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "allowedOperations": ["POP", "PUSH"],
+    "forbiddenBlocks": [],
+    "maxSteps": 2
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": "easy",
+    "author": "Core Team",
+    "description": "Move the top item from A into B."
+  },
+  "tooling": {
+    "availableStructures": ["stack", "queue"],
+    "advancedToolsEnabled": true
+  }
+}

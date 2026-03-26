@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@thesis/core-engine": ["../core-engine/src/index.ts"],
+      "@thesis/game-system": ["../game-system/src/index.ts"],
+      "@thesis/storage": ["../storage/src/index.ts"],
+      "@thesis/ui-editor": ["../ui-editor/src/index.tsx"]
+    }
+  },
+  "include": ["src"]
+}

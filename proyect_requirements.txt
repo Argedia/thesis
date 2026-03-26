@@ -1,0 +1,430 @@
+# PROJECT SPECIFICATION — Visual Data Structures Editor (Educational Game)
+
+---
+
+## 1. ROLE AND EXPECTATIONS
+
+You are an expert senior software engineer and system designer.
+
+Your task is to design and implement a modular, extensible, and maintainable web-based application for learning data structures through visual interaction and problem-solving.
+
+You must:
+
+* Prioritize clean architecture over speed
+* Strictly separate concerns (core logic, UI, storage, game logic)
+* Design for future scalability (backend-ready)
+* Keep the system simple but extensible
+* Make explicit, well-reasoned decisions
+
+Do NOT:
+
+* Mix UI logic with core logic
+* Hardcode data access
+* Couple systems unnecessarily
+* Use shortcuts that prevent scaling later
+
+---
+
+## 2. PROJECT GOAL
+
+Build an interactive visual system where users can:
+
+1. Create and manipulate data structures:
+
+   * Stack
+   * Queue
+   * (Extensible later)
+
+2. Perform operations visually:
+
+   * push, pop
+   * enqueue, dequeue
+   * transfer values between structures
+
+3. Observe data flow:
+   Example:
+   B.push(A.pop())
+
+4. Solve puzzles:
+
+   * Transform initial state into target state
+   * Under constraints
+   * Using allowed operations
+
+5. Use a visual programming interface:
+
+   * NO text-based coding
+   * Block-based or node-based interaction (Scratch/Blueprint hybrid)
+
+---
+
+## 3. CORE DESIGN PRINCIPLE (CRITICAL)
+
+The system MUST be split into independent layers:
+
+### A. Core Engine (PURE LOGIC)
+
+* No UI
+* No React
+* No DOM
+* No storage knowledge
+* Fully testable
+
+### B. UI Layer (VISUAL)
+
+* React-based
+* Only renders and interacts
+* Does NOT contain logic
+
+### C. Game System
+
+* Defines puzzles (JSON)
+* Uses engine for validation
+
+### D. Storage Layer
+
+* Abstracted via interfaces
+* Replaceable (JSON → API)
+
+---
+
+## 4. ARCHITECTURE OVERVIEW
+
+Project structure:
+
+/core-engine
+/game-system
+/storage
+/ui-editor
+/app
+
+---
+
+## 5. CORE ENGINE (MOST IMPORTANT PART)
+
+Language: TypeScript (no framework)
+
+Responsibilities:
+
+* Represent data structures
+* Execute operations
+* Track state changes
+* Provide step-by-step execution
+* Emit events
+
+---
+
+### 5.1 Data Structures
+
+Define generic interfaces:
+
+* Stack
+* Queue
+
+Each must support:
+
+* read state
+* apply operations
+* serialize state
+
+---
+
+### 5.2 Operations (OBJECT-BASED, NOT FUNCTIONS)
+
+Each operation must:
+
+* Be serializable
+* Be explicit
+* Be composable
+
+Example:
+{
+type: "POP",
+source: "A"
+}
+
+---
+
+### 5.3 Execution Model (CRITICAL)
+
+DO NOT mutate directly.
+
+Instead:
+
+* Build execution steps
+
+Example:
+POP(A) → value → PUSH(B)
+
+You must model:
+
+* intermediate values
+* transfer between structures
+* step-by-step transitions
+
+---
+
+### 5.4 Step System
+
+Engine must support:
+
+* step()
+* run()
+* reset()
+
+Each step returns:
+
+* action performed
+* value moved
+* affected structures
+
+---
+
+### 5.5 Event System
+
+Emit events such as:
+
+* VALUE_EXTRACTED
+* VALUE_INSERTED
+* STRUCTURE_UPDATED
+
+UI depends on these events.
+
+---
+
+## 6. GAME SYSTEM
+
+Format: JSON-driven
+
+Define:
+
+### LevelDefinition
+
+* id
+* title
+* initialState
+* goalState
+* constraints
+* editorLayout
+
+---
+
+### Constraints
+
+* allowedOperations
+* forbiddenBlocks
+* maxSteps
+
+---
+
+### Validation
+
+* Run user program in engine
+* Compare result with goal
+
+---
+
+## 7. STORAGE AND DATA ACCESS (CRITICAL REQUIREMENT)
+
+All data access MUST be abstracted through repository interfaces.
+
+Do NOT:
+
+* Fetch JSON directly inside UI components
+* Hardcode file paths
+* Mix storage logic with UI
+
+---
+
+### Required Interfaces
+
+```ts
+interface LevelRepository {
+  getLevel(id: string): Promise<LevelDefinition>;
+  listLevels(): Promise<LevelDefinition[]>;
+}
+
+interface ProgressRepository {
+  saveProgress(data: ProgressData): Promise<void>;
+  loadProgress(): Promise<ProgressData>;
+}
+```
+
+---
+
+### Initial Implementations
+
+* JsonLevelRepository → loads from local JSON files
+* LocalProgressRepository → uses localStorage or IndexedDB
+
+---
+
+### Future Implementations (MUST BE SUPPORTED)
+
+* ApiLevelRepository
+* RemoteProgressRepository
+
+---
+
+### RULE
+
+All systems MUST depend ONLY on interfaces, not implementations.
+
+This ensures backend scalability without refactoring.
+
+---
+
+## 8. UI EDITOR
+
+Framework: React + Vite
+
+Responsibilities:
+
+* Render structures
+* Display values
+* Handle user interactions
+* Visualize execution
+
+---
+
+### Requirements
+
+1. Structures visible as containers
+2. Values visible inside structures
+3. Operations triggered visually
+4. Data flow animated
+
+Example:
+
+* Value moves from A → B
+
+---
+
+### Suggested Libraries
+
+* reactflow (optional for node systems)
+* zustand (state)
+* dnd-kit (drag & drop)
+
+---
+
+## 9. VISUAL PROGRAMMING SYSTEM
+
+User must NOT write text code.
+
+Instead:
+
+* Blocks
+* Nodes
+* Connections
+* Structured sequences
+
+---
+
+### Internal Representation
+
+ProgramDefinition:
+
+* sequence of operations
+* control blocks (future)
+* references to structures
+
+---
+
+### Execution
+
+Program → Engine → Steps → Events → UI
+
+---
+
+## 10. DATA FLOW (MANDATORY)
+
+User Action
+→ UI
+→ Engine Operation
+→ Step Execution
+→ Events
+→ UI Update
+
+---
+
+## 11. CURRENT TASK (START HERE)
+
+DO NOT build everything at once.
+
+---
+
+### Step 1 — Core Engine MVP
+
+Implement:
+
+* Stack and Queue
+
+* push, pop, enqueue, dequeue
+
+* transfer operation:
+  B.push(A.pop())
+
+* Step system
+
+* Event system
+
+---
+
+### Step 2 — Storage Layer
+
+* Implement LevelRepository (JSON-based)
+* Implement ProgressRepository (localStorage)
+
+---
+
+### Step 3 — Minimal UI
+
+* Render two structures
+* Button triggers:
+  B.push(A.pop())
+* Log events
+
+---
+
+### Step 4 — Visual Feedback
+
+* Animate value transfer
+
+---
+
+## 12. CONSTRAINTS
+
+* Must run fully in browser
+* No backend
+* Must be deployable as static site (itch.io compatible)
+* Must be modular
+* Avoid over-engineering
+
+---
+
+## 13. EXTENSIBILITY
+
+Design for:
+
+* New structures
+* New operations
+* Campaign mode
+* User-created levels
+* Backend integration
+
+---
+
+## 14. SUCCESS CRITERIA
+
+You have succeeded when:
+
+* Engine executes B.push(A.pop())
+* UI shows it clearly
+* System is modular
+* Storage is abstracted
+* Adding features is easy
+
+---
+
+END OF SPEC
