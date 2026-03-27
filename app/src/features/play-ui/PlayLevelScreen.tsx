@@ -20,16 +20,20 @@ const initialSessionState = (): PlaySessionState => ({
   events: [],
   runState: "idle",
   stepCursor: 0,
-  breakpointBlockIds: [],
-  highlightedBlockId: null,
+  breakpointNodeIds: [],
+  highlightedNodeId: null,
   status: "Loading level...",
   completedLevelIds: [],
   compiledProgram: {
+    instructions: [],
     operations: [],
-    operationOwnerIds: [],
+    operationNodeIds: [],
     isComplete: false,
     unsupportedFeatures: [],
-    diagnostics: []
+    diagnostics: [],
+    nodeInstructionMap: {},
+    nodeRowMap: {},
+    nodeRowNumberMap: {}
   },
   document: createEditorDocument()
 });
@@ -135,9 +139,9 @@ export function PlayLevelScreen() {
                   maxBlocks={level.constraints.maxSteps}
                   value={sessionState.document}
                   disabled={sessionState.runState === "running"}
-                  highlightedBlockId={sessionState.highlightedBlockId}
-                  breakpointBlockIds={sessionState.breakpointBlockIds}
-                  onToggleBreakpoint={(blockId) => controller.toggleBreakpoint(blockId)}
+                  highlightedNodeId={sessionState.highlightedNodeId}
+                  breakpointNodeIds={sessionState.breakpointNodeIds}
+                  onToggleBreakpoint={(nodeId) => controller.toggleBreakpoint(nodeId)}
                   onChange={(document) => controller.setDocument(document)}
                   onStatus={(message) => controller.setStatus(message)}
                 />

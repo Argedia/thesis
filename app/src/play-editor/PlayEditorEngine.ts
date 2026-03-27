@@ -1,26 +1,42 @@
-import { normalizeStructureSnapshot, type StructureSnapshot } from "@thesis/core-engine";
+import { normalizeStructureSnapshot, type DataValue, type StructureSnapshot } from "@thesis/core-engine";
 import type {
-  ConditionalBranch,
   ConditionalMode,
   ConditionalWheelOption,
+  ControlBodyKey,
   EditorBlock,
+  EditorLineLayout,
   EditorDragState,
   PaletteBlock,
-  PlayEditorSurfaceProps
+  PlayEditorSurfaceProps,
+  VariableOperationMode
 } from "./model";
-import { calculateDropIndex, insertAt, moveItem, wheelTransform } from "./layout";
+import {
+  calculateDropIndex,
+  computeWheelLayout,
+  insertAt,
+  moveItem,
+  wheelTransform,
+  type DragGeometry
+} from "./layout";
 import {
   blockColorClass,
   buildConditionalWheelOptions,
-  blockNeedsInput,
+  createEditorDocumentFromLegacyBlocks,
+  buildVariableOperationWheelOptions,
   buildWheelOptions,
+  createVariableDeclarationBlock,
+  createVariableOperationBlock,
   createConditionalBlock,
+  createBooleanValueBlock,
   createEditorBlock,
   createValueBlock,
+  getBlockInputSlot,
   getOutputType,
   isSlotCompatible,
-  describeBlock
+  describeBlock,
+  projectDocumentToLegacyBlocks
 } from "./operations";
+import { buildEditorLineLayout, collectVariableDeclarations } from "./model";
 
 interface PendingPress {
   pointerId: number;
@@ -29,6 +45,9 @@ interface PendingPress {
   structureId?: string;
   structureKind?: PaletteBlock["structureKind"];
   literalValue?: EditorBlock["literalValue"];
+  variableName?: string;
+  variableSourceId?: string;
+  variableOperationMode?: VariableOperationMode;
   startX: number;
   startY: number;
   originX: number;
@@ -43,15 +62,48 @@ interface WheelState {
   blockId: string;
   x: number;
   y: number;
-  kind: "structure" | "conditional";
 }
+
+interface RenderWheelOption {
+  label: string;
+  className: string;
+  onSelect: () => void;
+}
+
+interface ResolvedDropPlacement {
+  rootIndex?: number;
+  branchTarget?: {
+    ownerId: string;
+    branch: ControlBodyKey;
+  };
+  beforeBlockId?: string;
+}
+
+interface PreviewDescriptor {
+  label: string;
+  chip?: string;
+  color?: string;
+  operation: EditorBlock["operation"];
+  pending?: boolean;
+  conditional?: boolean;
+  variable?: boolean;
+}
+
+const PREVIEW_BLOCK_ID = "__preview_block__";
 
 export class PlayEditorEngine {
   private readonly host: HTMLElement;
   private props: PlayEditorSurfaceProps;
   private blockRefs = new Map<string, HTMLDivElement>();
-  private slotRefs = new Map<string, HTMLButtonElement>();
-  private branchRefs = new Map<string, HTMLDivElement>();
+  private lineRowRefs = new Map<string, HTMLDivElement>();
+  private slotRefs = new Map<string, HTMLDivElement>();
+  private branchLineRefs: Array<{
+    ownerId: string;
+    branch: ControlBodyKey;
+    depth: number;
+    element: HTMLDivElement;
+    isLast: boolean;
+  }> = [];
   private paletteBlocks: PaletteBlock[] = [];
   private editorLane: HTMLDivElement | null = null;
   private dragState: EditorDragState | null = null;
@@ -88,17 +140,13 @@ export class PlayEditorEngine {
   }
 
   private getBlocks(): EditorBlock[] {
-    return this.props.value.blocks;
+    return projectDocumentToLegacyBlocks(this.props.value);
   }
 
   private setBlocks(nextBlocks: EditorBlock[]): void {
-    this.props.onChange({
-      blocks: nextBlocks
-    });
-  }
-
-  private branchKey(ownerId: string, branch: ConditionalBranch): string {
-    return `${ownerId}:${branch}`;
+    this.props.onChange(
+      createEditorDocumentFromLegacyBlocks(nextBlocks, this.props.value.program.id)
+    );
   }
 
   private findBlockById(blocks: EditorBlock[], blockId: string): EditorBlock | null {
@@ -114,15 +162,15 @@ export class PlayEditorEngine {
         }
       }
 
-      if (block.ifBranch) {
-        const nested = this.findBlockById(block.ifBranch, blockId);
+      if (block.bodyBlocks) {
+        const nested = this.findBlockById(block.bodyBlocks, blockId);
         if (nested) {
           return nested;
         }
       }
 
-      if (block.elseBranch) {
-        const nested = this.findBlockById(block.elseBranch, blockId);
+      if (block.alternateBodyBlocks) {
+        const nested = this.findBlockById(block.alternateBodyBlocks, blockId);
         if (nested) {
           return nested;
         }
@@ -145,11 +193,11 @@ export class PlayEditorEngine {
       return true;
     }
 
-    if (block.ifBranch?.some((child) => this.blockContainsId(child, blockId))) {
+    if (block.bodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
       return true;
     }
 
-    return block.elseBranch?.some((child) => this.blockContainsId(child, blockId)) ?? false;
+    return block.alternateBodyBlocks?.some((child) => this.blockContainsId(child, blockId)) ?? false;
   }
 
   private updateBlockById(
@@ -170,17 +218,17 @@ export class PlayEditorEngine {
         };
       }
 
-      if (block.ifBranch?.some((child) => this.blockContainsId(child, blockId))) {
+      if (block.bodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
         return {
           ...block,
-          ifBranch: this.updateBlockById(block.ifBranch, blockId, updater)
+          bodyBlocks: this.updateBlockById(block.bodyBlocks, blockId, updater)
         };
       }
 
-      if (block.elseBranch?.some((child) => this.blockContainsId(child, blockId))) {
+      if (block.alternateBodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
         return {
           ...block,
-          elseBranch: this.updateBlockById(block.elseBranch, blockId, updater)
+          alternateBodyBlocks: this.updateBlockById(block.alternateBodyBlocks, blockId, updater)
         };
       }
 
@@ -204,17 +252,17 @@ export class PlayEditorEngine {
         };
       }
 
-      if (block.ifBranch?.some((child) => this.blockContainsId(child, blockId))) {
+      if (block.bodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
         return {
           ...block,
-          ifBranch: this.removeNestedBlockById(block.ifBranch, blockId)
+          bodyBlocks: this.removeNestedBlockById(block.bodyBlocks, blockId)
         };
       }
 
-      if (block.elseBranch?.some((child) => this.blockContainsId(child, blockId))) {
+      if (block.alternateBodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
         return {
           ...block,
-          elseBranch: this.removeNestedBlockById(block.elseBranch, blockId)
+          alternateBodyBlocks: this.removeNestedBlockById(block.alternateBodyBlocks, blockId)
         };
       }
 
@@ -233,8 +281,10 @@ export class PlayEditorEngine {
             : block.inputBlock
               ? this.removeNestedBlockById([block.inputBlock], blockId)[0]
               : null,
-        ifBranch: block.ifBranch ? this.removeBlockById(block.ifBranch, blockId) : block.ifBranch,
-        elseBranch: block.elseBranch ? this.removeBlockById(block.elseBranch, blockId) : block.elseBranch
+        bodyBlocks: block.bodyBlocks ? this.removeBlockById(block.bodyBlocks, blockId) : block.bodyBlocks,
+        alternateBodyBlocks: block.alternateBodyBlocks
+          ? this.removeBlockById(block.alternateBodyBlocks, blockId)
+          : block.alternateBodyBlocks
       }));
   }
 
@@ -251,23 +301,23 @@ export class PlayEditorEngine {
     }
 
     for (const block of blocks) {
-      if (block.ifBranch?.some((child) => this.blockContainsId(child, blockId))) {
-        const extracted = this.extractBlockFromTree(block.ifBranch, blockId);
+      if (block.bodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
+        const extracted = this.extractBlockFromTree(block.bodyBlocks, blockId);
         return {
           nextBlocks: this.updateBlockById(blocks, block.id, (current) => ({
             ...current,
-            ifBranch: extracted.nextBlocks
+            bodyBlocks: extracted.nextBlocks
           })),
           block: extracted.block
         };
       }
 
-      if (block.elseBranch?.some((child) => this.blockContainsId(child, blockId))) {
-        const extracted = this.extractBlockFromTree(block.elseBranch, blockId);
+      if (block.alternateBodyBlocks?.some((child) => this.blockContainsId(child, blockId))) {
+        const extracted = this.extractBlockFromTree(block.alternateBodyBlocks, blockId);
         return {
           nextBlocks: this.updateBlockById(blocks, block.id, (current) => ({
             ...current,
-            elseBranch: extracted.nextBlocks
+            alternateBodyBlocks: extracted.nextBlocks
           })),
           block: extracted.block
         };
@@ -277,16 +327,146 @@ export class PlayEditorEngine {
     return { nextBlocks: blocks, block: null };
   }
 
-  private createBlockFromPalette(block: PaletteBlock): EditorBlock {
+  private isVariableNameTaken(name: string, excludeDeclarationId?: string): boolean {
+    const normalized = name.trim().toLocaleLowerCase();
+    return collectVariableDeclarations(this.getBlocks()).some(
+      (declaration) =>
+        declaration.id !== excludeDeclarationId &&
+        declaration.name.trim().toLocaleLowerCase() === normalized
+    );
+  }
+
+  private promptForVariableName(currentName?: string, excludeDeclarationId?: string): string | null {
+    while (true) {
+      const nextName = window.prompt("Variable name", currentName?.trim() || "variable");
+      if (nextName === null) {
+        return null;
+      }
+
+      const normalizedName = nextName.trim();
+      if (!normalizedName) {
+        window.alert("Variable name cannot be empty.");
+        continue;
+      }
+
+      if (this.isVariableNameTaken(normalizedName, excludeDeclarationId)) {
+        window.alert(`Variable \"${normalizedName}\" already exists.`);
+        continue;
+      }
+
+      return normalizedName;
+    }
+  }
+
+  private promptForValueText(currentValue?: DataValue | null): string | null {
+    const nextValue = window.prompt("Value", String(currentValue ?? "item"));
+    if (nextValue === null) {
+      return null;
+    }
+
+    const normalizedValue = nextValue.trim();
+    if (!normalizedValue) {
+      window.alert("Value cannot be empty.");
+      return this.promptForValueText(currentValue);
+    }
+
+    return normalizedValue;
+  }
+
+  private createBlockFromPalette(block: PaletteBlock): EditorBlock | null {
     if (block.kind === "conditional") {
       return createConditionalBlock(block.color, block.conditionalMode ?? "if");
     }
 
+    if (block.kind === "var_declaration") {
+      const variableName = this.promptForVariableName(block.variableName ?? "variable");
+      if (!variableName) {
+        this.emitStatus("Variable declaration cancelled.");
+        return null;
+      }
+      return createVariableDeclarationBlock(block.color, variableName);
+    }
+
+    if (block.kind === "var_operation" && block.variableSourceId && block.variableName) {
+      return createVariableOperationBlock(
+        block.variableSourceId,
+        block.variableName,
+        block.color,
+        block.variableOperationMode ?? "value"
+      );
+    }
+
     if (block.kind === "value") {
-      return createValueBlock(block.literalValue ?? "item");
+      const literalValue = this.promptForValueText(block.literalValue ?? "item");
+      if (literalValue === null) {
+        this.emitStatus("Value block cancelled.");
+        return null;
+      }
+      return createValueBlock(literalValue);
     }
 
     return createEditorBlock(block.structureId!, block.structureKind!, block.color);
+  }
+
+  private createPreviewBlockFromDragState(): EditorBlock | null {
+    if (!this.dragState) {
+      return null;
+    }
+
+    let previewBlock: EditorBlock | null = null;
+
+    if (this.dragState.source === "program" && this.dragState.blockId) {
+      const draggingBlock = this.findBlockById(this.getBlocks(), this.dragState.blockId);
+      previewBlock = draggingBlock ? structuredClone(draggingBlock) : null;
+    } else {
+      switch (this.dragState.blockKind) {
+        case "conditional":
+          previewBlock = createConditionalBlock(this.dragState.color, "if");
+          break;
+        case "var_declaration":
+          previewBlock = createVariableDeclarationBlock(
+            this.dragState.color,
+            this.dragState.variableName?.trim() || "variable"
+          );
+          break;
+        case "var_operation":
+          previewBlock =
+            this.dragState.variableSourceId && this.dragState.variableName
+              ? createVariableOperationBlock(
+                  this.dragState.variableSourceId,
+                  this.dragState.variableName,
+                  this.dragState.color,
+                  this.dragState.variableOperationMode ?? "value"
+                )
+              : null;
+          break;
+        case "value":
+          previewBlock =
+            typeof this.dragState.literalValue === "boolean"
+              ? createBooleanValueBlock(this.dragState.literalValue)
+              : createValueBlock(this.dragState.literalValue ?? "item");
+          break;
+        case "structure":
+          previewBlock =
+            this.dragState.structureId && this.dragState.structureKind
+              ? createEditorBlock(
+                  this.dragState.structureId,
+                  this.dragState.structureKind,
+                  this.dragState.color
+                )
+              : null;
+          break;
+        default:
+          previewBlock = null;
+      }
+    }
+
+    return previewBlock
+      ? {
+          ...previewBlock,
+          id: PREVIEW_BLOCK_ID
+        }
+      : null;
   }
 
   private applyBlockColor(element: HTMLElement, color?: string): void {
@@ -309,22 +489,100 @@ export class PlayEditorEngine {
     }));
   }
 
+  private insertBlockAfter(
+    blocks: EditorBlock[],
+    targetBlockId: string,
+    insertedBlock: EditorBlock
+  ): EditorBlock[] {
+    const directIndex = blocks.findIndex((block) => block.id === targetBlockId);
+    if (directIndex >= 0) {
+      const next = [...blocks];
+      next.splice(directIndex + 1, 0, insertedBlock);
+      return next;
+    }
+
+    return blocks.map((block) => {
+      if (block.bodyBlocks?.some((child) => this.blockContainsId(child, targetBlockId))) {
+        return {
+          ...block,
+          bodyBlocks: this.insertBlockAfter(block.bodyBlocks, targetBlockId, insertedBlock)
+        };
+      }
+
+      if (
+        block.alternateBodyBlocks?.some((child) => this.blockContainsId(child, targetBlockId))
+      ) {
+        return {
+          ...block,
+          alternateBodyBlocks: this.insertBlockAfter(
+            block.alternateBodyBlocks,
+            targetBlockId,
+            insertedBlock
+          )
+        };
+      }
+
+      return block;
+    });
+  }
+
+  private insertBlockBefore(
+    blocks: EditorBlock[],
+    targetBlockId: string,
+    insertedBlock: EditorBlock
+  ): EditorBlock[] {
+    const directIndex = blocks.findIndex((block) => block.id === targetBlockId);
+    if (directIndex >= 0) {
+      const next = [...blocks];
+      next.splice(directIndex, 0, insertedBlock);
+      return next;
+    }
+
+    return blocks.map((block) => {
+      if (block.bodyBlocks?.some((child) => this.blockContainsId(child, targetBlockId))) {
+        return {
+          ...block,
+          bodyBlocks: this.insertBlockBefore(block.bodyBlocks, targetBlockId, insertedBlock)
+        };
+      }
+
+      if (
+        block.alternateBodyBlocks?.some((child) => this.blockContainsId(child, targetBlockId))
+      ) {
+        return {
+          ...block,
+          alternateBodyBlocks: this.insertBlockBefore(
+            block.alternateBodyBlocks,
+            targetBlockId,
+            insertedBlock
+          )
+        };
+      }
+
+      return block;
+    });
+  }
+
   private appendBlockToBranch(
     blocks: EditorBlock[],
     ownerId: string,
-    branch: ConditionalBranch,
+    branch: ControlBodyKey,
     insertedBlock: EditorBlock
   ): EditorBlock[] {
     return this.updateBlockById(blocks, ownerId, (block) => ({
       ...block,
-      ifBranch:
-        branch === "if" ? [...(block.ifBranch ?? []), insertedBlock] : (block.ifBranch ?? []),
-      elseBranch:
-        branch === "else" ? [...(block.elseBranch ?? []), insertedBlock] : (block.elseBranch ?? [])
+      bodyBlocks:
+        branch === "body" ? [...(block.bodyBlocks ?? []), insertedBlock] : (block.bodyBlocks ?? []),
+      alternateBodyBlocks:
+        branch === "alternateBody"
+          ? [...(block.alternateBodyBlocks ?? []), insertedBlock]
+          : (block.alternateBodyBlocks ?? [])
     }));
   }
 
   private derivePaletteBlocks(structures: StructureSnapshot[]): PaletteBlock[] {
+    const variableDeclarations = collectVariableDeclarations(this.getBlocks());
+
     return [
       ...structures.map((rawStructure) => {
         const structure = normalizeStructureSnapshot(rawStructure);
@@ -358,29 +616,207 @@ export class PlayEditorEngine {
         literalValue: null,
         conditionalMode: "if" as const,
         label: "If"
-      }
+      },
+      {
+        id: "palette-var-declaration",
+        kind: "var_declaration" as const,
+        color: "#b7e4c7",
+        outputType: "none" as const,
+        valueType: null,
+        literalValue: null,
+        variableName: "variable",
+        label: "Variable"
+      },
+      ...variableDeclarations.map((variable) => ({
+        id: `palette-var-operation-${variable.id}`,
+        kind: "var_operation" as const,
+        color: variable.color ?? "#d8f3dc",
+        outputType: "value" as const,
+        valueType: null,
+        literalValue: null,
+        variableSourceId: variable.id,
+        variableName: variable.name,
+        variableOperationMode: "value" as const,
+        label: variable.name
+      }))
     ];
   }
 
-  private getBlockRects(): Array<{ id: string; rect: DOMRect }> {
-    return this.props.value
-      .blocks
-      .map((block) => {
-        const element = this.blockRefs.get(block.id);
-        return element ? { id: block.id, rect: element.getBoundingClientRect() } : null;
+  private getLineRects(lineLayouts: EditorLineLayout[]): Array<{ id: string; rect: DOMRect }> {
+    return lineLayouts
+      .map((lineLayout) => {
+        const element = this.lineRowRefs.get(lineLayout.id);
+        return element ? { id: lineLayout.id, rect: element.getBoundingClientRect() } : null;
       })
       .filter((value): value is { id: string; rect: DOMRect } => value !== null)
       .sort((left, right) => left.rect.top - right.rect.top);
   }
 
-  private currentDropWithPoint(pointerX: number, pointerY: number): { index: number; isOverEditor: boolean } {
-    return calculateDropIndex(
-      pointerX,
-      pointerY,
+  private currentDropWithPoint(
+    drag: DragGeometry,
+    lineLayouts: EditorLineLayout[]
+  ): { index: number; visualLineIndex: number; isOverEditor: boolean } {
+    const { index: visualLineIndex, isOverEditor } = calculateDropIndex(
+      drag,
       this.editorLane?.getBoundingClientRect(),
-      this.getBlockRects(),
-      this.getBlocks().length
+      this.getLineRects(lineLayouts),
+      lineLayouts.length
     );
+
+    if (visualLineIndex >= lineLayouts.length) {
+      return {
+        index: this.getBlocks().length,
+        visualLineIndex,
+        isOverEditor
+      };
+    }
+
+    return {
+      index: lineLayouts[visualLineIndex].topLevelIndex ?? this.getBlocks().length,
+      visualLineIndex,
+      isOverEditor
+    };
+  }
+
+  private ghostGeometry(
+    pointerX: number,
+    pointerY: number,
+    offsetX: number,
+    offsetY: number,
+    width: number,
+    height: number
+  ): DragGeometry {
+    const left = pointerX - offsetX;
+    const top = pointerY - offsetY;
+    const placementX = left + Math.min(Math.max(width * 0.12, 10), 22);
+    const placementY = top + Math.min(Math.max(height * 0.26, 12), 20);
+
+    return {
+      left,
+      top,
+      right: left + width,
+      bottom: top + height,
+      width,
+      height,
+      placementX,
+      placementY
+    };
+  }
+
+  private currentIndentChoice(
+    pointerX: number,
+    visualLineIndex: number,
+    lineLayouts: EditorLineLayout[]
+  ): number {
+    const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
+    const targetLine =
+      visualLineIndex < lineLayouts.length
+        ? lineLayouts[visualLineIndex]
+        : lineLayouts[lineLayouts.length - 1] ?? null;
+
+    if (!targetLine) {
+      return 0;
+    }
+
+    const candidateIndents = Array.from(
+      new Set([
+        ...targetLine.indentPotential,
+        ...(targetLine.increaseNextIndentation
+          ? [targetLine.indentCurrent + 1]
+          : []),
+        ...(visualLineIndex >= lineLayouts.length && targetLine.increaseNextIndentation
+          ? [targetLine.indentCurrent + 1]
+          : [])
+      ])
+    ).sort((left, right) => left - right);
+
+    let bestIndent = candidateIndents[0] ?? 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    candidateIndents.forEach((indent) => {
+      const anchorX = laneLeft + indent * 28 + 18;
+      const distance = Math.abs(pointerX - anchorX);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndent = indent;
+      }
+    });
+
+    return bestIndent;
+  }
+
+  private resolveDropPlacement(
+    blocks: EditorBlock[],
+    lineLayouts: EditorLineLayout[],
+    visualLineIndex: number,
+    chosenIndent: number
+  ): ResolvedDropPlacement {
+    const targetLine =
+      visualLineIndex < lineLayouts.length ? lineLayouts[visualLineIndex] : null;
+    const previousLine =
+      visualLineIndex > 0 ? lineLayouts[Math.min(visualLineIndex - 1, lineLayouts.length - 1)] : null;
+
+    const branchFromLine = (
+      line: EditorLineLayout | null
+    ): ResolvedDropPlacement["branchTarget"] | null => {
+      if (!line || chosenIndent <= 0) {
+        return null;
+      }
+
+      if (line.role === "else_header" && chosenIndent === line.indentCurrent + 1) {
+        return {
+          ownerId: line.blockId!,
+          branch: "alternateBody"
+        };
+      }
+
+      if (line.controlPath.length >= chosenIndent) {
+        return line.controlPath[chosenIndent - 1] ?? null;
+      }
+
+      if (line.role === "block" && line.block!.kind === "conditional" && chosenIndent === line.indentCurrent + 1) {
+        return {
+          ownerId: line.blockId!,
+          branch: "body"
+        };
+      }
+
+      return null;
+    };
+
+    if (targetLine) {
+      const targetBranch = branchFromLine(targetLine);
+      if (targetBranch) {
+        return {
+          branchTarget: targetBranch,
+          beforeBlockId:
+            targetLine.role === "block" && targetLine.controlPath.length >= chosenIndent
+              ? targetLine.blockId
+              : undefined
+        };
+      }
+
+      if (targetLine.role === "else_header") {
+        return {
+          rootIndex: Math.min((targetLine.topLevelIndex ?? blocks.length) + 1, blocks.length)
+        };
+      }
+
+      return {
+        rootIndex: targetLine.topLevelIndex ?? blocks.length
+      };
+    }
+
+    const previousBranch = branchFromLine(previousLine);
+    if (previousBranch) {
+      return {
+        branchTarget: previousBranch
+      };
+    }
+
+    return {
+      rootIndex: blocks.length
+    };
   }
 
   private currentSlotTarget(pointerX: number, pointerY: number): string | null {
@@ -399,33 +835,105 @@ export class PlayEditorEngine {
     return null;
   }
 
+  private currentImplicitBranchTarget(
+    pointerX: number,
+    visualLineIndex: number,
+    lineLayouts: EditorLineLayout[]
+  ): { ownerId: string; branch: ControlBodyKey } | null {
+    if (visualLineIndex <= 0 || visualLineIndex > lineLayouts.length) {
+      return null;
+    }
+
+    const previousLine = lineLayouts[visualLineIndex - 1];
+    const previousBlock = previousLine?.role === "block" ? previousLine.block : null;
+    if (!previousBlock || previousBlock.kind !== "conditional" || (previousBlock.bodyBlocks?.length ?? 0) > 0) {
+      return null;
+    }
+
+    const element = this.blockRefs.get(previousBlock.id);
+    if (!element) {
+      return null;
+    }
+
+    const rect = element.getBoundingClientRect();
+    if (pointerX < rect.left + 28) {
+      return null;
+    }
+
+    return {
+      ownerId: previousBlock.id,
+      branch: "body"
+    };
+  }
+
   private currentBranchTarget(
     pointerX: number,
-    pointerY: number
-  ): { ownerId: string; branch: ConditionalBranch } | null {
-    for (const [key, element] of this.branchRefs.entries()) {
+    pointerY: number,
+    visualLineIndex: number,
+    lineLayouts: EditorLineLayout[],
+    chosenIndent: number
+  ): { ownerId: string; branch: ControlBodyKey } | null {
+    const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
+
+    for (const branchLine of this.branchLineRefs) {
+      const element = branchLine.element;
       const rect = element.getBoundingClientRect();
+      const indentThreshold = laneLeft + branchLine.depth * 28;
+      const bottomAllowance = branchLine.isLast ? 34 : 8;
       if (
-        pointerX >= rect.left &&
+        chosenIndent >= branchLine.depth &&
+        pointerX >= indentThreshold &&
         pointerX <= rect.right &&
         pointerY >= rect.top - 8 &&
-        pointerY <= rect.bottom + 8
+        pointerY <= rect.bottom + bottomAllowance
       ) {
-        const [ownerId, branch] = key.split(":") as [string, ConditionalBranch];
-        return { ownerId, branch };
+        return {
+          ownerId: branchLine.ownerId,
+          branch: branchLine.branch
+        };
       }
     }
 
-    return null;
+    return (
+      this.resolveDropPlacement(this.getBlocks(), lineLayouts, visualLineIndex, chosenIndent).branchTarget ??
+      this.currentImplicitBranchTarget(pointerX, visualLineIndex, lineLayouts)
+    );
+  }
+
+  private isImplicitBodyTarget(
+    target: { ownerId: string; branch: ControlBodyKey } | null | undefined
+  ): boolean {
+    if (!target || target.branch !== "body") {
+      return false;
+    }
+
+    const owner = this.findBlockById(this.getBlocks(), target.ownerId);
+    return owner?.kind === "conditional" && (owner.bodyBlocks?.length ?? 0) === 0;
   }
 
   private startPaletteDrag(event: PointerEvent, block: PaletteBlock, rect: DOMRect): void {
     if (this.isLocked()) {
       return;
     }
-    const { index, isOverEditor } = this.currentDropWithPoint(
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    const dragGeometry = this.ghostGeometry(
       event.clientX,
-      event.clientY
+      event.clientY,
+      offsetX,
+      offsetY,
+      rect.width,
+      rect.height
+    );
+    const lineLayouts = buildEditorLineLayout(this.getBlocks());
+    const { index, visualLineIndex, isOverEditor } = this.currentDropWithPoint(
+      dragGeometry,
+      lineLayouts
+    );
+    const chosenIndent = this.currentIndentChoice(
+      dragGeometry.placementX,
+      visualLineIndex,
+      lineLayouts
     );
     this.closeWheel();
     this.dragState = {
@@ -436,16 +944,27 @@ export class PlayEditorEngine {
       structureId: block.structureId,
       structureKind: block.structureKind,
       literalValue: block.literalValue,
+      variableName: block.variableName,
+      variableSourceId: block.variableSourceId,
+      variableOperationMode: block.variableOperationMode,
       x: rect.left,
       y: rect.top,
       width: rect.width,
       height: rect.height,
-      offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top,
+      offsetX,
+      offsetY,
       dropIndex: index,
+      visualLineIndex,
+      chosenIndent,
       isOverEditor,
       slotTargetBlockId: this.currentSlotTarget(event.clientX, event.clientY),
-      branchTarget: this.currentBranchTarget(event.clientX, event.clientY)
+      branchTarget: this.currentBranchTarget(
+        dragGeometry.placementX,
+        dragGeometry.placementY,
+        visualLineIndex,
+        lineLayouts,
+        chosenIndent
+      )
     };
     this.render();
   }
@@ -466,6 +985,9 @@ export class PlayEditorEngine {
       structureId: block.structureId,
       structureKind: block.structureKind,
       literalValue: block.literalValue,
+      variableName: block.variableName,
+      variableSourceId: block.variableSourceId,
+      variableOperationMode: block.variableOperationMode,
       startX: event.clientX,
       startY: event.clientY,
       originX: rect.left,
@@ -491,8 +1013,7 @@ export class PlayEditorEngine {
     this.wheelState = {
       blockId,
       x: rect.right + 12,
-      y: rect.top + rect.height / 2,
-      kind: block.kind === "conditional" ? "conditional" : "structure"
+      y: rect.top + rect.height / 2
     };
     this.render();
   }
@@ -516,9 +1037,23 @@ export class PlayEditorEngine {
 
       if (moved) {
         this.clearPress();
-        const { index, isOverEditor } = this.currentDropWithPoint(
+        const dragGeometry = this.ghostGeometry(
           event.clientX,
-          event.clientY
+          event.clientY,
+          pendingPress.offsetX,
+          pendingPress.offsetY,
+          pendingPress.width,
+          pendingPress.height
+        );
+        const lineLayouts = buildEditorLineLayout(this.getBlocks());
+        const { index, visualLineIndex, isOverEditor } = this.currentDropWithPoint(
+          dragGeometry,
+          lineLayouts
+        );
+        const chosenIndent = this.currentIndentChoice(
+          dragGeometry.placementX,
+          visualLineIndex,
+          lineLayouts
         );
         this.closeWheel();
         this.dragState = {
@@ -530,6 +1065,9 @@ export class PlayEditorEngine {
           structureId: pendingPress.structureId,
           structureKind: pendingPress.structureKind,
           literalValue: pendingPress.literalValue,
+          variableName: pendingPress.variableName,
+          variableSourceId: pendingPress.variableSourceId,
+          variableOperationMode: pendingPress.variableOperationMode,
           x: pendingPress.originX,
           y: pendingPress.originY,
           width: pendingPress.width,
@@ -537,9 +1075,17 @@ export class PlayEditorEngine {
           offsetX: pendingPress.offsetX,
           offsetY: pendingPress.offsetY,
           dropIndex: index,
+          visualLineIndex,
+          chosenIndent,
           isOverEditor,
           slotTargetBlockId: this.currentSlotTarget(event.clientX, event.clientY),
-          branchTarget: this.currentBranchTarget(event.clientX, event.clientY)
+          branchTarget: this.currentBranchTarget(
+            dragGeometry.placementX,
+            dragGeometry.placementY,
+            visualLineIndex,
+            lineLayouts,
+            chosenIndent
+          )
         };
         this.render();
       }
@@ -549,18 +1095,47 @@ export class PlayEditorEngine {
       return;
     }
 
-    const { index, isOverEditor } = this.currentDropWithPoint(
+    const previewBlocks =
+      this.dragState.source === "program" &&
+      this.dragState.blockId &&
+      !this.dragState.slotTargetBlockId &&
+      !this.dragState.branchTarget
+        ? moveItem(this.getBlocks(), this.dragState.blockId, this.dragState.dropIndex)
+        : this.getBlocks();
+    const dragGeometry = this.ghostGeometry(
       event.clientX,
-      event.clientY
+      event.clientY,
+      this.dragState.offsetX,
+      this.dragState.offsetY,
+      this.dragState.width,
+      this.dragState.height
+    );
+    const lineLayouts = buildEditorLineLayout(previewBlocks);
+    const { index, visualLineIndex, isOverEditor } = this.currentDropWithPoint(
+      dragGeometry,
+      lineLayouts
+    );
+    const chosenIndent = this.currentIndentChoice(
+      dragGeometry.placementX,
+      visualLineIndex,
+      lineLayouts
     );
     this.dragState = {
       ...this.dragState,
       x: event.clientX - this.dragState.offsetX,
       y: event.clientY - this.dragState.offsetY,
       dropIndex: index,
+      visualLineIndex,
+      chosenIndent,
       isOverEditor,
       slotTargetBlockId: this.currentSlotTarget(event.clientX, event.clientY),
-      branchTarget: this.currentBranchTarget(event.clientX, event.clientY)
+      branchTarget: this.currentBranchTarget(
+        dragGeometry.placementX,
+        dragGeometry.placementY,
+        visualLineIndex,
+        lineLayouts,
+        chosenIndent
+      )
     };
     this.render();
   };
@@ -576,6 +1151,23 @@ export class PlayEditorEngine {
 
     const slotTargetId = this.dragState.slotTargetBlockId ?? null;
     const branchTarget = this.dragState.branchTarget ?? null;
+    const matchesPaletteBlock = (block: PaletteBlock): boolean => {
+      switch (this.dragState!.blockKind) {
+        case "value":
+          return block.kind === "value" && block.literalValue === this.dragState!.literalValue;
+        case "conditional":
+          return block.kind === "conditional";
+        case "var_declaration":
+          return block.kind === "var_declaration";
+        case "var_operation":
+          return (
+            block.kind === "var_operation" &&
+            block.variableSourceId === this.dragState!.variableSourceId
+          );
+        default:
+          return block.kind === "structure" && block.structureId === this.dragState!.structureId;
+      }
+    };
 
     if (slotTargetId) {
       const targetBlock = this.findBlockById(this.getBlocks(), slotTargetId);
@@ -583,11 +1175,7 @@ export class PlayEditorEngine {
         const insertedBlock =
           this.dragState.source === "palette"
             ? this.createBlockFromPalette(
-                this.paletteBlocks.find((block) => block.kind === this.dragState!.blockKind && (
-                this.dragState!.blockKind === "value"
-                  ? block.literalValue === this.dragState!.literalValue
-                  : block.structureId === this.dragState!.structureId
-                )) ?? {
+                this.paletteBlocks.find(matchesPaletteBlock) ?? {
                   id: "fallback",
                   kind: this.dragState.blockKind,
                   color: this.dragState.color,
@@ -596,6 +1184,9 @@ export class PlayEditorEngine {
                   outputType: this.dragState.blockKind === "value" ? "value" : "none",
                   valueType: this.dragState.blockKind === "value" ? "text" : null,
                   literalValue: this.dragState.literalValue ?? null,
+                  variableName: this.dragState.variableName,
+                  variableSourceId: this.dragState.variableSourceId,
+                  variableOperationMode: this.dragState.variableOperationMode,
                   label: this.dragState.structureId ?? "Value"
                 }
               )
@@ -610,19 +1201,17 @@ export class PlayEditorEngine {
           const nextBlocks = this.assignBlockIntoSlot(baseBlocks, slotTargetId, insertedBlock);
           this.setBlocks(nextBlocks);
           this.emitStatus("Block inserted into slot.");
+        } else if (this.dragState.source === "palette" && this.dragState.blockKind === "var_declaration") {
+          this.dragState = null;
+          this.render();
+          return;
         }
       }
     } else if (branchTarget) {
       const insertedBlock =
         this.dragState.source === "palette"
           ? this.createBlockFromPalette(
-              this.paletteBlocks.find((block) => block.kind === this.dragState!.blockKind && (
-                this.dragState!.blockKind === "value"
-                  ? block.literalValue === this.dragState!.literalValue
-                  : this.dragState!.blockKind === "conditional"
-                    ? block.id === "palette-conditional"
-                    : block.structureId === this.dragState!.structureId
-              )) ?? {
+              this.paletteBlocks.find(matchesPaletteBlock) ?? {
                 id: "fallback",
                 kind: this.dragState.blockKind,
                 color: this.dragState.color,
@@ -632,6 +1221,9 @@ export class PlayEditorEngine {
                 valueType: this.dragState.blockKind === "value" ? "text" : null,
                 literalValue: this.dragState.literalValue ?? null,
                 conditionalMode: "if",
+                variableName: this.dragState.variableName,
+                variableSourceId: this.dragState.variableSourceId,
+                variableOperationMode: this.dragState.variableOperationMode,
                 label: this.dragState.structureId ?? "Block"
               }
             )
@@ -642,28 +1234,55 @@ export class PlayEditorEngine {
           this.dragState.source === "program" && this.dragState.blockId
             ? this.extractBlockFromTree(this.getBlocks(), this.dragState.blockId).nextBlocks
             : this.getBlocks();
-        const nextBlocks = this.appendBlockToBranch(
+        const baseLineLayouts = buildEditorLineLayout(baseBlocks);
+        const placement = this.resolveDropPlacement(
           baseBlocks,
-          branchTarget.ownerId,
-          branchTarget.branch,
-          insertedBlock
+          baseLineLayouts,
+          this.dragState.visualLineIndex,
+          this.dragState.chosenIndent
         );
+        const effectiveBranchTarget = placement.branchTarget ?? branchTarget;
+        const nextBlocks =
+          effectiveBranchTarget && placement.beforeBlockId
+            ? this.insertBlockBefore(baseBlocks, placement.beforeBlockId, insertedBlock)
+            : effectiveBranchTarget
+              ? this.appendBlockToBranch(
+                  baseBlocks,
+                  effectiveBranchTarget.ownerId,
+                  effectiveBranchTarget.branch,
+                  insertedBlock
+                )
+              : baseBlocks;
         this.setBlocks(nextBlocks);
-        this.emitStatus("Block added to conditional branch.");
+        this.emitStatus("Block added to control body.");
+      } else if (this.dragState.source === "palette" && this.dragState.blockKind === "var_declaration") {
+        this.dragState = null;
+        this.render();
+        return;
       }
     } else if (this.dragState.isOverEditor) {
       if (this.dragState.source === "palette") {
         if (this.getBlocks().length < this.props.maxBlocks) {
-          const paletteBlock = this.paletteBlocks.find((block) => block.kind === this.dragState!.blockKind && (
-            this.dragState!.blockKind === "value"
-              ? block.literalValue === this.dragState!.literalValue
-              : block.structureId === this.dragState!.structureId
-          ));
+          const paletteBlock = this.paletteBlocks.find(matchesPaletteBlock);
           if (paletteBlock) {
+            const createdBlock = this.createBlockFromPalette(paletteBlock);
+            if (!createdBlock) {
+              this.dragState = null;
+              this.render();
+              return;
+            }
+            const baseLineLayouts = buildEditorLineLayout(this.getBlocks());
+            const placement = this.resolveDropPlacement(
+              this.getBlocks(),
+              baseLineLayouts,
+              this.dragState.visualLineIndex,
+              this.dragState.chosenIndent
+            );
+            const targetIndex = placement.rootIndex ?? this.getBlocks().length;
             const nextBlocks = insertAt(
               this.getBlocks(),
-              Math.min(this.dragState.dropIndex, this.getBlocks().length),
-              this.createBlockFromPalette(paletteBlock)
+              targetIndex,
+              createdBlock
             );
             this.setBlocks(nextBlocks);
             this.emitStatus("Block added to the editor.");
@@ -674,10 +1293,18 @@ export class PlayEditorEngine {
       } else if (this.dragState.source === "program" && this.dragState.blockId) {
         const extracted = this.extractBlockFromTree(this.getBlocks(), this.dragState.blockId);
         if (extracted.block) {
+          const baseLineLayouts = buildEditorLineLayout(extracted.nextBlocks);
+          const placement = this.resolveDropPlacement(
+            extracted.nextBlocks,
+            baseLineLayouts,
+            this.dragState.visualLineIndex,
+            this.dragState.chosenIndent
+          );
+          const targetIndex = placement.rootIndex ?? extracted.nextBlocks.length;
           this.setBlocks(
             insertAt(
               extracted.nextBlocks,
-              Math.min(this.dragState.dropIndex, extracted.nextBlocks.length),
+              targetIndex,
               extracted.block
             )
           );
@@ -759,9 +1386,41 @@ export class PlayEditorEngine {
       this.updateBlockById(this.getBlocks(), blockId, (currentBlock) => ({
         ...currentBlock,
         conditionalMode: mode,
-        elseBranch: mode === "if-else" ? currentBlock.elseBranch ?? [] : []
+        alternateBodyBlocks: mode === "if-else" ? currentBlock.alternateBodyBlocks ?? [] : []
       }))
     );
+  }
+
+  private updateVariableOperationMode(blockId: string, mode: VariableOperationMode): void {
+    if (this.isLocked()) {
+      return;
+    }
+
+    this.setBlocks(
+      this.updateBlockById(this.getBlocks(), blockId, (currentBlock) => ({
+        ...currentBlock,
+        variableOperationMode: mode,
+        inputBlock: mode === "value" ? null : currentBlock.inputBlock ?? null
+      }))
+    );
+  }
+
+  private editVariableName(blockId: string, currentName: string | undefined): void {
+    if (this.isLocked()) {
+      return;
+    }
+
+    const normalizedName = this.promptForVariableName(currentName, blockId);
+    if (!normalizedName) {
+      return;
+    }
+    this.setBlocks(
+      this.updateBlockById(this.getBlocks(), blockId, (currentBlock) => ({
+        ...currentBlock,
+        variableName: normalizedName
+      }))
+    );
+    this.emitStatus("Variable renamed.");
   }
 
   private clearSlot(blockId: string): void {
@@ -773,25 +1432,144 @@ export class PlayEditorEngine {
         ...currentBlock,
         inputBlock: null
       }))
-    );
+      );
   }
 
-  private editValueBlock(blockId: string, currentValue: string | number | null | undefined): void {
+  private assignLiteralIntoSlot(
+    blockId: string,
+    rawValue: string,
+    expectedType: "value" | "boolean"
+  ): void {
     if (this.isLocked()) {
       return;
     }
-    const nextValue = window.prompt("Value", String(currentValue ?? "item"));
-    if (nextValue === null) {
+
+    const trimmed = rawValue.trim();
+    if (!trimmed) {
       return;
     }
 
     this.setBlocks(
       this.updateBlockById(this.getBlocks(), blockId, (currentBlock) => ({
         ...currentBlock,
-        literalValue: nextValue
+        inputBlock:
+          expectedType === "boolean"
+            ? /^(true|false)$/i.test(trimmed)
+              ? createBooleanValueBlock(trimmed.toLocaleLowerCase() === "true")
+              : createValueBlock(trimmed)
+            : createValueBlock(trimmed)
+      }))
+    );
+    this.emitStatus("Value inserted.");
+  }
+
+  private editValueBlock(blockId: string, currentValue: DataValue | null | undefined): void {
+    if (this.isLocked()) {
+      return;
+    }
+    const normalizedValue = this.promptForValueText(currentValue);
+    if (normalizedValue === null) {
+      return;
+    }
+
+    this.setBlocks(
+      this.updateBlockById(this.getBlocks(), blockId, (currentBlock) => ({
+        ...currentBlock,
+        literalValue: normalizedValue
       }))
     );
     this.emitStatus("Value updated.");
+  }
+
+  private buildPreviewDescriptor(): PreviewDescriptor | null {
+    if (!this.dragState) {
+      return null;
+    }
+
+    const draggingBlock =
+      this.dragState.source === "program" && this.dragState.blockId
+        ? this.findBlockById(this.getBlocks(), this.dragState.blockId)
+        : null;
+
+    if (draggingBlock) {
+      return {
+        label:
+          draggingBlock.kind === "conditional"
+            ? "if"
+            : draggingBlock.kind === "var_declaration"
+              ? "declare"
+              : describeBlock(draggingBlock),
+        chip:
+          draggingBlock.kind === "structure"
+            ? draggingBlock.structureId
+            : draggingBlock.kind === "conditional"
+              ? "IF"
+              : draggingBlock.kind === "var_declaration"
+                ? "VAR"
+                : draggingBlock.kind === "var_operation"
+                  ? draggingBlock.variableName?.slice(0, 3).toUpperCase() ?? "VAR"
+                  : draggingBlock.kind === "value"
+                    ? "T"
+                    : undefined,
+        color: draggingBlock.color,
+        operation: draggingBlock.operation,
+        pending:
+          (draggingBlock.kind === "structure" && !draggingBlock.operation) ||
+          draggingBlock.kind === "conditional",
+        conditional: draggingBlock.kind === "conditional",
+        variable: draggingBlock.kind === "var_declaration" || draggingBlock.kind === "var_operation"
+      };
+    }
+
+    return {
+      label:
+        this.dragState.blockKind === "conditional"
+          ? "if"
+          : this.dragState.blockKind === "var_declaration"
+            ? "declare"
+            : this.dragState.blockKind === "var_operation"
+              ? this.dragState.variableName ?? "variable"
+              : this.dragState.blockKind === "value"
+                ? "value"
+                : "Data Structure",
+      chip:
+        this.dragState.blockKind === "structure"
+          ? this.dragState.structureId
+          : this.dragState.blockKind === "conditional"
+            ? "IF"
+            : this.dragState.blockKind === "var_declaration"
+              ? "VAR"
+              : this.dragState.blockKind === "var_operation"
+                ? this.dragState.variableName?.slice(0, 3).toUpperCase() ?? "VAR"
+                : this.dragState.blockKind === "value"
+                  ? "T"
+                  : undefined,
+      color: this.dragState.color,
+      operation: null,
+      pending: this.dragState.blockKind === "conditional" || this.dragState.blockKind === "structure",
+      conditional: this.dragState.blockKind === "conditional",
+      variable: this.dragState.blockKind === "var_declaration" || this.dragState.blockKind === "var_operation"
+    };
+  }
+
+  private renderPreviewBlock(descriptor: PreviewDescriptor): HTMLElement {
+    const element = document.createElement("div");
+    element.className = `editor-block sequence editor-block-preview ${blockColorClass(descriptor.operation)}${
+      descriptor.pending ? " pending" : ""
+    }${descriptor.conditional ? " conditional-block" : ""}${descriptor.variable ? " variable-block" : ""}`;
+    this.applyBlockColor(element, descriptor.color);
+
+    if (descriptor.chip) {
+      const chip = document.createElement("span");
+      chip.className = "block-chip";
+      chip.textContent = descriptor.chip;
+      element.appendChild(chip);
+    }
+
+    const title = document.createElement("strong");
+    title.textContent = descriptor.label;
+    element.appendChild(title);
+    return element;
   }
 
   private renderInsertedBlock(block: EditorBlock, parentBlockId: string): HTMLElement {
@@ -806,7 +1584,7 @@ export class PlayEditorEngine {
     label.textContent = describeBlock(block);
     nested.appendChild(label);
 
-    if (block.kind === "structure") {
+    if (block.kind === "structure" || block.kind === "var_operation") {
       const handle = document.createElement("button");
       handle.type = "button";
       handle.className = "slot-inline-handle";
@@ -827,7 +1605,11 @@ export class PlayEditorEngine {
     } else {
       nested.addEventListener("click", (event) => {
         event.stopPropagation();
-        this.editValueBlock(block.id, block.literalValue);
+        if (block.kind === "value") {
+          this.editValueBlock(block.id, block.literalValue);
+        } else if (block.kind === "var_declaration") {
+          this.editVariableName(block.id, block.variableName);
+        }
       });
     }
 
@@ -865,6 +1647,10 @@ export class PlayEditorEngine {
           ? `<span class="block-chip">${block.structureId}</span><strong>Data Structure</strong>`
           : block.kind === "conditional"
             ? `<span class="block-chip">IF</span><strong>Conditional</strong>`
+            : block.kind === "var_declaration"
+              ? `<span class="block-chip">VAR</span><strong>Declaration</strong>`
+              : block.kind === "var_operation"
+                ? `<span class="block-chip">${block.variableName?.slice(0, 3).toUpperCase() ?? "VAR"}</span><strong>${block.variableName ?? "Variable"}</strong>`
           : `<span class="block-chip">T</span><strong>Value</strong>`;
       if (this.isLocked()) {
         button.disabled = true;
@@ -899,23 +1685,34 @@ export class PlayEditorEngine {
     programBody.className = "editor-program-body";
     this.editorLane = programBody;
     this.blockRefs.clear();
+    this.lineRowRefs.clear();
     this.slotRefs.clear();
-    this.branchRefs.clear();
+    this.branchLineRefs = [];
 
+    const implicitBodyTarget = this.isImplicitBodyTarget(this.dragState?.branchTarget)
+      ? this.dragState?.branchTarget ?? null
+      : null;
+    const canUseInlineSequencePreview =
+      !!this.dragState &&
+      !this.dragState.slotTargetBlockId &&
+      !this.dragState.branchTarget &&
+      this.dragState.isOverEditor;
+    const previewBlock = canUseInlineSequencePreview ? this.createPreviewBlockFromDragState() : null;
     const previewBlocks =
-      this.dragState?.source === "program" &&
-      this.dragState.blockId &&
-      !this.dragState.slotTargetBlockId &&
-      !this.dragState.branchTarget
-        ? moveItem(this.getBlocks(), this.dragState.blockId, this.dragState.dropIndex)
+      canUseInlineSequencePreview && previewBlock
+        ? this.dragState?.source === "program" && this.dragState.blockId
+          ? moveItem(this.getBlocks(), this.dragState.blockId, this.dragState.dropIndex).map((block) =>
+              block.id === this.dragState?.blockId ? { ...block, id: PREVIEW_BLOCK_ID } : block
+            )
+          : insertAt(this.getBlocks(), this.dragState!.dropIndex, previewBlock)
         : this.getBlocks();
+    const lineLayouts = buildEditorLineLayout(previewBlocks);
 
-    const paletteIndicatorIndex =
+    const lineIndicatorIndex =
       this.dragState?.isOverEditor &&
-      this.dragState.source === "palette" &&
       !this.dragState.slotTargetBlockId &&
-      !this.dragState.branchTarget
-        ? this.dragState.dropIndex
+      !canUseInlineSequencePreview
+        ? this.dragState.visualLineIndex
         : null;
     let numberedRows = 0;
 
@@ -925,11 +1722,16 @@ export class PlayEditorEngine {
         active?: boolean;
         breakpoint?: boolean;
         ghost?: boolean;
+        lineNumber?: number;
       } = {}
     ) => {
       const number = document.createElement("div");
       number.className = "editor-line-number";
-      numberedRows += 1;
+      if (options.lineNumber !== undefined) {
+        numberedRows = options.lineNumber;
+      } else {
+        numberedRows += 1;
+      }
       number.textContent = String(numberedRows);
       if (options.ghost) {
         number.classList.add("editor-line-number-ghost");
@@ -951,67 +1753,75 @@ export class PlayEditorEngine {
       gutter.appendChild(number);
     };
 
-    const renderBranchShadow = (
-      owner: EditorBlock,
-      branch: ConditionalBranch,
-      depth: number,
-      branchBlocks: EditorBlock[]
-    ) => {
-      const shadow = document.createElement("div");
-      shadow.className = "editor-branch-shadow";
-      if (
-        this.dragState?.branchTarget?.ownerId === owner.id &&
-        this.dragState.branchTarget.branch === branch
-      ) {
-        shadow.classList.add("active");
-      }
-      shadow.style.marginLeft = `${depth * 28}px`;
-      this.branchRefs.set(this.branchKey(owner.id, branch), shadow);
-
-      const branchFill = document.createElement("div");
-      branchFill.className = "editor-branch-fill";
-      shadow.appendChild(branchFill);
-      programBody.appendChild(shadow);
-
-      branchBlocks.forEach((child) => {
-        renderBlockRow(child, depth);
-      });
-    };
-
-    const renderElseRow = (owner: EditorBlock, depth: number) => {
-      appendLineNumber();
+    const renderElseRow = (lineLayout: EditorLineLayout) => {
+      const block = lineLayout.block!;
+      appendLineNumber(undefined, { lineNumber: lineLayout.lineNumber });
       const elseRow = document.createElement("div");
       elseRow.className = "editor-program-row editor-conditional-divider";
-      elseRow.style.paddingLeft = `${depth * 28}px`;
+      elseRow.style.paddingLeft = `${lineLayout.depth * 28}px`;
 
       const elseTag = document.createElement("div");
       elseTag.className = "editor-else-pill";
       elseTag.textContent = "else";
-      if (owner.color) {
-        elseTag.style.backgroundColor = owner.color;
-        elseTag.style.borderColor = owner.color;
+      if (block.color) {
+        elseTag.style.backgroundColor = block.color;
+        elseTag.style.borderColor = block.color;
       }
 
       elseRow.appendChild(elseTag);
+      this.lineRowRefs.set(lineLayout.id, elseRow);
       programBody.appendChild(elseRow);
     };
 
-    const renderBlockRow = (block: EditorBlock, depth: number) => {
+    const renderDropRow = (lineLayout: EditorLineLayout, isActive: boolean) => {
+      const gutterPlaceholder = document.createElement("div");
+      gutterPlaceholder.className = "editor-line-number editor-line-number-ghost editor-drop-gutter";
+      gutter.appendChild(gutterPlaceholder);
+      const line = document.createElement("div");
+      line.className = `editor-program-row editor-drop-row${isActive ? " active" : ""}`;
+      const previewIndent =
+        isActive && this.dragState
+          ? this.dragState.chosenIndent
+          : (lineLayout.indentPotential[0] ?? 0);
+      line.style.paddingLeft = `${previewIndent * 28}px`;
+      if (isActive) {
+        const previewDescriptor = this.buildPreviewDescriptor();
+        if (previewDescriptor) {
+          const preview = this.renderPreviewBlock(previewDescriptor);
+          preview.classList.add("editor-block-preview-overlay");
+          line.appendChild(preview);
+        }
+      } else {
+        const indicator = document.createElement("div");
+        indicator.className = "editor-drop-indicator";
+        line.appendChild(indicator);
+      }
+      this.lineRowRefs.set(lineLayout.id, line);
+      programBody.appendChild(line);
+    };
+
+    const renderBlockRow = (lineLayout: EditorLineLayout) => {
+      const block = lineLayout.block!;
       const isDraggingCurrentBlock =
         this.dragState?.source === "program" && this.dragState.blockId === block.id;
+      const isPreviewBlock = block.id === PREVIEW_BLOCK_ID;
       const line = document.createElement("div");
       line.className = "editor-program-row";
-      line.style.paddingLeft = `${depth * 28}px`;
-      const isActiveLine = this.blockContainsId(block, this.props.highlightedBlockId);
+      line.style.paddingLeft = `${lineLayout.depth * 28}px`;
+      const isActiveLine = this.blockContainsId(block, this.props.highlightedNodeId);
       if (isActiveLine) {
         line.classList.add("editor-program-row-active");
       }
       if (isDraggingCurrentBlock) {
         line.classList.add("editor-program-row-hidden");
       }
+      if (isPreviewBlock) {
+        line.classList.add("editor-program-row-preview");
+      }
       appendLineNumber(block.id, {
+        lineNumber: lineLayout.lineNumber,
         active: isActiveLine,
-        breakpoint: (this.props.breakpointBlockIds ?? []).includes(block.id)
+        breakpoint: (this.props.breakpointNodeIds ?? []).includes(block.id)
       });
 
       const element = document.createElement("div");
@@ -1019,13 +1829,23 @@ export class PlayEditorEngine {
         (block.kind === "structure" && !block.operation) || block.kind === "conditional";
       element.className = `editor-block sequence ${blockColorClass(block.operation)}${
         isPendingStructure ? " pending" : ""
-      }${block.kind === "conditional" ? " conditional-block" : ""}`;
+      }${block.kind === "conditional" ? " conditional-block" : ""}${
+        block.kind === "var_declaration" || block.kind === "var_operation" ? " variable-block" : ""
+      }`;
+      if (isPreviewBlock) {
+        element.classList.add("editor-block-preview");
+      }
       this.applyBlockColor(element, block.color);
       const main = document.createElement("div");
       main.className = "editor-block-main";
 
       const title = document.createElement("strong");
-      title.textContent = block.kind === "conditional" ? "if" : describeBlock(block);
+      title.textContent =
+        block.kind === "conditional"
+          ? "if"
+          : block.kind === "var_declaration"
+            ? "declare"
+            : describeBlock(block);
       main.appendChild(title);
 
       if (block.kind === "conditional") {
@@ -1033,9 +1853,38 @@ export class PlayEditorEngine {
         modeText.className = "editor-conditional-mode";
         modeText.textContent = block.conditionalMode === "if-else" ? "if / else" : "if";
         main.appendChild(modeText);
-      } else if (blockNeedsInput(block)) {
-        const slot = document.createElement("button");
-        slot.type = "button";
+      } else if (block.kind === "value") {
+        title.textContent = "value";
+        const valueButton = document.createElement("button");
+        valueButton.type = "button";
+        valueButton.className = "editor-value-pill";
+        valueButton.textContent = String(block.literalValue ?? "item");
+        valueButton.addEventListener("pointerdown", (event) => {
+          event.stopPropagation();
+        });
+        valueButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          this.editValueBlock(block.id, block.literalValue);
+        });
+        main.appendChild(valueButton);
+      } else if (block.kind === "var_declaration") {
+        const nameButton = document.createElement("button");
+        nameButton.type = "button";
+        nameButton.className = "editor-variable-name";
+        nameButton.textContent = block.variableName?.trim() || "variable";
+        nameButton.addEventListener("pointerdown", (event) => {
+          event.stopPropagation();
+        });
+        nameButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          this.editVariableName(block.id, block.variableName);
+        });
+        main.appendChild(nameButton);
+      }
+
+      const inputSlot = getBlockInputSlot(block);
+      if (inputSlot) {
+        const slot = document.createElement("div");
         slot.className = "editor-input-slot";
         if (this.dragState?.slotTargetBlockId === block.id) {
           slot.classList.add("active");
@@ -1048,7 +1897,37 @@ export class PlayEditorEngine {
           slot.textContent = "";
           slot.appendChild(this.renderInsertedBlock(block.inputBlock, block.id));
         } else {
-          slot.textContent = "Drop block";
+          slot.title = inputSlot.title;
+          const textInput = document.createElement("input");
+          textInput.type = "text";
+          textInput.className = "editor-input-slot-text";
+          textInput.setAttribute("aria-label", inputSlot.title);
+          textInput.setAttribute("spellcheck", "false");
+          if (inputSlot.allowDirectTextEntry) {
+            textInput.placeholder = "";
+          } else {
+            textInput.disabled = true;
+          }
+          textInput.addEventListener("pointerdown", (event) => {
+            event.stopPropagation();
+          });
+          textInput.addEventListener("click", (event) => {
+            event.stopPropagation();
+          });
+          textInput.addEventListener("keydown", (event) => {
+            event.stopPropagation();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              this.assignLiteralIntoSlot(block.id, textInput.value, inputSlot.expectedType);
+            } else if (event.key === "Escape") {
+              textInput.value = "";
+              textInput.blur();
+            }
+          });
+          textInput.addEventListener("blur", () => {
+            this.assignLiteralIntoSlot(block.id, textInput.value, inputSlot.expectedType);
+          });
+          slot.appendChild(textInput);
         }
         slot.addEventListener("pointerdown", (event) => {
           event.stopPropagation();
@@ -1066,13 +1945,21 @@ export class PlayEditorEngine {
       element.appendChild(main);
 
       let handle: HTMLButtonElement | null = null;
-      if (block.kind === "structure" || block.kind === "conditional") {
+      if (
+        block.kind === "structure" ||
+        block.kind === "conditional" ||
+        block.kind === "var_operation"
+      ) {
         handle = document.createElement("button");
         handle.type = "button";
         handle.className = "editor-block-handle";
         handle.setAttribute(
           "aria-label",
-          block.kind === "conditional" ? "Choose conditional mode" : "Choose operation"
+          block.kind === "conditional"
+            ? "Choose conditional mode"
+            : block.kind === "var_operation"
+              ? "Choose variable operation"
+              : "Choose operation"
         );
         handle.innerHTML = `<span class="editor-block-handle-arrow">▸</span>`;
         element.appendChild(handle);
@@ -1110,48 +1997,89 @@ export class PlayEditorEngine {
           event.stopPropagation();
           this.editValueBlock(block.id, block.literalValue);
         });
+      } else if (block.kind === "var_declaration") {
+        element.addEventListener("dblclick", (event) => {
+          event.stopPropagation();
+          this.editVariableName(block.id, block.variableName);
+        });
       }
 
       this.blockRefs.set(block.id, element);
+      this.lineRowRefs.set(lineLayout.id, line);
+      if (lineLayout.branchOwnerId && lineLayout.branch) {
+        this.branchLineRefs.push({
+          ownerId: lineLayout.branchOwnerId,
+          branch: lineLayout.branch,
+          depth: lineLayout.depth,
+          element: line,
+          isLast: lineLayout.isLastInBranch ?? false
+        });
+      }
       line.appendChild(element);
       programBody.appendChild(line);
-      if (block.kind === "conditional") {
-        renderBranchShadow(block, "if", depth + 1, block.ifBranch ?? []);
-        if (block.conditionalMode === "if-else") {
-          renderElseRow(block, depth);
-          renderBranchShadow(block, "else", depth + 1, block.elseBranch ?? []);
-        }
-      }
     };
 
-    previewBlocks.forEach((block, index) => {
-      if (paletteIndicatorIndex !== null && index === paletteIndicatorIndex) {
-        appendLineNumber(undefined, { ghost: true });
-        const indicator = document.createElement("div");
-        const line = document.createElement("div");
-        line.className = "editor-program-row editor-line-indicator";
-        indicator.className = "editor-drop-indicator";
-        line.appendChild(indicator);
-        programBody.appendChild(line);
+    lineLayouts.forEach((lineLayout, index) => {
+      if (lineLayout.role === "drop") {
+        renderDropRow(lineLayout, lineIndicatorIndex === index);
+      } else if (lineLayout.role === "else_header") {
+        renderElseRow(lineLayout);
+      } else {
+        renderBlockRow(lineLayout);
       }
-      renderBlockRow(block, 0);
     });
- 
-    if (paletteIndicatorIndex === previewBlocks.length) {
-      appendLineNumber(undefined, { ghost: true });
-      const indicator = document.createElement("div");
-      const line = document.createElement("div");
-      line.className = "editor-program-row editor-line-indicator";
-
-      indicator.className = "editor-drop-indicator";
-      line.appendChild(indicator);
-      programBody.appendChild(line);
-    }
 
     lane.appendChild(gutter);
     lane.appendChild(programBody);
     editor.appendChild(lane);
     container.appendChild(editor);
+  }
+
+  private getWheelOptionsForBlock(block: EditorBlock): RenderWheelOption[] | null {
+    if (block.kind === "conditional") {
+      return buildConditionalWheelOptions(block.conditionalMode ?? "if").map((option) => ({
+        label: option.label,
+        className: option.className,
+        onSelect: () => {
+          this.updateConditionalMode(block.id, option.mode);
+          this.closeWheel();
+          this.render();
+          this.emitStatus(option.mode === "if-else" ? "Else branch added." : "Else branch removed.");
+        }
+      }));
+    }
+
+    if (block.kind === "var_operation") {
+      return buildVariableOperationWheelOptions(block.variableOperationMode ?? "value").map(
+        (option) => ({
+          label: option.label,
+          className: option.className,
+          onSelect: () => {
+            this.updateVariableOperationMode(block.id, option.mode);
+            this.closeWheel();
+            this.render();
+            this.emitStatus("Variable block updated.");
+          }
+        })
+      );
+    }
+
+    if (block.kind === "structure" && block.structureId && block.structureKind) {
+      return buildWheelOptions(this.props.allowedOperations, block.structureId, block.structureKind).map(
+        (option) => ({
+          label: option.label,
+          className: option.className,
+          onSelect: () => {
+            this.updateBlockOperation(block.id, option.operation);
+            this.closeWheel();
+            this.render();
+            this.emitStatus(option.operation ? "Block updated." : "Block reset.");
+          }
+        })
+      );
+    }
+
+    return null;
   }
 
   private renderWheel(container: HTMLElement): void {
@@ -1164,58 +2092,41 @@ export class PlayEditorEngine {
       return;
     }
 
+    const options = this.getWheelOptionsForBlock(block);
+    if (!options) {
+      return;
+    }
+
+    const layout = computeWheelLayout(options.map((option) => option.label));
     const wheel = document.createElement("div");
     wheel.className = "operation-wheel";
     wheel.style.left = `${this.wheelState.x}px`;
     wheel.style.top = `${this.wheelState.y}px`;
+    wheel.style.width = `${layout.width}px`;
+    wheel.style.height = `${layout.height}px`;
 
     const arc = document.createElement("div");
     arc.className = "operation-wheel-arc";
     wheel.appendChild(arc);
 
-    if (block.kind === "conditional") {
-      const options: ConditionalWheelOption[] = buildConditionalWheelOptions(
-        block.conditionalMode ?? "if"
-      );
-
-      options.forEach((option, index) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `wheel-option ${option.className}`;
-        button.style.transform = wheelTransform(index, options.length);
-        button.textContent = option.label;
-        button.addEventListener("click", () => {
-          this.updateConditionalMode(block.id, option.mode);
-          this.closeWheel();
-          this.render();
-          this.emitStatus(option.mode === "if-else" ? "Else branch added." : "Else branch removed.");
-        });
-        wheel.appendChild(button);
+    options.forEach((option, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `wheel-option ${option.className}`;
+      button.style.minWidth = `${layout.buttonMinWidth}px`;
+      button.style.padding = `${layout.buttonPaddingY}px ${layout.buttonPaddingX}px`;
+      button.style.fontSize = `${layout.buttonFontSize}px`;
+      button.style.borderRadius = `${layout.buttonBorderRadius}px`;
+      button.style.transform = wheelTransform(index, options.length, {
+        angleStart: layout.angleStart,
+        angleEnd: layout.angleEnd,
+        radius: layout.radius,
+        baseX: layout.baseX
       });
-    } else if (block.kind === "structure" && block.structureId && block.structureKind) {
-      const options = buildWheelOptions(
-        this.props.allowedOperations,
-        block.structureId,
-        block.structureKind
-      );
-
-      options.forEach((option, index) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = `wheel-option ${option.className}`;
-        button.style.transform = wheelTransform(index, options.length);
-        button.textContent = option.label;
-        button.addEventListener("click", () => {
-          this.updateBlockOperation(block.id, option.operation);
-          this.closeWheel();
-          this.render();
-          this.emitStatus(option.operation ? "Block updated." : "Block reset.");
-        });
-        wheel.appendChild(button);
-      });
-    } else {
-      return;
-    }
+      button.textContent = option.label;
+      button.addEventListener("click", option.onSelect);
+      wheel.appendChild(button);
+    });
 
     container.appendChild(wheel);
   }
@@ -1241,6 +2152,10 @@ export class PlayEditorEngine {
       ghost.innerHTML = `<span class="block-chip">T</span><strong>${describeBlock(createValueBlock(this.dragState.literalValue ?? "item"))}</strong>`;
     } else if (this.dragState.blockKind === "conditional") {
       ghost.innerHTML = `<span class="block-chip">IF</span><strong>Conditional</strong>`;
+    } else if (this.dragState.blockKind === "var_declaration") {
+      ghost.innerHTML = `<span class="block-chip">VAR</span><strong>Declaration</strong>`;
+    } else if (this.dragState.blockKind === "var_operation") {
+      ghost.innerHTML = `<span class="block-chip">${this.dragState.variableName?.slice(0, 3).toUpperCase() ?? "VAR"}</span><strong>${this.dragState.variableName ?? "Variable"}</strong>`;
     } else {
       ghost.innerHTML = `<span class="block-chip">${this.dragState.structureId}</span><strong>Data Structure</strong>`;
     }

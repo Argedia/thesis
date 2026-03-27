@@ -1,5 +1,76 @@
 [
   {
+    "id": "mixed-playground",
+    "title": "Mixed Playground",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [1, 2, 3],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "queue",
+        "values": [4, 5],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [1, 2, 3],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "queue",
+        "values": [4, 5],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "allowedOperations": ["POP", "PUSH", "DEQUEUE", "ENQUEUE"],
+      "forbiddenBlocks": [],
+      "maxSteps": 99
+    },
+    "playLayout": {
+      "panelOrder": ["board", "steps", "timeline"],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": ["A", "B"],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": ["canvas", "preview"]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": ["stack", "queue"],
+      "difficulty": "easy",
+      "author": "Core Team",
+      "description": "Open sandbox level with one stack and one queue."
+    },
+    "tooling": {
+      "availableStructures": ["stack", "queue"],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
     "id": "intro-transfer",
     "title": "First Transfer",
     "initialState": [

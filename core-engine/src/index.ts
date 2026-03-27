@@ -1,6 +1,6 @@
 export type StructureId = string;
 export type StructureKind = "stack" | "queue";
-export type DataValue = string | number;
+export type DataValue = string | number | boolean;
 
 export interface NodeVisualProperties {
   color?: string;

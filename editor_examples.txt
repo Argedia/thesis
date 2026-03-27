@@ -1,0 +1,1036 @@
+You are refactoring an existing visual scripting editor that currently behaves too much like a line-based text buffer with indentation-like placement logic. The goal of the refactor is to make the program model structurally correct, easier to parse, easier to debug, easier to drag/drop preview, and easier to export to pseudocode.
+
+You must refactor the editor so that:
+
+1. The source of truth is not “lines with indentation”.
+2. The source of truth is a structured tree / AST-like representation.
+3. The UI still looks like a text editor with one block per visible line.
+4. The editor still has visible line numbers.
+5. Drag-and-drop preview works by simulating insertion into the tree.
+6. Execution/debugging works instruction-by-instruction through a compiled instruction list derived from the tree.
+7. Pseudocode export is generated recursively from the tree.
+8. Breakpoints are attached to stable node IDs, not raw line numbers.
+
+The tree is the truth.
+The visible rows are a projection.
+The debugger instructions are a compiled execution representation.
+
+======================================================================
+1. WHAT IS WRONG WITH THE CURRENT MODEL
+======================================================================
+
+The current or previous line-based indentation approach is flawed if it treats rows as the real structure.
+
+For example, if the editor visually shows:
+
+1  if x < 10
+2      push(A)
+3      pop(A)
+4  print(x)
+
+A line-based model may try to encode:
+- line 2 belongs to line 1 because it is indented
+- line 3 belongs to line 1 because it is indented
+- line 4 belongs to top-level because it is not indented
+
+This becomes fragile when:
+- moving line 3 above line 2
+- moving lines 2 and 3 together
+- inserting else
+- moving print(x) into the if body
+- dragging nested while blocks
+- exporting to pseudocode reliably
+- debugging repeatedly through the same while line
+
+Do not keep this model as the core architecture.
+
+======================================================================
+2. TARGET MENTAL MODEL
+======================================================================
+
+The user sees rows.
+The program is actually a tree.
+
+Visual example:
+
+Visible editor rows:
+1  x <- 0
+2  if x < 3
+3      x <- x + 1
+4  else
+5      print("big")
+6  print(x)
+
+Internal tree:
+Program
+- Assign(id=a1, x <- 0)
+- If(id=i1, condition=x < 3)
+  - thenBody
+    - Assign(id=a2, x <- x + 1)
+  - elseBody
+    - Call(id=c1, print("big"))
+- Call(id=c2, print(x))
+
+Important:
+- row numbers are derived
+- indentation is derived
+- the tree defines nesting
+- rows are just a visual projection
+
+======================================================================
+3. TARGET PROGRAM TREE MODEL
+======================================================================
+
+Create a dedicated program tree model.
+
+Expected minimum statement node kinds:
+- program
+- assignment
+- call / operation
+- if
+- while
+
+Use stable unique IDs for every node.
+
+Equivalent structure:
+
+Program
+- id
+- statements: Statement[]
+
+Statement base
+- id
+- kind
+
+Assignment
+- id
+- kind = "assign"
+- target
+- value
+
+Call
+- id
+- kind = "call"
+- name
+- args
+
+If
+- id
+- kind = "if"
+- condition
+- thenBody: Statement[]
+- elseBody: Statement[] or null
+
+While
+- id
+- kind = "while"
+- condition
+- body: Statement[]
+
+Visual example:
+
+Program:
+1  x <- 0
+2  if x < 10
+3      push(A)
+4      while not empty(A)
+5          pop(A)
+6  print("done")
+
+Internal tree:
+Program
+- Assign(id=n1)
+- If(id=n2)
+  - thenBody
+    - Call(id=n3, push)
+    - While(id=n4)
+      - body
+        - Call(id=n5, pop)
+- Call(id=n6, print)
+
+Do not store “depth = 2” as semantic truth.
+Depth is computed from tree nesting.
+
+======================================================================
+4. TREE OPERATIONS TO IMPLEMENT
+======================================================================
+
+Create safe tree utilities:
+
+- findNode(tree, nodeId)
+- findParentContainer(tree, nodeId)
+- detachNode(tree, nodeId)
+- insertNode(tree, containerRef, index, node)
+- moveNode(tree, nodeId, targetContainerRef, targetIndex)
+
+These must support full subtree movement.
+
+Example:
+
+Original tree:
+Program
+- Assign A
+- If I1
+  - thenBody
+    - Call B
+    - Call C
+- Call D
+
+Operation:
+move Call D into If I1 thenBody at index 1
+
+Result:
+Program
+- Assign A
+- If I1
+  - thenBody
+    - Call B
+    - Call D
+    - Call C
+
+Do not implement this by “changing indentation of D”.
+Implement it by moving the node in the tree.
+
+Prevent illegal moves.
+
+Illegal example:
+If node I1 contains While W1 in its body.
+Do not allow moving I1 into W1.body.
+That would create a cycle / self-descendant insertion.
+
+======================================================================
+5. FLATTENED ROW PROJECTION
+======================================================================
+
+Create a flattening layer that converts the tree into editor rows.
+
+Rows are derived, not canonical.
+
+Each row should carry metadata similar to:
+- rowId
+- rowNumber
+- nodeId if applicable
+- rowKind
+- depth
+- isExecutable
+- container context if useful
+- indexInContainer if useful
+
+Possible row kinds:
+- statement
+- if-header
+- else-header
+- while-header
+- end-if (optional)
+- end-while (optional)
+- empty-body-placeholder (recommended)
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE A: SIMPLE IF
+----------------------------------------------------------------------
+
+Tree:
+Program
+- If(id=i1, condition=x < 5)
+  - thenBody
+    - Call(id=c1, print("small"))
+- Call(id=c2, print("done"))
+
+Flattened rows:
+1  if x < 5                [rowKind=if-header, nodeId=i1, depth=0]
+2      print("small")      [rowKind=statement, nodeId=c1, depth=1]
+3  print("done")           [rowKind=statement, nodeId=c2, depth=0]
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE B: IF / ELSE
+----------------------------------------------------------------------
+
+Tree:
+Program
+- If(id=i1, condition=x < 5)
+  - thenBody
+    - Call(id=c1, print("small"))
+  - elseBody
+    - Call(id=c2, print("big"))
+- Call(id=c3, print("done"))
+
+Flattened rows:
+1  if x < 5                [if-header, executable]
+2      print("small")      [statement, executable]
+3  else                    [else-header, structural]
+4      print("big")        [statement, executable]
+5  print("done")           [statement, executable]
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE C: WHILE INSIDE IF
+----------------------------------------------------------------------
+
+Tree:
+Program
+- If(id=i1, condition=hasItems)
+  - thenBody
+    - While(id=w1, condition=not empty(A))
+      - body
+        - Call(id=c1, pop(A))
+- Call(id=c2, print("done"))
+
+Flattened rows:
+1  if hasItems             [if-header, depth=0]
+2      while not empty(A)  [while-header, depth=1]
+3          pop(A)          [statement, depth=2]
+4  print("done")           [statement, depth=0]
+
+Depth is derived:
+- row 1 depth 0
+- row 2 depth 1
+- row 3 depth 2
+- row 4 depth 0
+
+======================================================================
+6. EMPTY BODY PLACEHOLDERS
+======================================================================
+
+Empty bodies need visible drop targets.
+
+Example tree:
+Program
+- If(id=i1, condition=x > 0)
+  - thenBody = []
+  - elseBody = []
+
+Recommended flattened rows:
+1  if x > 0
+2      [drop here]
+3  else
+4      [drop here]
+
+These placeholder rows are not semantic program nodes.
+They are interaction rows.
+
+This is strongly recommended so users can drag blocks into empty bodies naturally.
+
+======================================================================
+7. DRAG AND DROP: NEW MODEL
+======================================================================
+
+Do not implement drag/drop by mutating line indentation.
+
+Implement drag/drop as:
+- find target container
+- find target insertion index
+- simulate insertion into tree
+- flatten preview tree
+- render preview rows
+
+Drag state should contain:
+- draggedNodeId
+- draggedSubtree
+- treeWithoutDraggedSubtree
+- activeDropZoneId
+- previewTree
+
+Flow:
+
+onDragStart(nodeId):
+- detach node/subtree from current tree
+- save dragged subtree
+- save treeWithoutDraggedSubtree
+
+onDragMove(pointer):
+- determine closest valid drop zone
+- convert zone to (target container, target index)
+- insert dragged subtree into treeWithoutDraggedSubtree
+- create previewTree
+- flatten previewTree to previewRows
+- render previewRows
+
+onDrop():
+- commit previewTree as program tree
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE D: DRAGGING A TOP-LEVEL ROW INTO AN IF BODY
+----------------------------------------------------------------------
+
+Original visible rows:
+1  if x < 10
+2      push(A)
+3  print("done")
+
+Original tree:
+Program
+- If(id=i1)
+  - thenBody
+    - Call(id=c1, push(A))
+- Call(id=c2, print("done"))
+
+User drags line 3 into the if body.
+
+During drag, the real operation should be:
+
+1. Detach c2 from top-level
+2. Choose target = i1.thenBody, index=1
+3. Build preview tree
+
+Preview tree:
+Program
+- If(id=i1)
+  - thenBody
+    - Call(id=c1, push(A))
+    - Call(id=c2, print("done"))
+
+Preview rows:
+1  if x < 10
+2      push(A)
+3      print("done")
+
+Important:
+This is not a fake indentation preview.
+This is a real simulated tree insertion.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE E: MOVING A NESTED BLOCK OUT OF A WHILE
+----------------------------------------------------------------------
+
+Original rows:
+1  while x < 5
+2      print(x)
+3  print("done")
+
+Tree:
+Program
+- While(id=w1)
+  - body
+    - Call(id=c1, print(x))
+- Call(id=c2, print("done"))
+
+Suppose user drags c1 out of the while, after it.
+
+Preview target:
+- top-level Program.statements
+- insert after w1
+
+Preview tree:
+Program
+- While(id=w1)
+  - body = []
+- Call(id=c1, print(x))
+- Call(id=c2, print("done"))
+
+Preview rows:
+1  while x < 5
+2      [drop here]
+3  print(x)
+4  print("done")
+
+Again: preview comes from simulated tree structure.
+
+======================================================================
+8. DROP ZONES
+======================================================================
+
+Create explicit drop zones.
+Do not rely only on x/y + nearest row + guessed indentation.
+
+Each relevant row or body should expose legal targets such as:
+- before statement
+- after statement
+- inside if.thenBody at index N
+- inside if.elseBody at index N
+- inside while.body at index N
+- into empty body placeholder
+
+Drop zone structure should include:
+- zoneId
+- target container reference
+- insertion index
+- hit area / rect
+- maybe visual role
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE F: DROP ZONES AROUND AN IF
+----------------------------------------------------------------------
+
+Visible rows:
+1  if x < 10
+2      push(A)
+3  else
+4      print("big")
+5  print("done")
+
+Conceptual drop zones:
+- before line 1              => Program.statements index 0
+- inside then before line 2  => If(i1).thenBody index 0
+- inside then after line 2   => If(i1).thenBody index 1
+- inside else before line 4  => If(i1).elseBody index 0
+- inside else after line 4   => If(i1).elseBody index 1
+- after entire if block      => Program.statements index 1
+- before line 5              => Program.statements index 1
+- after line 5               => Program.statements index 2
+
+Important:
+“after entire if block” is not the same as “after line 2”.
+This is why row indentation alone is not enough.
+
+======================================================================
+9. LINE NUMBERS
+======================================================================
+
+Preserve line numbers in the editor.
+
+But:
+- line numbers are derived from flattened rows
+- line numbers are recomputed on every structural change
+- line numbers are not source identity
+- line numbers are not debugger instruction pointers
+
+Example:
+
+Before moving:
+1  if x < 3
+2      print("small")
+3  print("done")
+
+After moving print("done") inside if:
+1  if x < 3
+2      print("small")
+3      print("done")
+
+The block that used to be line 3 is still the same node ID.
+Only its projected line number changed.
+
+If the current code stores line numbers as canonical identity, remove that pattern.
+
+======================================================================
+10. DEBUGGING MODEL
+======================================================================
+
+Do not execute directly from visible rows.
+Compile the tree into instructions.
+
+Each instruction should include:
+- instruction pointer / index
+- operation kind
+- nodeId
+- rowNumber if useful
+- jump target(s) if applicable
+
+One visible row may correspond to multiple instructions.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE G: IF COMPILATION
+----------------------------------------------------------------------
+
+Visible rows:
+1  x <- 0
+2  if x < 3
+3      x <- x + 1
+4  print(x)
+
+Tree:
+Program
+- Assign(id=a1)
+- If(id=i1)
+  - thenBody
+    - Assign(id=a2)
+- Call(id=c1)
+
+Possible compiled instructions:
+ip 0: ASSIGN x, 0                [nodeId=a1, row=1]
+ip 1: EVAL_IF x < 3              [nodeId=i1, row=2]
+ip 2: JUMP_IF_FALSE -> ip 4      [nodeId=i1, row=2]
+ip 3: ASSIGN x, x+1              [nodeId=a2, row=3]
+ip 4: PRINT x                    [nodeId=c1, row=4]
+
+Notice:
+- row 2 maps to more than one instruction
+- debugger highlights row 2 when at ip 1 or ip 2
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE H: WHILE COMPILATION
+----------------------------------------------------------------------
+
+Visible rows:
+1  while x < 5
+2      x <- x + 1
+3  print(x)
+
+Possible compiled instructions:
+ip 0: EVAL_WHILE x < 5           [nodeId=w1, row=1]
+ip 1: JUMP_IF_FALSE -> ip 4      [nodeId=w1, row=1]
+ip 2: ASSIGN x, x+1              [nodeId=a1, row=2]
+ip 3: JUMP -> ip 0               [nodeId=w1, row=1]
+ip 4: PRINT x                    [nodeId=c1, row=3]
+
+Important:
+Line 1 is revisited many times during debugging.
+That is why line numbers alone cannot be execution addresses.
+
+======================================================================
+11. BREAKPOINTS
+======================================================================
+
+Breakpoints must attach to node IDs, not raw line numbers.
+
+Why:
+If a block moves, the breakpoint should stay on the block.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE I: BREAKPOINT MOVES WITH NODE
+----------------------------------------------------------------------
+
+Before:
+1  if cond
+2      print("A")   [breakpoint on node c1]
+3  print("B")
+
+User moves print("A") below print("B")
+
+After:
+1  if cond
+2  print("B")
+3  print("A")       [same breakpoint still on node c1]
+
+Correct behavior:
+The breakpoint appears on line 3 now because it follows node c1.
+
+Incorrect behavior:
+The breakpoint stays on old line 2 regardless of which block is there.
+
+Implement correct behavior only.
+
+======================================================================
+12. STRUCTURAL VS EXECUTABLE ROWS
+======================================================================
+
+Some rows are executable, others are structural.
+
+Examples:
+- if-header: executable
+- while-header: executable
+- regular statement: executable
+- else-header: structural
+- end-if: structural
+- end-while: structural
+- placeholder rows: structural
+
+This must be explicit in the row model.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE J: EXECUTABLE VS STRUCTURAL
+----------------------------------------------------------------------
+
+1  if x < 3             executable
+2      print("small")   executable
+3  else                 structural
+4      print("big")     executable
+
+Debugger should stop on:
+- row 1
+- row 2
+- row 4
+
+Not necessarily on:
+- row 3
+
+======================================================================
+13. PSEUDOCODE EXPORT
+======================================================================
+
+Export pseudocode recursively from the tree.
+Do not reconstruct nesting from row indentation.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE K: EXPORT OF IF/ELSE
+----------------------------------------------------------------------
+
+Tree:
+Program
+- If(condition=x < 3)
+  - thenBody
+    - print("small")
+  - elseBody
+    - print("big")
+- print("done")
+
+Exported pseudocode:
+if x < 3
+    print("small")
+else
+    print("big")
+print("done")
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE L: EXPORT OF NESTED WHILE
+----------------------------------------------------------------------
+
+Tree:
+Program
+- While(condition=not empty(A))
+  - body
+    - If(condition=top(A) > 0)
+      - thenBody
+        - print(top(A))
+
+Exported pseudocode:
+while not empty(A)
+    if top(A) > 0
+        print(top(A))
+
+Indentation is derived from recursive depth.
+
+======================================================================
+14. SERIALIZATION / SAVING
+======================================================================
+
+Save and load the tree model as the canonical representation.
+
+Save:
+- node IDs
+- node kinds
+- expressions / parameters
+- nested child lists
+- elseBody/body/etc
+
+Do not save flattened rows as the primary truth.
+
+If old documents exist, create migration logic.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE M: SERIALIZED SHAPE
+----------------------------------------------------------------------
+
+Equivalent conceptual JSON shape:
+
+{
+  "id": "program-1",
+  "kind": "program",
+  "statements": [
+    {
+      "id": "a1",
+      "kind": "assign",
+      "target": "x",
+      "value": "0"
+    },
+    {
+      "id": "i1",
+      "kind": "if",
+      "condition": "x < 3",
+      "thenBody": [
+        {
+          "id": "c1",
+          "kind": "call",
+          "name": "print",
+          "args": ["small"]
+        }
+      ],
+      "elseBody": [
+        {
+          "id": "c2",
+          "kind": "call",
+          "name": "print",
+          "args": ["big"]
+        }
+      ]
+    }
+  ]
+}
+
+If backwards compatibility is needed:
+- read old line-based format
+- convert it into this tree shape
+- validate it
+- then use only the new representation internally
+
+======================================================================
+15. MIGRATION OF OLD LINE-BASED DATA
+======================================================================
+
+If the old editor stores:
+- rows
+- indentation
+- block markers
+- potential indentation
+- raw line ownership
+
+Create a migration pass into the tree model.
+
+Example old representation:
+1  if x < 3
+2      print("small")
+3  else
+4      print("big")
+5  print("done")
+
+Migrated tree:
+Program
+- If(condition=x < 3)
+  - thenBody
+    - print("small")
+  - elseBody
+    - print("big")
+- print("done")
+
+If migration cannot safely determine structure:
+- fail clearly
+- mark document as invalid
+- do not silently guess in destructive ways
+
+======================================================================
+16. RENDERING REQUIREMENTS
+======================================================================
+
+The UI should still feel like a text editor.
+
+Expected characteristics:
+- gutter with line numbers
+- one block per visible row
+- breakpoint markers in gutter
+- current execution highlight
+- indentation guides if useful
+- drag preview that causes rows to reflow
+- structural rows styled slightly differently if needed
+
+But the renderer must consume flattened rows only.
+The renderer must not own the semantic structure.
+
+----------------------------------------------------------------------
+VISUAL EXAMPLE N: EXPECTED FEEL
+----------------------------------------------------------------------
+
+Gutter + rows:
+ 1  if x < 5
+ 2      while not empty(A)
+ 3          pop(A)
+ 4  else
+ 5      print("empty")
+ 6  print("done")
+
+Possible UI decoration:
+- breakpoint dots on row gutter
+- execution arrow on current row
+- subtle gray style for row 4 "else"
+- insertion bar shown during drag
+
+======================================================================
+17. VALIDATION RULES
+======================================================================
+
+Add structural validation.
+
+Validate:
+- no cycles
+- no node inserted into own descendant
+- if always has thenBody
+- while always has body
+- container references are valid
+- flattened rows map to valid nodes/containers
+- compiled instructions have valid jump targets
+- preview insertions are legal
+
+Example invalid move:
+Move While W1 into its own body.
+Reject it.
+
+======================================================================
+18. TEST REQUIREMENTS
+======================================================================
+
+Add or refactor tests for all layers.
+
+----------------------------------------------------------------------
+TREE TESTS
+----------------------------------------------------------------------
+
+- insert top-level node
+- insert into if.thenBody
+- insert into if.elseBody
+- insert into while.body
+- detach node
+- move subtree between containers
+- moving within same container updates order correctly
+- reject self-descendant move
+
+----------------------------------------------------------------------
+FLATTEN TESTS
+----------------------------------------------------------------------
+
+Example input tree:
+Program
+- If(cond)
+  - thenBody
+    - Call A
+  - elseBody
+    - Call B
+- Call C
+
+Expected flattened rows:
+1  if cond
+2      A
+3  else
+4      B
+5  C
+
+Test:
+- row numbers correct
+- depth correct
+- row kinds correct
+- structural rows emitted as expected
+
+----------------------------------------------------------------------
+PREVIEW TESTS
+----------------------------------------------------------------------
+
+Example:
+Original:
+1  if cond
+2      A
+3  B
+
+Drag B into if.then after A
+
+Expected preview:
+1  if cond
+2      A
+3      B
+
+Verify:
+- B is first detached
+- preview tree contains only one B
+- preview depth is updated because of structure
+- preview rows are recomputed from tree
+
+----------------------------------------------------------------------
+COMPILATION TESTS
+----------------------------------------------------------------------
+
+If example:
+1  if x < 3
+2      A
+3  B
+
+Expected shape:
+- evaluate condition
+- conditional jump
+- A
+- B
+
+While example:
+1  while x < 3
+2      A
+3  B
+
+Expected shape:
+- evaluate while
+- exit jump
+- A
+- back jump
+- B
+
+----------------------------------------------------------------------
+BREAKPOINT TESTS
+----------------------------------------------------------------------
+
+Set breakpoint on node A.
+Move A to another row.
+Verify:
+- breakpoint appears on new row
+- it no longer appears on old row
+- compiled instructions for node A remain breakpointed
+
+----------------------------------------------------------------------
+EXPORT TESTS
+----------------------------------------------------------------------
+
+Nested input tree:
+while cond1
+    if cond2
+        print(x)
+
+Verify exact exported pseudocode text and indentation.
+
+======================================================================
+19. REFACTORING STRATEGY
+======================================================================
+
+Do not rewrite blindly all at once.
+Refactor in stages.
+
+Stage 1
+- identify current real source of truth
+- identify all places where rows/indentation drive semantics
+- isolate rendering, execution, save/load, drag logic
+
+Stage 2
+- introduce new tree model in parallel
+- create flatten(tree)
+- create tree serializer
+
+Stage 3
+- refactor renderer to consume flattened rows
+- preserve current visual style
+
+Stage 4
+- refactor drag/drop to use explicit drop zones and previewTree simulation
+
+Stage 5
+- create compiler from tree to execution instructions
+- refactor debugger to use instruction mapping
+
+Stage 6
+- refactor pseudocode export to recursive tree export
+
+Stage 7
+- move save/load to tree-based persistence
+- add migration from old line-based format if needed
+
+Stage 8
+- remove obsolete indentation-based semantic logic
+- delete dead code
+- tighten validation and tests
+
+======================================================================
+20. FINAL DELIVERABLES
+======================================================================
+
+Produce:
+1. a tree model module
+2. a tree operation module
+3. a flatten/projection module
+4. a drop zone / drag preview module
+5. an instruction compiler module
+6. a pseudocode exporter
+7. updated serialization/load/save
+8. migration logic if needed
+9. updated tests
+10. a short architecture note
+
+The architecture note must explain:
+- why the tree is now the source of truth
+- how rows are derived
+- how drag preview works by simulated insertion
+- how debugging uses compiled instructions
+- why breakpoints attach to node IDs
+- how pseudocode export is generated recursively
+
+======================================================================
+21. NON-NEGOTIABLE RULES
+======================================================================
+
+Do not:
+- keep indentation as the canonical structure
+- keep line numbers as stable identity
+- hack drag preview by only moving visual rows
+- execute directly from visible rows when control flow exists
+- tie breakpoints to line numbers only
+- reconstruct pseudocode from presentation state
+- silently preserve broken architecture for the sake of smaller diffs
+
+When in doubt, prefer:
+- structural correctness over minimal patching
+- stable node IDs over convenience
+- explicit containers over inferred indentation
+- explicit drop zones over hidden heuristics
+- pure tree transforms over UI-driven mutation
+
+Final expectation:
+The editor should still feel like a numbered text editor with draggable blocks, but internally it must behave like a structured program editor whose source of truth is a tree.

@@ -15,8 +15,8 @@ export interface PlaySessionState {
   events: EngineEvent[];
   runState: PlayRunState;
   stepCursor: number;
-  breakpointBlockIds: string[];
-  highlightedBlockId: string | null;
+  breakpointNodeIds: string[];
+  highlightedNodeId: string | null;
   status: string;
   completedLevelIds: string[];
   compiledProgram: CompileResult;
@@ -33,7 +33,7 @@ export interface PlaySessionController {
   pause(): void;
   reset(): void;
   clearDocument(): void;
-  toggleBreakpoint(blockId: string): void;
+  toggleBreakpoint(nodeId: string): void;
   setStatus(status: string): void;
   dispose(): void;
 }

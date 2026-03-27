@@ -38,8 +38,8 @@ const createInitialState = (): PlaySessionState => ({
   events: [],
   runState: "idle",
   stepCursor: 0,
-  breakpointBlockIds: [],
-  highlightedBlockId: null,
+  breakpointNodeIds: [],
+  highlightedNodeId: null,
   status: "Loading level...",
   completedLevelIds: [],
   compiledProgram: compileEditorDocument(createEditorDocument()),
@@ -94,9 +94,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       document: createEditorDocument(),
       compiledProgram: compileEditorDocument(createEditorDocument()),
       events: [],
-      breakpointBlockIds: [],
+      breakpointNodeIds: [],
       stepCursor: 0,
-      highlightedBlockId: null,
+      highlightedNodeId: null,
       runState: "idle",
       status: "Drag blocks into the editor and choose an action with the arrow tab."
     });
@@ -104,15 +104,15 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
   public setDocument(document: EditorDocument): void {
     const compiledProgram = compileEditorDocument(document);
-    const highlightedBlockId =
-      this.state.stepCursor < compiledProgram.operationOwnerIds.length
-        ? compiledProgram.operationOwnerIds[this.state.stepCursor]
+    const highlightedNodeId =
+      this.state.stepCursor < compiledProgram.operationNodeIds.length
+        ? compiledProgram.operationNodeIds[this.state.stepCursor]
         : null;
 
     this.patchState({
       document,
       compiledProgram,
-      highlightedBlockId
+      highlightedNodeId
     });
   }
 
@@ -131,7 +131,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       runState: "running",
       events: [],
       stepCursor: 0,
-      highlightedBlockId: null
+      highlightedNodeId: null
     });
 
     this.engine.reset();
@@ -143,15 +143,15 @@ export class DefaultPlaySessionController implements PlaySessionController {
       let result: ExecutionStep | null = null;
 
       while (!this.runAbort) {
-        const breakpointBlockId = prepared.operationOwnerIds[currentOperationIndex];
+        const breakpointNodeId = prepared.operationNodeIds[currentOperationIndex];
         if (
           currentOperationIndex > 0 &&
-          breakpointBlockId &&
-          this.state.breakpointBlockIds.includes(breakpointBlockId)
+          breakpointNodeId &&
+          this.state.breakpointNodeIds.includes(breakpointNodeId)
         ) {
           this.patchState({
             stepCursor: currentOperationIndex,
-            highlightedBlockId: breakpointBlockId,
+            highlightedNodeId: breakpointNodeId,
             runState: "paused",
             status: "Paused at breakpoint."
           });
@@ -167,9 +167,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
         currentOperationIndex += 1;
         this.patchState({
           stepCursor: currentOperationIndex,
-          highlightedBlockId:
-            currentOperationIndex < prepared.operationOwnerIds.length
-              ? prepared.operationOwnerIds[currentOperationIndex]
+          highlightedNodeId:
+            currentOperationIndex < prepared.operationNodeIds.length
+              ? prepared.operationNodeIds[currentOperationIndex]
               : null
         });
         await new Promise((resolve) => window.setTimeout(resolve, 340));
@@ -183,14 +183,14 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.patchState({
         runState: "idle",
         stepCursor: 0,
-        highlightedBlockId: null
+        highlightedNodeId: null
       });
       await this.evaluateProgress();
     } catch (error) {
       this.patchState({
         runState: "idle",
         stepCursor: 0,
-        highlightedBlockId: null,
+        highlightedNodeId: null,
         status: error instanceof Error ? error.message : "The program could not run."
       });
     }
@@ -213,7 +213,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       if (!result) {
         this.patchState({
           stepCursor: 0,
-          highlightedBlockId: null,
+          highlightedNodeId: null,
           runState: "idle"
         });
         await this.evaluateProgress();
@@ -223,16 +223,16 @@ export class DefaultPlaySessionController implements PlaySessionController {
       const nextStepCursor = this.state.stepCursor + 1;
       this.patchState({
         stepCursor: nextStepCursor,
-        highlightedBlockId:
-          nextStepCursor < prepared.operationOwnerIds.length
-            ? prepared.operationOwnerIds[nextStepCursor]
+        highlightedNodeId:
+          nextStepCursor < prepared.operationNodeIds.length
+            ? prepared.operationNodeIds[nextStepCursor]
             : null,
         status: "One block executed."
       });
     } catch (error) {
       this.patchState({
         stepCursor: 0,
-        highlightedBlockId: null,
+        highlightedNodeId: null,
         runState: "idle",
         status: error instanceof Error ? error.message : "The program could not run."
       });
@@ -258,7 +258,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       runState: "idle",
       events: [],
       stepCursor: 0,
-      highlightedBlockId: null,
+      highlightedNodeId: null,
       structures: this.state.level.initialState,
       status: "Reset. Try a different sequence."
     });
@@ -273,21 +273,21 @@ export class DefaultPlaySessionController implements PlaySessionController {
       compiledProgram: compileEditorDocument(emptyDocument),
       events: [],
       stepCursor: 0,
-      highlightedBlockId: null,
+      highlightedNodeId: null,
       structures: this.state.level?.initialState ?? [],
       status: "Editor cleared."
     });
   }
 
-  public toggleBreakpoint(blockId: string): void {
+  public toggleBreakpoint(nodeId: string): void {
     if (this.state.runState === "running") {
       return;
     }
 
     this.patchState({
-      breakpointBlockIds: this.state.breakpointBlockIds.includes(blockId)
-        ? this.state.breakpointBlockIds.filter((currentId) => currentId !== blockId)
-        : [...this.state.breakpointBlockIds, blockId]
+      breakpointNodeIds: this.state.breakpointNodeIds.includes(nodeId)
+        ? this.state.breakpointNodeIds.filter((currentId) => currentId !== nodeId)
+        : [...this.state.breakpointNodeIds, nodeId]
     });
   }
 
@@ -330,7 +330,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       return null;
     }
 
-    if (this.state.document.blocks.length === 0) {
+    if (this.state.document.program.statements.length === 0) {
       this.patchState({ status: "Drag at least one block into the editor." });
       return null;
     }

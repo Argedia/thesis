@@ -20,9 +20,19 @@ export const moveItem = <T extends { id: string }>(
   return insertAt(next, Math.min(adjustedIndex, next.length), movingItem);
 };
 
+export interface DragGeometry {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  placementX: number;
+  placementY: number;
+}
+
 export const calculateDropIndex = (
-  pointerX: number,
-  pointerY: number,
+  drag: DragGeometry,
   editorRect: DOMRect | undefined,
   blockRects: Array<{ id: string; rect: DOMRect }>,
   blockCount: number
@@ -33,15 +43,15 @@ export const calculateDropIndex = (
 
   const nearThreshold = 56;
   const isOverEditor =
-    pointerX >= editorRect.left - nearThreshold &&
-    pointerX <= editorRect.right + nearThreshold &&
-    pointerY >= editorRect.top - nearThreshold &&
-    pointerY <= editorRect.bottom + nearThreshold;
+    drag.right >= editorRect.left - nearThreshold &&
+    drag.left <= editorRect.right + nearThreshold &&
+    drag.bottom >= editorRect.top - nearThreshold &&
+    drag.top <= editorRect.bottom + nearThreshold;
 
   let nextIndex = blockCount;
   for (let index = 0; index < blockRects.length; index += 1) {
     const { rect } = blockRects[index];
-    if (pointerY < rect.top + rect.height / 2) {
+    if (drag.placementY < rect.top + rect.height / 2) {
       nextIndex = index;
       break;
     }
@@ -50,11 +60,89 @@ export const calculateDropIndex = (
   return { index: nextIndex, isOverEditor };
 };
 
-export const wheelTransform = (index: number, totalOptions: number): string => {
+export interface WheelTransformOptions {
+  angleStart?: number;
+  angleEnd?: number;
+  radius?: number;
+  baseX?: number;
+}
+
+export interface WheelLayout {
+  angleStart: number;
+  angleEnd: number;
+  radius: number;
+  baseX: number;
+  width: number;
+  height: number;
+  buttonMinWidth: number;
+  buttonPaddingX: number;
+  buttonPaddingY: number;
+  buttonFontSize: number;
+  buttonBorderRadius: number;
+}
+
+export const computeWheelLayout = (labels: string[]): WheelLayout => {
+  const totalOptions = labels.length;
+  const dense = totalOptions > 10;
+  const medium = totalOptions > 6;
+  const angleStart = dense ? -86 : medium ? -82 : -75;
+  const angleEnd = dense ? 86 : medium ? 82 : 75;
+  const buttonMinWidth = dense ? 52 : medium ? 64 : 112;
+  const buttonPaddingX = dense ? 8 : medium ? 10 : 13;
+  const buttonPaddingY = dense ? 6 : medium ? 8 : 11;
+  const buttonFontSize = dense ? 11.5 : medium ? 12.5 : 13.5;
+  const buttonBorderRadius = dense ? 16 : 18;
+  const buttonHeight = buttonFontSize + buttonPaddingY * 2 + 4;
+  const widestLabel = labels.reduce((max, label) => Math.max(max, label.length), 1);
+  const estimatedButtonWidth = Math.max(
+    buttonMinWidth,
+    Math.ceil(widestLabel * buttonFontSize * 0.72 + buttonPaddingX * 2 + 8)
+  );
+  const spanRadians = ((angleEnd - angleStart) * Math.PI) / 180;
+  const desiredGap = Math.max(
+    dense ? buttonHeight * 1.05 : medium ? buttonHeight * 1.1 : buttonHeight * 1.14,
+    estimatedButtonWidth * (dense ? 0.78 : medium ? 0.72 : 0.6)
+  );
+  const radius = Math.max(
+    dense ? 148 : medium ? 116 : 88,
+    Math.ceil((desiredGap * Math.max(totalOptions - 1, 1)) / Math.max(spanRadians, 0.1))
+  );
+  const buttonHalfWidth = estimatedButtonWidth / 2;
+  const buttonHalfHeight = buttonHeight / 2;
+  const baseX = buttonHalfWidth + 8;
+  const width = Math.ceil(baseX + radius + buttonHalfWidth + 14);
+  const height = Math.ceil(
+    2 * (Math.sin((Math.max(Math.abs(angleStart), Math.abs(angleEnd)) * Math.PI) / 180) * radius + buttonHalfHeight + 12)
+  );
+
+  return {
+    angleStart,
+    angleEnd,
+    radius,
+    baseX,
+    width,
+    height,
+    buttonMinWidth,
+    buttonPaddingX,
+    buttonPaddingY,
+    buttonFontSize,
+    buttonBorderRadius
+  };
+};
+
+export const wheelTransform = (
+  index: number,
+  totalOptions: number,
+  options: WheelTransformOptions = {}
+): string => {
   const total = Math.max(totalOptions - 1, 1);
-  const angle = -75 + (150 / total) * index;
-  const radius = 88;
-  const x = 26 + Math.cos((angle * Math.PI) / 180) * radius;
+  const angleStart = options.angleStart ?? -75;
+  const angleEnd = options.angleEnd ?? 75;
+  const angle = angleStart + ((angleEnd - angleStart) / total) * index;
+  const radius =
+    options.radius ?? (totalOptions > 10 ? 112 : totalOptions > 6 ? 98 : 88);
+  const baseX = options.baseX ?? (totalOptions > 10 ? 34 : totalOptions > 6 ? 30 : 26);
+  const x = baseX + Math.cos((angle * Math.PI) / 180) * radius;
   const y = Math.sin((angle * Math.PI) / 180) * radius;
   return `translate(${x}px, ${y}px) translate(-50%, -50%)`;
 };

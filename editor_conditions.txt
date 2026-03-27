@@ -1,0 +1,551 @@
+You are refactoring an existing visual scripting editor that currently behaves too much like a line-based text buffer with indentation-like placement logic. The goal of the refactor is to make the program model structurally correct, easier to parse, easier to debug, easier to drag/drop preview, and easier to export to pseudocode.
+
+High-level objective
+
+Refactor the editor so that:
+
+1. The source of truth is no longer “lines with possible indentation”.
+2. The source of truth becomes a structured tree / AST-like model.
+3. The text-editor-like UI remains, including one block per visible line and visible line numbers.
+4. Drag-and-drop preview works by simulating insertion into the tree, not by mutating visual indentation state.
+5. Debugging works instruction-by-instruction through a compiled instruction list derived from the tree.
+6. Export to pseudocode is generated from the tree recursively.
+7. Breakpoints are attached to stable node identity, not raw line numbers.
+8. The editor can still render as a flat numbered list of rows, but those rows are derived from the tree.
+
+Do not do a superficial cleanup. Perform a full architectural refactor as needed.
+
+Core architectural rule
+
+The tree is the truth.
+The visible rows are a projection.
+The debugger instructions are a compiled execution representation.
+
+Never treat visible line numbers or indentation as the real program structure.
+
+Target architecture
+
+Introduce and separate these 3 layers clearly:
+
+1. Program tree layer
+   This stores the actual program structure.
+
+2. Flattened editor row layer
+   This stores the derived visual representation used by the UI.
+
+3. Execution instruction layer
+   This stores a compiled list of debugger/execution instructions.
+
+The codebase should make these separations explicit and avoid mixing them.
+
+What to remove conceptually
+
+Remove any logic where:
+- individual lines store or own indentation as semantic structure
+- lines store “possible indentation” or “potential indentation”
+- drop logic is based mainly on x-offset or visual tabs alone
+- execution walks visible rows directly as if rows were the true program
+- breakpoints are attached only to current line numbers
+- pseudocode export depends on reconstructing nesting from line indentation
+
+If such logic exists, replace it with tree-based equivalents.
+
+Target data model
+
+Define a stable node-based structured representation. Use stable IDs for all nodes.
+
+Expected minimum statement node kinds:
+- program
+- assignment
+- call / operation
+- if
+- while
+
+Add more kinds only if already needed by the project.
+
+Use a structure equivalent to:
+
+Program
+- id
+- statements: Statement[]
+
+Statement base
+- id
+- kind
+
+Assignment statement
+- id
+- kind = "assign"
+- target
+- value
+
+Call statement
+- id
+- kind = "call"
+- name
+- args
+
+If statement
+- id
+- kind = "if"
+- condition
+- thenBody: Statement[]
+- elseBody: Statement[] or null
+
+While statement
+- id
+- kind = "while"
+- condition
+- body: Statement[]
+
+If your current block types differ, map them into this general model.
+
+Important rules:
+- Every node must have a stable unique ID.
+- IDs must not change when moving nodes around.
+- Parent/child relationships define structure.
+- Indentation must never be stored as the canonical structure.
+- Visible line numbers must never be used as identity.
+
+Refactor requirements by subsystem
+
+1. Program model refactor
+
+Create a dedicated module or set of modules for the program tree.
+
+Responsibilities:
+- define node types
+- create nodes
+- validate node structure
+- insert nodes into containers
+- remove nodes from containers
+- move nodes between containers
+- clone nodes if needed
+- find nodes by ID
+- compute parent/container paths if needed
+
+The tree model must support moving full subtrees, not just single rows.
+
+Support containers such as:
+- top-level program statements
+- if.thenBody
+- if.elseBody
+- while.body
+
+Create utilities for safe tree operations:
+- detachNode(tree, nodeId)
+- insertNode(tree, containerRef, index, node)
+- moveNode(tree, nodeId, targetContainerRef, targetIndex)
+- findNode(tree, nodeId)
+- findParentContainer(tree, nodeId)
+
+These operations must be predictable and easy to test.
+
+2. Flattened row projection
+
+Create a flattening layer that converts the tree into text-editor-like rows.
+
+The flattened rows are for display only.
+
+Each visible row should contain metadata equivalent to:
+- rowId
+- rowNumber
+- nodeId if applicable
+- row kind
+- depth
+- isExecutable
+- container context
+- index in container if useful for interaction
+- any structural info needed for drag/drop
+
+Expected row kinds include:
+- statement
+- if-header
+- else-header
+- while-header
+- optional end-if
+- optional end-while
+- empty-body-placeholder if needed
+
+Decide whether end markers are visible in the UI. If they are, treat them as structural rows, not primary semantic nodes.
+
+The flattening algorithm must:
+- walk the tree recursively
+- derive depth from nesting
+- assign row numbers sequentially
+- emit rows for structural headers like if/while
+- emit rows for then/else/body contents
+- optionally emit placeholder rows for empty bodies so users can drop into them
+
+Do not store these rows as the canonical program state. They are derived.
+
+3. Drag-and-drop refactor
+
+Refactor drag-and-drop so it no longer reinterprets indentation as structure.
+
+New rule:
+During drag, compute a target container and insertion index.
+Preview is produced by simulating insertion into the tree.
+
+Implement drag flow like this:
+
+onDragStart(nodeId):
+- detach the dragged subtree from the current tree
+- store dragged subtree separately
+- keep treeWithoutDraggedNode in drag state
+
+onDragMove(pointer):
+- compute hovered drop zone
+- convert hovered drop zone to target container + insertion index
+- construct previewTree = insert dragged subtree into treeWithoutDraggedNode at target
+- flatten previewTree into previewRows
+- render previewRows
+
+onDrop():
+- commit previewTree as the new program tree
+
+The preview must not be a fake indentation trick.
+It must be a real simulated tree insertion.
+
+4. Drop zone system
+
+Create explicit drop zones instead of relying only on mouse x/y + nearby line.
+
+Each relevant visible row/body should expose legal drop targets such as:
+- before statement
+- after statement
+- inside if.thenBody at index N
+- inside if.elseBody at index N
+- inside while.body at index N
+- inside empty body placeholder
+
+Represent drop zones explicitly.
+
+A drop zone should contain at least:
+- zoneId
+- target container reference
+- insertion index
+- bounding rectangle or hit region
+- display role if needed
+
+During dragging:
+- show drop zones visually or invisibly
+- hit-test pointer against them
+- choose nearest valid zone
+- highlight active zone
+- render preview from the simulated tree
+
+Do not infer all semantics from visual indentation.
+
+5. Editor line numbers
+
+Preserve visible line numbers in the editor.
+
+However:
+- line numbers are derived from flattened rows
+- line numbers are not source identity
+- line numbers are not debugger instruction addresses
+- line numbers will be recomputed whenever rows are re-flattened
+
+Make sure this is consistent in all code.
+
+If the current code stores line numbers inside blocks as persistent semantic state, remove that pattern.
+
+6. Debugger / execution refactor
+
+Do not execute directly from visible rows.
+Compile the program tree into a linear instruction list for debugging/execution.
+
+Create a compilation pass from tree to instructions.
+
+Define an instruction model with stable references back to source nodes/rows.
+
+An instruction should include equivalent information to:
+- instruction pointer / index
+- operation kind
+- nodeId
+- source rowNumber if helpful
+- jump target(s) when applicable
+
+Expected compiled behavior:
+- assignment/call becomes direct executable instruction(s)
+- if compiles to condition evaluation + conditional jump + body instructions + optional skip jump
+- while compiles to condition evaluation + conditional exit jump + body + back jump
+
+One visible row may correspond to multiple instructions.
+This is expected and should be supported.
+
+Make sure instruction compilation also produces source mappings:
+- instruction -> nodeId
+- instruction -> rowNumber where possible
+- row/node -> instruction range where useful
+
+The debugger UI should highlight rows through this mapping, not by assuming one row equals one instruction.
+
+7. Breakpoint refactor
+
+Refactor breakpoints to attach to stable node IDs, not only line numbers.
+
+Behavior:
+- if a node moves to a different line, its breakpoint remains
+- when flattening rows, breakpoint indicators appear on rows associated with nodes that have breakpoints
+- when compiling instructions, instructions emitted from a breakpointed node inherit breakpoint semantics
+
+If some rows are structural-only, decide whether they may accept breakpoints.
+At minimum, executable node rows should.
+
+8. Pseudocode export
+
+Refactor pseudocode export to generate output recursively from the tree.
+
+Do not reconstruct nesting from rows or indentation state.
+
+Export rules should resemble:
+- statements emit one line
+- if emits:
+  if condition
+      ...
+  else
+      ...
+  end if
+- while emits:
+  while condition
+      ...
+  end while
+
+Indentation in export is derived from recursion depth.
+
+The exporter should work even if the UI row layer changes.
+
+9. Serialization / saving
+
+Refactor saving/loading so that the serialized representation is tree-based.
+
+The saved document should preserve:
+- node IDs
+- node kinds
+- expressions/parameters
+- child statement lists
+- relevant editor metadata only if truly necessary
+
+Do not serialize flattened rows as the canonical file format unless there is a strong backwards compatibility reason.
+
+If backwards compatibility is required, implement a migration step from old line-based representation into the new tree form.
+
+10. Compatibility / migration
+
+If the codebase already has existing documents/projects, create a migration path.
+
+Migration strategy:
+- parse old line-based blocks
+- infer structured containers from indentation and control block markers if necessary
+- produce the new tree model
+- validate migrated structure
+- preserve as much identity as possible
+
+If automatic migration is partial, fail clearly and visibly instead of silently corrupting structure.
+
+11. Rendering/UI expectations
+
+Keep the editor visually similar to a text editor:
+- one block per visible line where possible
+- gutter with line numbers
+- possible breakpoint markers in gutter
+- current execution highlight
+- indentation guides if useful
+- drag preview that reflows rows
+- optional structural styling for if/else/while rows
+
+However, the UI must not own the program structure.
+
+The renderer should consume flattened rows and render them declaratively.
+
+12. Structural rows vs executable rows
+
+Support the idea that some rows are structural and some are executable.
+
+Examples:
+- if-header: executable, because it evaluates a condition
+- while-header: executable, because it evaluates a condition
+- else-header: usually structural
+- end-if: usually structural
+- end-while: usually structural
+- regular statement: executable
+
+This distinction should be explicit in the flattened row model and debugger mapping.
+
+13. Validation
+
+Add validation for structural correctness.
+
+Examples of things to validate:
+- no cycles in the tree
+- if nodes always have thenBody
+- while nodes always have body
+- container references are valid
+- no node inserted into its own descendant
+- drag/drop cannot create illegal structures
+- compiled instructions have valid jump targets
+- flattened rows map correctly to source nodes
+
+Validation should run in tests and optionally in debug builds.
+
+14. Testing requirements
+
+Add or refactor tests extensively.
+
+At minimum create tests for:
+
+Tree operations
+- insert node at top level
+- insert node into if.thenBody
+- insert node into if.elseBody
+- insert node into while.body
+- detach node
+- move node between containers
+- move nested subtree
+- reject illegal self-descendant move
+
+Flattening
+- flatten simple linear program
+- flatten nested if
+- flatten if/else
+- flatten while
+- flatten nested while inside if
+- row numbers are recomputed correctly
+- row depths are correct
+- structural rows are emitted correctly
+
+Drop zone mapping
+- rows expose expected legal drop zones
+- empty bodies expose drop targets
+- pointer hit-testing resolves expected zone
+- target container/index mapping is correct
+
+Preview
+- preview removes dragged node first
+- preview insertion produces expected preview rows
+- preview indentation shifts correctly from simulated depth
+- preview moving within same parent does not duplicate node
+
+Compilation
+- simple linear code compiles correctly
+- if compiles to correct jumps
+- if/else compiles to correct jumps
+- while compiles to correct loop jumps
+- instruction to row mapping is correct
+
+Breakpoints
+- breakpoint stays attached when node moves
+- rendering shows breakpoint on new row
+- compiled instructions inherit breakpoint semantics
+
+Export
+- pseudocode export for linear code
+- export for nested if/else/while
+- indentation of exported pseudocode is correct
+
+Migration
+- old representation migrates correctly into tree for representative examples
+
+15. Refactoring strategy
+
+Do not rewrite everything blindly at once without a plan.
+
+Refactor in stages:
+
+Stage 1
+- identify current source-of-truth model
+- document where indentation/line ownership currently drives semantics
+- isolate rendering, execution, and serialization logic
+
+Stage 2
+- introduce the new tree model in parallel
+- build flatten(tree) function
+- build basic serializer for tree
+
+Stage 3
+- adapt rendering to consume flattened rows from tree
+- preserve current visual UI as much as possible
+
+Stage 4
+- refactor drag/drop to use explicit drop zones + previewTree simulation
+
+Stage 5
+- implement compiler from tree to execution instructions
+- adapt debugger to consume instruction mappings
+
+Stage 6
+- migrate pseudocode export to tree-based recursive exporter
+
+Stage 7
+- migrate save/load to tree-based persistence
+- add migration layer for old files if needed
+
+Stage 8
+- remove obsolete line/indentation semantic logic
+- remove dead code
+- tighten tests and validation
+
+16. Code quality expectations
+
+The final result should:
+- separate pure data transforms from UI state
+- favor pure functions for tree transforms, flattening, compilation, export
+- minimize mutation where reasonable
+- make drag preview deterministic
+- avoid hidden dependencies between editor rendering and execution
+- use descriptive names around containers, rows, nodes, instructions, zones
+- contain comments for non-obvious algorithms
+- avoid coupling visual indentation logic to structural semantics
+
+17. Deliverables expected from this refactor
+
+Produce all of the following:
+
+1. A clear tree model module
+2. A flattening/projection module
+3. A drag/drop preview + drop zone module
+4. A compiler module for debugger instructions
+5. A pseudocode export module
+6. Updated serialization/load/save flow
+7. Migration logic if old files exist
+8. Updated tests
+9. Removal or deprecation of old line-semantic architecture
+10. A brief architecture note summarizing the new flow
+
+18. Architecture note to produce
+
+After the refactor, include a short technical note explaining:
+
+- why the tree is now the source of truth
+- how flattening works
+- how drag preview works through simulated insertion
+- how compiled instructions power debugging
+- why breakpoints use node IDs
+- how pseudocode export is generated
+- how old line-based assumptions were removed
+
+19. Non-goals / what not to do
+
+Do not:
+- keep indentation as the real semantic structure
+- hack drag preview by only moving visual rows
+- rely on current row indices as stable identity
+- tie breakpoints to line numbers only
+- execute directly from visible rows if control flow exists
+- export pseudocode by guessing nesting from presentation
+- silently preserve broken architecture just to minimize diff size
+
+20. Decision preference when unclear
+
+If some implementation choice is unclear, prefer:
+- structural correctness over minimal change
+- stable node identity over convenience
+- pure tree transforms over UI-driven logic
+- explicit drop zones over hidden heuristics
+- clear source mappings over shortcut debugging logic
+
+Final expectation
+
+The final editor should still feel like a text editor with numbered lines and block-per-line interaction, but internally it must behave like a structured program editor with a tree as source of truth, flattening for display, compiled instructions for debugging, and recursive export for pseudocode.
