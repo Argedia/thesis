@@ -52,6 +52,9 @@ const inferStructures = (level: LevelDefinition): StructureTag[] => {
     if (structure.kind === "queue") {
       tags.add("queue");
     }
+    if (structure.kind === "list") {
+      tags.add("list");
+    }
   });
 
   return tags.size > 0 ? [...tags] : ["stack"];
@@ -117,7 +120,7 @@ const normalizeImportedLevel = (
       description: "Imported level"
     },
     tooling: level.tooling ?? {
-      availableStructures: ["stack", "queue"],
+      availableStructures: ["stack", "queue", "list"],
       advancedToolsEnabled: true
     }
   };

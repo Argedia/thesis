@@ -115,8 +115,17 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
         const frameHeight = cellHeight;
         const structureColor =
           structure.properties?.color ??
-          (structure.kind === "stack" ? "#ffd36e" : "#a8dcff");
-        const labelColor = structure.kind === "stack" ? "#b78312" : "#2f7cb8";
+          (structure.kind === "stack"
+            ? "#ffd36e"
+            : structure.kind === "queue"
+              ? "#a8dcff"
+              : "#d7c3ff");
+        const labelColor =
+          structure.kind === "stack"
+            ? "#b78312"
+            : structure.kind === "queue"
+              ? "#2f7cb8"
+              : "#7c52ba";
 
         ctx.fillStyle = "rgba(255,255,255,0.9)";
         drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, 26);
@@ -173,7 +182,7 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
             ctx.fillText(String(item.value), towerX + slotWidth / 2, itemY + 22);
             ctx.textAlign = "start";
           });
-        } else {
+        } else if (structure.kind === "queue") {
           const itemWidth = 58;
           const itemHeight = 58;
           const laneX = frameX + 20;
@@ -203,6 +212,54 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
             ctx.font = "800 16px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
             ctx.textAlign = "center";
             ctx.fillText(String(item.value), itemX + itemWidth / 2, itemY + 35);
+            ctx.textAlign = "start";
+          });
+
+          if (structure.values.length > maxVisible) {
+            ctx.fillStyle = "#6d8297";
+            ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+            ctx.fillText(`+${structure.values.length - maxVisible}`, frameX + frameWidth - 54, frameY + 96);
+          }
+        } else {
+          const itemWidth = 58;
+          const itemHeight = 42;
+          const laneX = frameX + 26;
+          const laneY = frameY + 126;
+          const startX = frameX + 30;
+          const maxVisible = Math.max(1, Math.floor((frameWidth - 60) / (itemWidth + 16)));
+
+          ctx.strokeStyle = "#8e79c2";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(laneX, laneY);
+          ctx.lineTo(frameX + frameWidth - 24, laneY);
+          ctx.stroke();
+
+          structure.values.slice(0, maxVisible).forEach((node, valueIndex) => {
+            const itemX = startX + valueIndex * (itemWidth + 16);
+            const itemY = laneY - itemHeight - 10;
+            const item = node as DataNode;
+
+            if (valueIndex > 0) {
+              ctx.strokeStyle = "rgba(124, 82, 186, 0.45)";
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.moveTo(itemX - 14, itemY + itemHeight / 2);
+              ctx.lineTo(itemX - 4, itemY + itemHeight / 2);
+              ctx.stroke();
+            }
+
+            ctx.fillStyle = item.color ?? structureColor;
+            drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, 12);
+            ctx.fill();
+            ctx.strokeStyle = "rgba(53, 80, 112, 0.18)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = "#355070";
+            ctx.font = "800 15px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(String(item.value), itemX + itemWidth / 2, itemY + 27);
             ctx.textAlign = "start";
           });
 
@@ -568,6 +625,7 @@ export function StructurePalette() {
     <div style={{ display: "grid", gap: "0.75rem" }}>
       <BlockTile label="Stack" tone="#ffd36e" />
       <BlockTile label="Queue" tone="#a8dcff" />
+      <BlockTile label="List" tone="#d7c3ff" />
       <BlockTile label="Transfer Block" tone="#dff4e7" />
     </div>
   );

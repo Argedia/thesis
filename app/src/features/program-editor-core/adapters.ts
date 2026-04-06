@@ -30,7 +30,19 @@ const inferLiteralValueType = (value: DataValue): Exclude<ValueType, null> =>
   typeof value === "boolean" ? "boolean" : "text";
 
 export const isBuilderOperation = (operation: string): operation is BuilderOperation =>
-  ["POP", "PUSH", "DEQUEUE", "ENQUEUE"].includes(operation);
+  [
+    "POP",
+    "PUSH",
+    "DEQUEUE",
+    "ENQUEUE",
+    "APPEND",
+    "PREPEND",
+    "REMOVE_FIRST",
+    "REMOVE_LAST",
+    "GET_HEAD",
+    "GET_TAIL",
+    "SIZE"
+  ].includes(operation);
 
 export const getAllowedOperations = (
   allowedOperations: string[],
@@ -41,6 +53,18 @@ export const getAllowedOperations = (
     .filter((operation) => {
       if (structureKind === "stack") {
         return operation === "POP" || operation === "PUSH";
+      }
+
+      if (structureKind === "list") {
+        return (
+          operation === "APPEND" ||
+          operation === "PREPEND" ||
+          operation === "REMOVE_FIRST" ||
+          operation === "REMOVE_LAST" ||
+          operation === "GET_HEAD" ||
+          operation === "GET_TAIL" ||
+          operation === "SIZE"
+        );
       }
 
       return operation === "DEQUEUE" || operation === "ENQUEUE";
@@ -64,16 +88,35 @@ export const describeOperation = (
       return `${label}.dequeue`;
     case "ENQUEUE":
       return `${label}.enqueue`;
+    case "APPEND":
+      return `${label}.append`;
+    case "PREPEND":
+      return `${label}.prepend`;
+    case "REMOVE_FIRST":
+      return `${label}.remove_first`;
+    case "REMOVE_LAST":
+      return `${label}.remove_last`;
+    case "GET_HEAD":
+      return `${label}.get_head`;
+    case "GET_TAIL":
+      return `${label}.get_tail`;
+    case "SIZE":
+      return `${label}.size`;
   }
 };
 
 export const operationNeedsValue = (operation: BuilderOperation | null): boolean =>
-  operation === "PUSH" || operation === "ENQUEUE";
+  operation === "PUSH" ||
+  operation === "ENQUEUE" ||
+  operation === "APPEND" ||
+  operation === "PREPEND";
 
-const variableModeOutputType = (mode: VariableOperationMode): Exclude<OutputType, "none"> =>
-  ["equals", "not_equals", "greater_than", "greater_or_equal", "less_than", "less_or_equal", "and", "or"].includes(mode)
-    ? "boolean"
-    : "value";
+const variableModeOutputType = (mode: VariableOperationMode): OutputType =>
+  mode === "assign"
+    ? "none"
+    : ["equals", "not_equals", "greater_than", "greater_or_equal", "less_than", "less_or_equal", "and", "or"].includes(mode)
+      ? "boolean"
+      : "value";
 
 export const getExpressionOutputType = (expression: ExpressionNode | null): OutputType => {
   if (!expression) {
@@ -93,10 +136,23 @@ export const getOutputType = (block: EditorBlock): OutputType => {
   }
 
   if (block.kind === "var_operation") {
+    if ((block.variableOperationMode ?? "value") === "assign") {
+      return "none";
+    }
     return variableModeOutputType(block.variableOperationMode ?? "value");
   }
 
-  return block.operation === "POP" || block.operation === "DEQUEUE" ? "value" : "none";
+  return (
+    block.operation === "POP" ||
+    block.operation === "DEQUEUE" ||
+    block.operation === "REMOVE_FIRST" ||
+    block.operation === "REMOVE_LAST" ||
+    block.operation === "GET_HEAD" ||
+    block.operation === "GET_TAIL" ||
+    block.operation === "SIZE"
+      ? "value"
+      : "none"
+  );
 };
 
 export const slotExpectedType = (block: EditorBlock): "value" | "boolean" | null =>
@@ -119,7 +175,9 @@ export const getBlockInputSlot = (block: EditorBlock): EditorInputSlotDefinition
       block.kind === "conditional"
         ? "Insert a boolean block or type true / false"
         : block.kind === "var_operation"
-          ? "Insert an operand block or type a value"
+          ? (block.variableOperationMode ?? "value") === "assign"
+            ? "Insert a value block or type a value"
+            : "Insert an operand block or type a value"
           : "Insert a compatible block or type a value"
   };
 };
@@ -148,6 +206,8 @@ export const describeBlock = (block: EditorBlock): string => {
   if (block.kind === "var_operation") {
     const name = block.variableName?.trim() || "variable";
     switch (block.variableOperationMode ?? "value") {
+      case "assign":
+        return `${name} =`;
       case "add":
         return `${name} +`;
       case "subtract":
@@ -190,9 +250,16 @@ export const blockColorClass = (operation: BuilderOperation | null): string => {
   switch (operation) {
     case "POP":
     case "DEQUEUE":
+    case "REMOVE_FIRST":
+    case "REMOVE_LAST":
+    case "GET_HEAD":
+    case "GET_TAIL":
+    case "SIZE":
       return "mint";
     case "PUSH":
     case "ENQUEUE":
+    case "APPEND":
+    case "PREPEND":
       return "peach";
     default:
       return "sky";
@@ -327,6 +394,11 @@ export const buildVariableOperationWheelOptions = (
     mode: "value",
     label: "var",
     className: currentMode === "value" ? "mint selected" : "mint"
+  },
+  {
+    mode: "assign",
+    label: "=",
+    className: currentMode === "assign" ? "mint selected" : "mint"
   },
   {
     mode: "add",
@@ -469,7 +541,10 @@ const variableBlockToExpression = (block: EditorBlock): VariableExpression => ({
   variableName: block.variableName?.trim() || "variable",
   mode: block.variableOperationMode ?? "value",
   operand: block.inputBlock ? legacyBlockToExpression(block.inputBlock) : null,
-  outputType: variableModeOutputType(block.variableOperationMode ?? "value"),
+  outputType:
+    variableModeOutputType(block.variableOperationMode ?? "value") === "boolean"
+      ? "boolean"
+      : "value",
   visual: cloneVisual(block.color)
 });
 
@@ -537,6 +612,17 @@ export const legacyBlockToStatement = (block: EditorBlock): StatementNode => {
       id: block.id,
       kind: "declare",
       variableName: block.variableName?.trim() || "variable",
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "var_operation" && (block.variableOperationMode ?? "value") === "assign") {
+    return {
+      id: block.id,
+      kind: "assign",
+      targetName: block.variableName?.trim() || "variable",
+      targetDeclarationId: block.variableSourceId ?? null,
+      value: block.inputBlock ? legacyBlockToExpression(block.inputBlock) : null,
       visual: cloneVisual(block.color)
     };
   }
@@ -720,13 +806,13 @@ const statementToLegacyBlock = (
       kind: "var_operation",
       color: statement.visual?.color,
       operation: null,
-      outputType: operand ? getOutputType(operand) : "value",
+      outputType: "none",
       valueType: null,
       literalValue: null,
       inputBlock: operand,
       variableSourceId: statement.targetDeclarationId ?? statement.id,
       variableName: statement.targetName,
-      variableOperationMode: "value"
+      variableOperationMode: "assign"
     };
   }
 

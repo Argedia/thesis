@@ -35,7 +35,8 @@ export const calculateDropIndex = (
   drag: DragGeometry,
   editorRect: DOMRect | undefined,
   blockRects: Array<{ id: string; rect: DOMRect }>,
-  blockCount: number
+  blockCount: number,
+  previousIndex?: number | null
 ): { index: number; isOverEditor: boolean } => {
   if (!editorRect) {
     return { index: blockCount, isOverEditor: false };
@@ -48,14 +49,39 @@ export const calculateDropIndex = (
     drag.bottom >= editorRect.top - nearThreshold &&
     drag.top <= editorRect.bottom + nearThreshold;
 
-  let nextIndex = blockCount;
-  for (let index = 0; index < blockRects.length; index += 1) {
-    const { rect } = blockRects[index];
-    if (drag.placementY < rect.top + rect.height / 2) {
-      nextIndex = index;
-      break;
+  if (blockRects.length === 0) {
+    return { index: blockCount, isOverEditor };
+  }
+
+  const anchors = blockRects.map(({ rect }) => rect.top + Math.max(rect.height, 1) / 2);
+  const leaveTolerance = 20;
+
+  if (previousIndex !== null && previousIndex !== undefined && previousIndex >= 0 && previousIndex < anchors.length) {
+    const currentAnchor = anchors[previousIndex];
+    const upperBoundary =
+      previousIndex === 0 ? editorRect.top : (anchors[previousIndex - 1] + currentAnchor) / 2;
+    const lowerBoundary =
+      previousIndex === anchors.length - 1
+        ? editorRect.bottom
+        : (currentAnchor + anchors[previousIndex + 1]) / 2;
+
+    if (
+      drag.placementY >= upperBoundary - leaveTolerance &&
+      drag.placementY <= lowerBoundary + leaveTolerance
+    ) {
+      return { index: previousIndex, isOverEditor };
     }
   }
+
+  let nextIndex = blockCount;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  anchors.forEach((anchor, index) => {
+    const distance = Math.abs(drag.placementY - anchor);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      nextIndex = index;
+    }
+  });
 
   return { index: nextIndex, isOverEditor };
 };

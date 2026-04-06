@@ -15,14 +15,28 @@ import type {
 } from "./types";
 
 const structureExpressionSupportsValue = (operation: BuilderOperation | null): boolean =>
-  operation === "POP" || operation === "DEQUEUE";
+  operation === "POP" ||
+  operation === "DEQUEUE" ||
+  operation === "REMOVE_FIRST" ||
+  operation === "REMOVE_LAST" ||
+  operation === "GET_HEAD" ||
+  operation === "GET_TAIL" ||
+  operation === "SIZE";
 
 const callStatementSupportsExecution = (statement: StructureCallStatement): boolean => {
   if (!statement.operation) {
     return false;
   }
 
-  if (statement.operation === "POP" || statement.operation === "DEQUEUE") {
+  if (
+    statement.operation === "POP" ||
+    statement.operation === "DEQUEUE" ||
+    statement.operation === "REMOVE_FIRST" ||
+    statement.operation === "REMOVE_LAST" ||
+    statement.operation === "GET_HEAD" ||
+    statement.operation === "GET_TAIL" ||
+    statement.operation === "SIZE"
+  ) {
     return true;
   }
 
@@ -40,6 +54,9 @@ const expressionProvidesValue = (expression: ExpressionNode | null): boolean => 
     case "structure":
       return structureExpressionSupportsValue(expression.operation);
     case "variable":
+      if (expression.mode === "assign") {
+        return false;
+      }
       if (expression.mode === "value") {
         return true;
       }
@@ -54,6 +71,34 @@ const expressionProvidesValue = (expression: ExpressionNode | null): boolean => 
 const expressionIsBoolean = (expression: ExpressionNode | null): boolean =>
   !!expression && expression.outputType === "boolean";
 
+const expressionCanExecuteAtRuntime = (expression: ExpressionNode | null): boolean => {
+  if (!expression) {
+    return false;
+  }
+
+  switch (expression.kind) {
+    case "literal":
+      return true;
+    case "structure":
+      return expression.operation === "POP" || expression.operation === "DEQUEUE";
+    case "variable":
+      if (expression.mode === "assign") {
+        return false;
+      }
+      return expression.mode === "value"
+        ? true
+        : expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand);
+    case "binary":
+      return (
+        expressionCanExecuteAtRuntime(expression.left) &&
+        expression.right !== null &&
+        expressionCanExecuteAtRuntime(expression.right)
+      );
+    case "unary":
+      return expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand);
+  }
+};
+
 const createOperationForStatement = (
   statement: StructureCallStatement
 ): OperationDefinition | null => {
@@ -61,7 +106,15 @@ const createOperationForStatement = (
     return null;
   }
 
-  if (statement.operation === "POP" || statement.operation === "DEQUEUE") {
+  if (
+    statement.operation === "POP" ||
+    statement.operation === "DEQUEUE" ||
+    statement.operation === "REMOVE_FIRST" ||
+    statement.operation === "REMOVE_LAST" ||
+    statement.operation === "GET_HEAD" ||
+    statement.operation === "GET_TAIL" ||
+    statement.operation === "SIZE"
+  ) {
     return {
       type: statement.operation,
       sourceId: statement.structureId
@@ -115,7 +168,15 @@ const compileExpression = (expression: ExpressionNode | null): ExpressionCompile
         diagnostics: []
       };
     case "structure":
-      if (expression.operation === "POP" || expression.operation === "DEQUEUE") {
+      if (
+        expression.operation === "POP" ||
+        expression.operation === "DEQUEUE" ||
+        expression.operation === "REMOVE_FIRST" ||
+        expression.operation === "REMOVE_LAST" ||
+        expression.operation === "GET_HEAD" ||
+        expression.operation === "GET_TAIL" ||
+        expression.operation === "SIZE"
+      ) {
         return {
           operations: [
             {
@@ -139,13 +200,29 @@ const compileExpression = (expression: ExpressionNode | null): ExpressionCompile
         diagnostics: ["Only value-producing blocks can be used in slots."]
       };
     case "variable":
+      if (expression.mode === "assign") {
+        return {
+          operations: [],
+          operationNodeIds: [],
+          provides: null,
+          isComplete: false,
+          unsupportedFeatures: [],
+          diagnostics: ["Assignment blocks cannot be used as expressions."]
+        };
+      }
       return {
         operations: [],
         operationNodeIds: [],
         provides: null,
-        isComplete: false,
-        unsupportedFeatures: ["variable"],
-        diagnostics: ["Variable blocks are not executable yet."]
+        isComplete:
+          expression.mode === "value"
+            ? true
+            : expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand),
+        unsupportedFeatures: [],
+        diagnostics:
+          expression.mode === "value" || (expression.operand && expressionCanExecuteAtRuntime(expression.operand))
+            ? []
+            : ["Finish each block and fill any missing value slots."]
       };
     case "binary":
     case "unary":
@@ -153,9 +230,11 @@ const compileExpression = (expression: ExpressionNode | null): ExpressionCompile
         operations: [],
         operationNodeIds: [],
         provides: null,
-        isComplete: false,
-        unsupportedFeatures: ["expression"],
-        diagnostics: ["Expressions are not executable yet."]
+        isComplete: expressionCanExecuteAtRuntime(expression),
+        unsupportedFeatures: [],
+        diagnostics: expressionCanExecuteAtRuntime(expression)
+          ? []
+          : ["Finish each block and fill any missing value slots."]
       };
   }
 };
@@ -210,8 +289,6 @@ const compileStatement = (
         rowNumbers,
         breakpointable: false
       });
-      context.unsupportedFeatures.add("variable");
-      context.diagnostics.push("Variable declarations are not executable yet.");
       return;
     }
     case "assign": {
@@ -223,8 +300,9 @@ const compileStatement = (
         rowNumbers,
         breakpointable: true
       });
-      context.unsupportedFeatures.add("variable");
-      context.diagnostics.push("Assignments are not executable yet.");
+      if (!statement.value || !expressionCanExecuteAtRuntime(statement.value)) {
+        context.diagnostics.push("Assignments need a complete value.");
+      }
       return;
     }
     case "expression": {
@@ -236,8 +314,9 @@ const compileStatement = (
         rowNumbers,
         breakpointable: true
       });
-      context.unsupportedFeatures.add("expression");
-      context.diagnostics.push("Standalone expressions are not executable yet.");
+      if (!expressionCanExecuteAtRuntime(statement.expression)) {
+        context.diagnostics.push("Standalone expressions need a complete value.");
+      }
       return;
     }
     case "call": {
@@ -262,6 +341,11 @@ const compileStatement = (
                     ? compiledArgument.provides.value
                     : undefined
               }
+            : compiledArgument.isComplete
+              ? {
+                  type: statement.operation,
+                  targetId: statement.structureId
+                }
             : null
           : createOperationForStatement(statement);
       appendInstruction(context, {
@@ -345,11 +429,8 @@ const compileStatement = (
           jumpTargetIp: endIp
         };
       }
-      context.unsupportedFeatures.add("conditional");
-      if (!expressionIsBoolean(statement.condition)) {
-        context.diagnostics.push("Conditional blocks need a boolean input.");
-      } else {
-        context.diagnostics.push("Conditional blocks are not executable yet.");
+      if (!expressionIsBoolean(statement.condition) || !expressionCanExecuteAtRuntime(statement.condition)) {
+        context.diagnostics.push("Conditional blocks need a complete boolean input.");
       }
       return;
     }

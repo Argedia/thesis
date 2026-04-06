@@ -18,6 +18,8 @@ const emitExpression = (expression: ExpressionNode | null): string => {
       switch (expression.mode) {
         case "value":
           return expression.variableName;
+        case "assign":
+          return `${expression.variableName} = ${emitExpression(expression.operand)}`;
         case "add":
           return `${expression.variableName} + ${emitExpression(expression.operand)}`;
         case "subtract":

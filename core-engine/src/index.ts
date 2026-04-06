@@ -1,6 +1,8 @@
 export type StructureId = string;
-export type StructureKind = "stack" | "queue";
+export type StructureKind = "stack" | "queue" | "list";
 export type DataValue = string | number | boolean;
+export type InsertOperationType = "PUSH" | "ENQUEUE" | "APPEND" | "PREPEND";
+export type ExtractOperationType = "POP" | "DEQUEUE" | "REMOVE_FIRST" | "REMOVE_LAST";
 
 export interface NodeVisualProperties {
   color?: string;
@@ -32,8 +34,8 @@ export interface DataStructure {
   readonly kind: StructureKind;
   readonly properties: StructureVisualProperties;
   readState(): StructureSnapshot;
-  insert(value: DataNodeInput): DataStructure;
-  extract(): { structure: DataStructure; value: DataNode };
+  insert(value: DataNodeInput, operationType: InsertOperationType): DataStructure;
+  extract(operationType: ExtractOperationType): { structure: DataStructure; value: DataNode };
   serialize(): StructureSnapshot;
 }
 
@@ -117,8 +119,8 @@ abstract class BaseStructure implements DataStructure {
     return normalizeDataNode(value, this.properties, "insert");
   }
 
-  public abstract insert(value: DataNodeInput): DataStructure;
-  public abstract extract(): { structure: DataStructure; value: DataNode };
+  public abstract insert(value: DataNodeInput, operationType: InsertOperationType): DataStructure;
+  public abstract extract(operationType: ExtractOperationType): { structure: DataStructure; value: DataNode };
 }
 
 export class StackStructure extends BaseStructure {
@@ -132,7 +134,10 @@ export class StackStructure extends BaseStructure {
     super(id, values, properties);
   }
 
-  public insert(value: DataNodeInput): StackStructure {
+  public insert(value: DataNodeInput, operationType: InsertOperationType): StackStructure {
+    if (operationType !== "PUSH") {
+      throw new Error(`Stack "${this.id}" only supports PUSH for insertion.`);
+    }
     return new StackStructure(
       this.id,
       [...this.values, this.prepareInsertedValue(value)],
@@ -140,7 +145,10 @@ export class StackStructure extends BaseStructure {
     );
   }
 
-  public extract(): { structure: StackStructure; value: DataNode } {
+  public extract(operationType: ExtractOperationType): { structure: StackStructure; value: DataNode } {
+    if (operationType !== "POP") {
+      throw new Error(`Stack "${this.id}" only supports POP for extraction.`);
+    }
     if (this.values.length === 0) {
       throw new Error(`Stack "${this.id}" is empty.`);
     }
@@ -164,7 +172,10 @@ export class QueueStructure extends BaseStructure {
     super(id, values, properties);
   }
 
-  public insert(value: DataNodeInput): QueueStructure {
+  public insert(value: DataNodeInput, operationType: InsertOperationType): QueueStructure {
+    if (operationType !== "ENQUEUE") {
+      throw new Error(`Queue "${this.id}" only supports ENQUEUE for insertion.`);
+    }
     return new QueueStructure(
       this.id,
       [...this.values, this.prepareInsertedValue(value)],
@@ -172,7 +183,10 @@ export class QueueStructure extends BaseStructure {
     );
   }
 
-  public extract(): { structure: QueueStructure; value: DataNode } {
+  public extract(operationType: ExtractOperationType): { structure: QueueStructure; value: DataNode } {
+    if (operationType !== "DEQUEUE") {
+      throw new Error(`Queue "${this.id}" only supports DEQUEUE for extraction.`);
+    }
     if (this.values.length === 0) {
       throw new Error(`Queue "${this.id}" is empty.`);
     }
@@ -181,6 +195,67 @@ export class QueueStructure extends BaseStructure {
       structure: new QueueStructure(this.id, this.values.slice(1), this.properties),
       value: { ...this.values[0] }
     };
+  }
+}
+
+export class ListStructure extends BaseStructure {
+  public readonly kind = "list" as const;
+
+  public constructor(
+    id: StructureId,
+    values: DataNodeInput[],
+    properties: StructureVisualProperties = {}
+  ) {
+    super(id, values, properties);
+  }
+
+  public insert(value: DataNodeInput, operationType: InsertOperationType): ListStructure {
+    const inserted = this.prepareInsertedValue(value);
+    const nextValues =
+      operationType === "PREPEND"
+        ? [inserted, ...this.values]
+        : [...this.values, inserted];
+
+    return new ListStructure(this.id, nextValues, this.properties);
+  }
+
+  public extract(operationType: ExtractOperationType): { structure: ListStructure; value: DataNode } {
+    if (this.values.length === 0) {
+      throw new Error(`List "${this.id}" is empty.`);
+    }
+
+    if (operationType === "REMOVE_LAST") {
+      const nextValues = this.values.slice(0, -1);
+      return {
+        structure: new ListStructure(this.id, nextValues, this.properties),
+        value: { ...this.values[this.values.length - 1] }
+      };
+    }
+
+    return {
+      structure: new ListStructure(this.id, this.values.slice(1), this.properties),
+      value: { ...this.values[0] }
+    };
+  }
+
+  public getHead(): DataNode {
+    if (this.values.length === 0) {
+      throw new Error(`List "${this.id}" is empty.`);
+    }
+
+    return { ...this.values[0] };
+  }
+
+  public getTail(): DataNode {
+    if (this.values.length === 0) {
+      throw new Error(`List "${this.id}" is empty.`);
+    }
+
+    return { ...this.values[this.values.length - 1] };
+  }
+
+  public size(): number {
+    return this.values.length;
   }
 }
 
@@ -194,6 +269,13 @@ export type OperationDefinition =
   | { type: "POP"; sourceId: StructureId }
   | { type: "ENQUEUE"; targetId: StructureId; value?: DataNodeInput }
   | { type: "DEQUEUE"; sourceId: StructureId }
+  | { type: "APPEND"; targetId: StructureId; value?: DataNodeInput }
+  | { type: "PREPEND"; targetId: StructureId; value?: DataNodeInput }
+  | { type: "REMOVE_FIRST"; sourceId: StructureId }
+  | { type: "REMOVE_LAST"; sourceId: StructureId }
+  | { type: "GET_HEAD"; sourceId: StructureId }
+  | { type: "GET_TAIL"; sourceId: StructureId }
+  | { type: "SIZE"; sourceId: StructureId }
   | { type: "TRANSFER"; sourceId: StructureId; targetId: StructureId };
 
 export interface ProgramDefinition {
@@ -202,6 +284,7 @@ export interface ProgramDefinition {
 
 export type EngineEventType =
   | "VALUE_EXTRACTED"
+  | "VALUE_READ"
   | "VALUE_INSERTED"
   | "STRUCTURE_UPDATED";
 
@@ -215,7 +298,7 @@ export interface EngineEvent {
 
 export interface ExecutionStep {
   id: string;
-  action: "EXTRACT" | "INSERT";
+  action: "EXTRACT" | "INSERT" | "READ";
   operationType: OperationDefinition["type"];
   value: DataValue;
   affectedStructures: StructureId[];
@@ -236,6 +319,12 @@ type CompiledStep =
       operationType: OperationDefinition["type"];
       targetId: StructureId;
       value?: DataNodeInput;
+    }
+  | {
+      id: string;
+      action: "READ";
+      operationType: OperationDefinition["type"];
+      sourceId: StructureId;
     };
 
 type EngineListener = (event: EngineEvent) => void;
@@ -250,7 +339,11 @@ const createStructure = (snapshot: StructureSnapshot): DataStructure => {
     return new StackStructure(normalized.id, normalized.values, normalized.properties);
   }
 
-  return new QueueStructure(normalized.id, normalized.values, normalized.properties);
+  if (normalized.kind === "queue") {
+    return new QueueStructure(normalized.id, normalized.values, normalized.properties);
+  }
+
+  return new ListStructure(normalized.id, normalized.values, normalized.properties);
 };
 
 const createState = (
@@ -297,56 +390,19 @@ export class VisualExecutionEngine {
       return null;
     }
 
-    const events: EngineEvent[] = [];
-    if (next.action === "EXTRACT") {
-      const source = this.getStructure(next.sourceId);
-      const result = source.extract();
-      this.structures[next.sourceId] = result.structure;
-      this.handValue = result.value;
-
-      events.push(
-        this.createEvent("VALUE_EXTRACTED", next.id, next.sourceId, result.value.value),
-        this.createEvent("STRUCTURE_UPDATED", next.id, next.sourceId)
-      );
-    } else {
-      const target = this.getStructure(next.targetId);
-      const value = next.value ?? this.handValue;
-
-      if (value === null || value === undefined) {
-        throw new Error(`No value available to insert into "${next.targetId}".`);
-      }
-
-      const result = target.insert(value);
-      const insertedNode = normalizeDataNode(
-        value,
-        target.properties,
-        "insert"
-      );
-      this.structures[next.targetId] = result;
-      this.handValue = null;
-
-      events.push(
-        this.createEvent("VALUE_INSERTED", next.id, next.targetId, insertedNode.value),
-        this.createEvent("STRUCTURE_UPDATED", next.id, next.targetId)
-      );
-    }
-
+    const executedStep = this.executeCompiledStep(next);
     this.stepIndex += 1;
-    events.forEach((event) => this.listeners.forEach((listener) => listener(event)));
+    return executedStep;
+  }
 
-    return {
-      id: next.id,
-      action: next.action,
-      operationType: next.operationType,
-      value:
-        next.action === "EXTRACT"
-          ? (this.handValue as DataNode).value
-          : (events[0].value as DataValue),
-      affectedStructures:
-        next.action === "EXTRACT" ? [next.sourceId] : [next.targetId],
-      events,
-      state: this.getState()
-    };
+  public executeOperation(operation: OperationDefinition): ExecutionStep[] {
+    const executed: ExecutionStep[] = [];
+    const compiledSteps = this.compile({ operations: [operation] });
+    compiledSteps.forEach((step) => {
+      const executedStep = this.executeCompiledStep(step);
+      executed.push(executedStep);
+    });
+    return executed;
   }
 
   public run(): ExecutionStep[] {
@@ -374,6 +430,101 @@ export class VisualExecutionEngine {
     };
   }
 
+  private executeCompiledStep(next: CompiledStep): ExecutionStep {
+
+    const events: EngineEvent[] = [];
+    if (next.action === "EXTRACT") {
+      const source = this.getStructure(next.sourceId);
+      const extractOperationType: ExtractOperationType =
+        next.operationType === "TRANSFER"
+          ? source.kind === "stack"
+            ? "POP"
+            : source.kind === "queue"
+              ? "DEQUEUE"
+              : "REMOVE_FIRST"
+          : (next.operationType as ExtractOperationType);
+      const result = source.extract(extractOperationType);
+      this.structures[next.sourceId] = result.structure;
+      this.handValue = result.value;
+
+      events.push(
+        this.createEvent("VALUE_EXTRACTED", next.id, next.sourceId, result.value.value),
+        this.createEvent("STRUCTURE_UPDATED", next.id, next.sourceId)
+      );
+    } else if (next.action === "READ") {
+      const source = this.getStructure(next.sourceId);
+      if (source.kind !== "list") {
+        throw new Error(`Operation "${next.operationType}" is only available for lists.`);
+      }
+
+      const listSource = source as ListStructure;
+      let readValue: DataValue;
+      switch (next.operationType) {
+        case "GET_HEAD":
+          readValue = listSource.getHead().value;
+          break;
+        case "GET_TAIL":
+          readValue = listSource.getTail().value;
+          break;
+        case "SIZE":
+          readValue = listSource.size();
+          break;
+        default:
+          throw new Error(`Unsupported read operation "${next.operationType}".`);
+      }
+
+      this.handValue = normalizeDataNode(readValue, source.properties, "insert");
+      events.push(
+        this.createEvent("VALUE_READ", next.id, next.sourceId, readValue)
+      );
+    } else {
+      const target = this.getStructure(next.targetId);
+      const value = next.value ?? this.handValue;
+
+      if (value === null || value === undefined) {
+        throw new Error(`No value available to insert into "${next.targetId}".`);
+      }
+
+      const insertOperationType: InsertOperationType =
+        next.operationType === "TRANSFER"
+          ? target.kind === "stack"
+            ? "PUSH"
+            : target.kind === "queue"
+              ? "ENQUEUE"
+              : "APPEND"
+          : (next.operationType as InsertOperationType);
+      const result = target.insert(value, insertOperationType);
+      const insertedNode = normalizeDataNode(
+        value,
+        target.properties,
+        "insert"
+      );
+      this.structures[next.targetId] = result;
+      this.handValue = null;
+
+      events.push(
+        this.createEvent("VALUE_INSERTED", next.id, next.targetId, insertedNode.value),
+        this.createEvent("STRUCTURE_UPDATED", next.id, next.targetId)
+      );
+    }
+
+    events.forEach((event) => this.listeners.forEach((listener) => listener(event)));
+
+    return {
+      id: next.id,
+      action: next.action,
+      operationType: next.operationType,
+      value:
+        next.action === "EXTRACT" || next.action === "READ"
+          ? (this.handValue as DataNode).value
+          : (events[0].value as DataValue),
+      affectedStructures:
+        next.action === "INSERT" ? [next.targetId] : [next.sourceId],
+      events,
+      state: this.getState()
+    };
+  }
+
   private compile(program: ProgramDefinition): CompiledStep[] {
     const compiled: CompiledStep[] = [];
 
@@ -383,6 +534,8 @@ export class VisualExecutionEngine {
       switch (operation.type) {
         case "PUSH":
         case "ENQUEUE":
+        case "APPEND":
+        case "PREPEND":
           compiled.push({
             id: `${stepBase}-insert`,
             action: "INSERT",
@@ -393,9 +546,21 @@ export class VisualExecutionEngine {
           break;
         case "POP":
         case "DEQUEUE":
+        case "REMOVE_FIRST":
+        case "REMOVE_LAST":
           compiled.push({
             id: `${stepBase}-extract`,
             action: "EXTRACT",
+            operationType: operation.type,
+            sourceId: operation.sourceId
+          });
+          break;
+        case "GET_HEAD":
+        case "GET_TAIL":
+        case "SIZE":
+          compiled.push({
+            id: `${stepBase}-read`,
+            action: "READ",
             operationType: operation.type,
             sourceId: operation.sourceId
           });

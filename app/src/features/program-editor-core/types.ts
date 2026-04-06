@@ -1,6 +1,17 @@
 import type { DataValue, OperationDefinition, StructureKind, StructureSnapshot } from "@thesis/core-engine";
 
-export type BuilderOperation = "POP" | "PUSH" | "DEQUEUE" | "ENQUEUE";
+export type BuilderOperation =
+  | "POP"
+  | "PUSH"
+  | "DEQUEUE"
+  | "ENQUEUE"
+  | "APPEND"
+  | "PREPEND"
+  | "REMOVE_FIRST"
+  | "REMOVE_LAST"
+  | "GET_HEAD"
+  | "GET_TAIL"
+  | "SIZE";
 export type EditorBlockKind =
   | "structure"
   | "value"
@@ -10,6 +21,7 @@ export type EditorBlockKind =
 export type ConditionalMode = "if" | "if-else";
 export type VariableOperationMode =
   | "value"
+  | "assign"
   | "add"
   | "subtract"
   | "multiply"

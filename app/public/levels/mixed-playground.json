@@ -19,6 +19,15 @@
         "color": "#7ad3ba",
         "nodeAutoTaint": false
       }
+    },
+    {
+      "id": "C",
+      "kind": "list",
+      "values": [8, 9, 10],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -39,10 +48,19 @@
         "color": "#7ad3ba",
         "nodeAutoTaint": false
       }
+    },
+    {
+      "id": "C",
+      "kind": "list",
+      "values": [8, 9, 10],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
-    "allowedOperations": ["POP", "PUSH", "DEQUEUE", "ENQUEUE"],
+    "allowedOperations": ["POP", "PUSH", "DEQUEUE", "ENQUEUE", "APPEND", "PREPEND", "REMOVE_FIRST", "REMOVE_LAST", "GET_HEAD", "GET_TAIL", "SIZE"],
     "forbiddenBlocks": [],
     "maxSteps": 99
   },
@@ -51,7 +69,7 @@
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": ["A", "B", "C"],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
@@ -59,13 +77,13 @@
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue"],
+    "structuresUsed": ["stack", "queue", "list"],
     "difficulty": "easy",
     "author": "Core Team",
-    "description": "Open sandbox level with one stack and one queue."
+    "description": "Open sandbox level with one stack, one queue, and one list."
   },
   "tooling": {
-    "availableStructures": ["stack", "queue"],
+    "availableStructures": ["stack", "queue", "list"],
     "advancedToolsEnabled": true
   }
 }
