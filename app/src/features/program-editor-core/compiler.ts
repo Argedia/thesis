@@ -1,17 +1,18 @@
 import type { DataValue, OperationDefinition } from "@thesis/core-engine";
+import { analyzeDocumentRoutines } from "./routines";
 import { projectProgramRows } from "./projection";
+import { getActiveRoutine, setActiveRoutineId } from "./tree";
 import type {
   BuilderOperation,
   CompileResult,
   CompiledInstruction,
+  CompiledRoutine,
   EditorDocument,
   ExpressionNode,
-  IfStatement,
-  ProgramNode,
+  RoutineNode,
+  RoutineSignature,
   StatementNode,
-  StructureCallStatement,
-  VariableExpression,
-  WhileStatement
+  StructureCallStatement
 } from "./types";
 
 const structureExpressionSupportsValue = (operation: BuilderOperation | null): boolean =>
@@ -23,24 +24,77 @@ const structureExpressionSupportsValue = (operation: BuilderOperation | null): b
   operation === "GET_TAIL" ||
   operation === "SIZE";
 
+const isSourceOperation = (
+  operation: BuilderOperation | null
+): operation is Extract<
+  BuilderOperation,
+  "POP" | "DEQUEUE" | "REMOVE_FIRST" | "REMOVE_LAST" | "GET_HEAD" | "GET_TAIL" | "SIZE"
+> => structureExpressionSupportsValue(operation);
+
+const isTargetOperation = (
+  operation: BuilderOperation | null
+): operation is Extract<BuilderOperation, "PUSH" | "ENQUEUE" | "APPEND" | "PREPEND"> =>
+  operation === "PUSH" ||
+  operation === "ENQUEUE" ||
+  operation === "APPEND" ||
+  operation === "PREPEND";
+
 const callStatementSupportsExecution = (statement: StructureCallStatement): boolean => {
   if (!statement.operation) {
     return false;
   }
 
-  if (
-    statement.operation === "POP" ||
-    statement.operation === "DEQUEUE" ||
-    statement.operation === "REMOVE_FIRST" ||
-    statement.operation === "REMOVE_LAST" ||
-    statement.operation === "GET_HEAD" ||
-    statement.operation === "GET_TAIL" ||
-    statement.operation === "SIZE"
-  ) {
+  if (isSourceOperation(statement.operation)) {
     return true;
   }
 
   return statement.args.length === 1;
+};
+
+const createSourceOperation = (
+  operation: Extract<
+    BuilderOperation,
+    "POP" | "DEQUEUE" | "REMOVE_FIRST" | "REMOVE_LAST" | "GET_HEAD" | "GET_TAIL" | "SIZE"
+  >,
+  sourceId: string
+): OperationDefinition => {
+  switch (operation) {
+    case "POP":
+      return { type: "POP", sourceId };
+    case "DEQUEUE":
+      return { type: "DEQUEUE", sourceId };
+    case "REMOVE_FIRST":
+      return { type: "REMOVE_FIRST", sourceId };
+    case "REMOVE_LAST":
+      return { type: "REMOVE_LAST", sourceId };
+    case "GET_HEAD":
+      return { type: "GET_HEAD", sourceId };
+    case "GET_TAIL":
+      return { type: "GET_TAIL", sourceId };
+    case "SIZE":
+      return { type: "SIZE", sourceId };
+  }
+};
+
+const createTargetOperation = (
+  operation: Extract<BuilderOperation, "PUSH" | "ENQUEUE" | "APPEND" | "PREPEND">,
+  targetId: string,
+  value?: DataValue
+): OperationDefinition => {
+  switch (operation) {
+    case "PUSH":
+      return value === undefined ? { type: "PUSH", targetId } : { type: "PUSH", targetId, value };
+    case "ENQUEUE":
+      return value === undefined
+        ? { type: "ENQUEUE", targetId }
+        : { type: "ENQUEUE", targetId, value };
+    case "APPEND":
+      return value === undefined ? { type: "APPEND", targetId } : { type: "APPEND", targetId, value };
+    case "PREPEND":
+      return value === undefined
+        ? { type: "PREPEND", targetId }
+        : { type: "PREPEND", targetId, value };
+  }
 };
 
 const expressionProvidesValue = (expression: ExpressionNode | null): boolean => {
@@ -53,14 +107,13 @@ const expressionProvidesValue = (expression: ExpressionNode | null): boolean => 
       return true;
     case "structure":
       return structureExpressionSupportsValue(expression.operation);
+    case "routine-call":
+      return true;
     case "variable":
       if (expression.mode === "assign") {
         return false;
       }
-      if (expression.mode === "value") {
-        return true;
-      }
-      return expression.operand !== null;
+      return expression.mode === "value" ? true : expression.operand !== null;
     case "binary":
       return expression.right !== null;
     case "unary":
@@ -71,7 +124,10 @@ const expressionProvidesValue = (expression: ExpressionNode | null): boolean => 
 const expressionIsBoolean = (expression: ExpressionNode | null): boolean =>
   !!expression && expression.outputType === "boolean";
 
-const expressionCanExecuteAtRuntime = (expression: ExpressionNode | null): boolean => {
+const expressionCanExecuteAtRuntime = (
+  expression: ExpressionNode | null,
+  signatures: Record<string, RoutineSignature>
+): boolean => {
   if (!expression) {
     return false;
   }
@@ -80,22 +136,35 @@ const expressionCanExecuteAtRuntime = (expression: ExpressionNode | null): boole
     case "literal":
       return true;
     case "structure":
-      return expression.operation === "POP" || expression.operation === "DEQUEUE";
+      return (
+        expression.args.length === 0 &&
+        structureExpressionSupportsValue(expression.operation)
+      );
+    case "routine-call": {
+      const signature = signatures[expression.routineId];
+      return (
+        !!signature &&
+        signature.isPublishable &&
+        signature.returnKind !== "none" &&
+        expression.args.length === signature.params.length &&
+        expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
+      );
+    }
     case "variable":
       if (expression.mode === "assign") {
         return false;
       }
       return expression.mode === "value"
         ? true
-        : expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand);
+        : expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand, signatures);
     case "binary":
       return (
-        expressionCanExecuteAtRuntime(expression.left) &&
+        expressionCanExecuteAtRuntime(expression.left, signatures) &&
         expression.right !== null &&
-        expressionCanExecuteAtRuntime(expression.right)
+        expressionCanExecuteAtRuntime(expression.right, signatures)
       );
     case "unary":
-      return expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand);
+      return expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand, signatures);
   }
 };
 
@@ -106,19 +175,8 @@ const createOperationForStatement = (
     return null;
   }
 
-  if (
-    statement.operation === "POP" ||
-    statement.operation === "DEQUEUE" ||
-    statement.operation === "REMOVE_FIRST" ||
-    statement.operation === "REMOVE_LAST" ||
-    statement.operation === "GET_HEAD" ||
-    statement.operation === "GET_TAIL" ||
-    statement.operation === "SIZE"
-  ) {
-    return {
-      type: statement.operation,
-      sourceId: statement.structureId
-    };
+  if (isSourceOperation(statement.operation)) {
+    return createSourceOperation(statement.operation, statement.structureId);
   }
 
   const input = statement.args[0];
@@ -126,10 +184,11 @@ const createOperationForStatement = (
     return null;
   }
 
-  return {
-    type: statement.operation,
-    targetId: statement.structureId
-  };
+  if (isTargetOperation(statement.operation)) {
+    return createTargetOperation(statement.operation, statement.structureId);
+  }
+
+  return null;
 };
 
 type CompiledValue =
@@ -145,7 +204,10 @@ interface ExpressionCompileResult {
   diagnostics: string[];
 }
 
-const compileExpression = (expression: ExpressionNode | null): ExpressionCompileResult => {
+const compileExpression = (
+  expression: ExpressionNode | null,
+  signatures: Record<string, RoutineSignature>
+): ExpressionCompileResult => {
   if (!expression) {
     return {
       operations: [],
@@ -168,22 +230,19 @@ const compileExpression = (expression: ExpressionNode | null): ExpressionCompile
         diagnostics: []
       };
     case "structure":
-      if (
-        expression.operation === "POP" ||
-        expression.operation === "DEQUEUE" ||
-        expression.operation === "REMOVE_FIRST" ||
-        expression.operation === "REMOVE_LAST" ||
-        expression.operation === "GET_HEAD" ||
-        expression.operation === "GET_TAIL" ||
-        expression.operation === "SIZE"
-      ) {
+      if (expression.args.length > 0) {
         return {
-          operations: [
-            {
-              type: expression.operation,
-              sourceId: expression.structureId
-            }
-          ],
+          operations: [],
+          operationNodeIds: [],
+          provides: null,
+          isComplete: false,
+          unsupportedFeatures: ["expression"],
+          diagnostics: ["Only value-producing blocks without input slots can be used as expressions."]
+        };
+      }
+      if (isSourceOperation(expression.operation)) {
+        return {
+          operations: [createSourceOperation(expression.operation!, expression.structureId)],
           operationNodeIds: [expression.id],
           provides: { kind: "hand" },
           isComplete: true,
@@ -199,6 +258,33 @@ const compileExpression = (expression: ExpressionNode | null): ExpressionCompile
         unsupportedFeatures: ["expression"],
         diagnostics: ["Only value-producing blocks can be used in slots."]
       };
+    case "routine-call": {
+      const signature = signatures[expression.routineId];
+      if (!signature?.isPublishable || signature.returnKind === "none") {
+        return {
+          operations: [],
+          operationNodeIds: [],
+          provides: null,
+          isComplete: false,
+          unsupportedFeatures: [],
+          diagnostics: [`${expression.routineName} is not publishable as a value function yet.`]
+        };
+      }
+      return {
+        operations: [],
+        operationNodeIds: [],
+        provides: null,
+        isComplete:
+          expression.args.length === signature.params.length &&
+          expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures)),
+        unsupportedFeatures: [],
+        diagnostics:
+          expression.args.length === signature.params.length &&
+          expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
+            ? []
+            : ["Finish each block and fill any missing value slots."]
+      };
+    }
     case "variable":
       if (expression.mode === "assign") {
         return {
@@ -217,29 +303,31 @@ const compileExpression = (expression: ExpressionNode | null): ExpressionCompile
         isComplete:
           expression.mode === "value"
             ? true
-            : expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand),
+            : expression.operand !== null && expressionCanExecuteAtRuntime(expression.operand, signatures),
         unsupportedFeatures: [],
         diagnostics:
-          expression.mode === "value" || (expression.operand && expressionCanExecuteAtRuntime(expression.operand))
+          expression.mode === "value" ||
+          (expression.operand && expressionCanExecuteAtRuntime(expression.operand, signatures))
             ? []
             : ["Finish each block and fill any missing value slots."]
       };
     case "binary":
-    case "unary":
+    case "unary": {
+      const isComplete = expressionCanExecuteAtRuntime(expression, signatures);
       return {
         operations: [],
         operationNodeIds: [],
         provides: null,
-        isComplete: expressionCanExecuteAtRuntime(expression),
+        isComplete,
         unsupportedFeatures: [],
-        diagnostics: expressionCanExecuteAtRuntime(expression)
-          ? []
-          : ["Finish each block and fill any missing value slots."]
+        diagnostics: isComplete ? [] : ["Finish each block and fill any missing value slots."]
       };
+    }
   }
 };
 
 interface CompileContext {
+  routineId: string;
   instructions: CompiledInstruction[];
   operations: OperationDefinition[];
   operationNodeIds: string[];
@@ -257,7 +345,8 @@ const appendInstruction = (
   const ip = context.instructions.length;
   context.instructions.push({
     ...instruction,
-    ip
+    ip,
+    routineId: context.routineId
   });
   context.nodeInstructionMap[instruction.nodeId] = [
     ...(context.nodeInstructionMap[instruction.nodeId] ?? []),
@@ -266,12 +355,15 @@ const appendInstruction = (
   return ip;
 };
 
-const rowNumbersForNode = (rowMap: ReturnType<typeof projectProgramRows>, nodeId: string): number[] =>
-  rowMap.rows.filter((row) => row.nodeId === nodeId).map((row) => row.rowNumber);
+const rowNumbersForNode = (
+  rowMap: ReturnType<typeof projectProgramRows>,
+  nodeId: string
+): number[] => rowMap.rows.filter((row) => row.nodeId === nodeId).map((row) => row.rowNumber);
 
 const compileStatement = (
   statement: StatementNode,
   rowMap: ReturnType<typeof projectProgramRows>,
+  signatures: Record<string, RoutineSignature>,
   context: CompileContext
 ) => {
   const rowIds = rowMap.nodeRowMap[statement.id] ?? [];
@@ -280,7 +372,7 @@ const compileStatement = (
   context.nodeRowNumberMap[statement.id] = rowNumbers;
 
   switch (statement.kind) {
-    case "declare": {
+    case "declare":
       appendInstruction(context, {
         instructionId: `ins-${statement.id}-declare`,
         kind: "declare",
@@ -290,8 +382,7 @@ const compileStatement = (
         breakpointable: false
       });
       return;
-    }
-    case "assign": {
+    case "assign":
       appendInstruction(context, {
         instructionId: `ins-${statement.id}-assign`,
         kind: "assign",
@@ -300,12 +391,11 @@ const compileStatement = (
         rowNumbers,
         breakpointable: true
       });
-      if (!statement.value || !expressionCanExecuteAtRuntime(statement.value)) {
+      if (!statement.value || !expressionCanExecuteAtRuntime(statement.value, signatures)) {
         context.diagnostics.push("Assignments need a complete value.");
       }
       return;
-    }
-    case "expression": {
+    case "expression":
       appendInstruction(context, {
         instructionId: `ins-${statement.id}-expression`,
         kind: "expression",
@@ -314,14 +404,13 @@ const compileStatement = (
         rowNumbers,
         breakpointable: true
       });
-      if (!expressionCanExecuteAtRuntime(statement.expression)) {
+      if (!expressionCanExecuteAtRuntime(statement.expression, signatures)) {
         context.diagnostics.push("Standalone expressions need a complete value.");
       }
       return;
-    }
     case "call": {
       const compiledArgument = statement.args[0]
-        ? compileExpression(statement.args[0])
+        ? compileExpression(statement.args[0], signatures)
         : {
             operations: [],
             operationNodeIds: [],
@@ -331,22 +420,18 @@ const compileStatement = (
             diagnostics: []
           };
       const operation =
-        statement.operation === "PUSH" || statement.operation === "ENQUEUE"
+        isTargetOperation(statement.operation)
           ? compiledArgument.isComplete && compiledArgument.provides
-            ? {
-                type: statement.operation,
-                targetId: statement.structureId,
-                value:
-                  compiledArgument.provides.kind === "literal"
-                    ? compiledArgument.provides.value
-                    : undefined
-              }
+            ? createTargetOperation(
+                statement.operation,
+                statement.structureId,
+                compiledArgument.provides.kind === "literal"
+                  ? compiledArgument.provides.value
+                  : undefined
+              )
             : compiledArgument.isComplete
-              ? {
-                  type: statement.operation,
-                  targetId: statement.structureId
-                }
-            : null
+              ? createTargetOperation(statement.operation, statement.structureId)
+              : null
           : createOperationForStatement(statement);
       appendInstruction(context, {
         instructionId: `ins-${statement.id}-call`,
@@ -383,8 +468,42 @@ const compileStatement = (
       }
       return;
     }
+    case "routine-call": {
+      const signature = signatures[statement.routineId];
+      appendInstruction(context, {
+        instructionId: `ins-${statement.id}-routine-call`,
+        kind: "call-routine",
+        nodeId: statement.id,
+        rowIds,
+        rowNumbers,
+        breakpointable: true,
+        routineId: statement.routineId
+      });
+      if (!signature?.isPublishable || signature.returnKind !== "none") {
+        context.diagnostics.push(`${statement.routineName} is not publishable as an action function.`);
+      } else if (
+        statement.args.length !== signature.params.length ||
+        !statement.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
+      ) {
+        context.diagnostics.push("Finish each block and fill any missing value slots.");
+      }
+      return;
+    }
+    case "return":
+      appendInstruction(context, {
+        instructionId: `ins-${statement.id}-return`,
+        kind: "return",
+        nodeId: statement.id,
+        rowIds,
+        rowNumbers,
+        breakpointable: true
+      });
+      if (statement.value && !expressionCanExecuteAtRuntime(statement.value, signatures)) {
+        context.diagnostics.push("Return blocks need a complete value.");
+      }
+      return;
     case "if": {
-      const evalIp = appendInstruction(context, {
+      appendInstruction(context, {
         instructionId: `ins-${statement.id}-eval`,
         kind: "eval-condition",
         nodeId: statement.id,
@@ -401,7 +520,7 @@ const compileStatement = (
         breakpointable: false,
         jumpTargetIp: -1
       });
-      statement.thenBody.forEach((child) => compileStatement(child, rowMap, context));
+      statement.thenBody.forEach((child) => compileStatement(child, rowMap, signatures, context));
       let skipJumpIp: number | null = null;
       if (statement.elseBody && statement.elseBody.length > 0) {
         skipJumpIp = appendInstruction(context, {
@@ -416,7 +535,7 @@ const compileStatement = (
       }
       const elseStartIp = context.instructions.length;
       if (statement.elseBody) {
-        statement.elseBody.forEach((child) => compileStatement(child, rowMap, context));
+        statement.elseBody.forEach((child) => compileStatement(child, rowMap, signatures, context));
       }
       const endIp = context.instructions.length;
       context.instructions[jumpIfFalseIp] = {
@@ -429,7 +548,7 @@ const compileStatement = (
           jumpTargetIp: endIp
         };
       }
-      if (!expressionIsBoolean(statement.condition) || !expressionCanExecuteAtRuntime(statement.condition)) {
+      if (!expressionIsBoolean(statement.condition) || !expressionCanExecuteAtRuntime(statement.condition, signatures)) {
         context.diagnostics.push("Conditional blocks need a complete boolean input.");
       }
       return;
@@ -453,7 +572,7 @@ const compileStatement = (
         breakpointable: false,
         jumpTargetIp: -1
       });
-      statement.body.forEach((child) => compileStatement(child, rowMap, context));
+      statement.body.forEach((child) => compileStatement(child, rowMap, signatures, context));
       appendInstruction(context, {
         instructionId: `ins-${statement.id}-jump-loop`,
         kind: "jump",
@@ -467,45 +586,96 @@ const compileStatement = (
         ...context.instructions[jumpIfFalseIp]!,
         jumpTargetIp: context.instructions.length
       };
-      context.unsupportedFeatures.add("loop");
-      context.diagnostics.push("Loop blocks are not executable yet.");
+      if (!expressionIsBoolean(statement.condition) || !expressionCanExecuteAtRuntime(statement.condition, signatures)) {
+        context.diagnostics.push("Loop blocks need a complete boolean input.");
+      }
       return;
     }
   }
 };
 
-export const compileEditorDocument = (document: EditorDocument): CompileResult => {
-  const rowMap = projectProgramRows(document);
+const compileRoutine = (
+  document: EditorDocument,
+  routine: RoutineNode,
+  signature: RoutineSignature,
+  signatures: Record<string, RoutineSignature>
+): CompiledRoutine => {
+  const rowMap = projectProgramRows(setActiveRoutineId(document, routine.id));
   const context: CompileContext = {
+    routineId: routine.id,
     instructions: [],
     operations: [],
     operationNodeIds: [],
-    diagnostics: [],
+    diagnostics: [...signature.diagnostics],
     unsupportedFeatures: new Set<string>(),
     nodeInstructionMap: {},
     nodeRowMap: {},
     nodeRowNumberMap: {}
   };
 
-  document.program.statements.forEach((statement) => compileStatement(statement, rowMap, context));
+  routine.program.statements.forEach((statement) =>
+    compileStatement(statement, rowMap, signatures, context)
+  );
 
   const uniqueDiagnostics = Array.from(new Set(context.diagnostics));
-  const isComplete =
-    uniqueDiagnostics.length === 0 &&
-    context.unsupportedFeatures.size === 0 &&
-    context.instructions.every((instruction) =>
-      instruction.kind !== "call" ? true : !!instruction.operation
-    );
-
   return {
+    routineId: routine.id,
+    routineName: routine.name,
+    signature,
     instructions: context.instructions,
     operations: context.operations,
     operationNodeIds: context.operationNodeIds,
-    isComplete,
+    isComplete:
+      uniqueDiagnostics.length === 0 &&
+      context.unsupportedFeatures.size === 0 &&
+      context.instructions.every((instruction) =>
+        instruction.kind !== "call" ? true : !!instruction.operation
+      ),
     unsupportedFeatures: Array.from(context.unsupportedFeatures),
     diagnostics: uniqueDiagnostics,
     nodeInstructionMap: context.nodeInstructionMap,
     nodeRowMap: rowMap.nodeRowMap,
     nodeRowNumberMap: context.nodeRowNumberMap
+  };
+};
+
+export const compileEditorDocument = (document: EditorDocument): CompileResult => {
+  const signatures = analyzeDocumentRoutines(document);
+  const routines = Object.fromEntries(
+    document.routines.map((routine) => [
+      routine.id,
+      compileRoutine(document, routine, signatures[routine.id]!, signatures)
+    ])
+  ) as Record<string, CompiledRoutine>;
+
+  Object.values(routines).forEach((routine) => {
+    const extraDiagnostics: string[] = [];
+    routine.instructions.forEach((instruction) => {
+      if (instruction.kind !== "call-routine" || !instruction.routineId) {
+        return;
+      }
+      const targetRoutine = routines[instruction.routineId];
+      if (!targetRoutine) {
+        extraDiagnostics.push("A routine call points to a missing routine.");
+        return;
+      }
+      if (!targetRoutine.isComplete) {
+        extraDiagnostics.push(`${targetRoutine.routineName} is not executable yet.`);
+      }
+    });
+    if (extraDiagnostics.length > 0) {
+      routine.diagnostics = Array.from(new Set([...routine.diagnostics, ...extraDiagnostics]));
+      routine.isComplete = false;
+    }
+  });
+
+  const activeRoutine =
+    routines[document.activeRoutineId] ?? routines[getActiveRoutine(document).id]!;
+
+  return {
+    ...activeRoutine,
+    activeRoutineId: document.activeRoutineId,
+    routines,
+    routineSignatures: signatures
   };
 };

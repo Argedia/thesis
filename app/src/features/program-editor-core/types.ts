@@ -12,12 +12,17 @@ export type BuilderOperation =
   | "GET_HEAD"
   | "GET_TAIL"
   | "SIZE";
+
 export type EditorBlockKind =
   | "structure"
   | "value"
   | "conditional"
+  | "while"
   | "var_declaration"
-  | "var_operation";
+  | "var_operation"
+  | "return"
+  | "routine_call";
+
 export type ConditionalMode = "if" | "if-else";
 export type VariableOperationMode =
   | "value"
@@ -35,9 +40,13 @@ export type VariableOperationMode =
   | "less_or_equal"
   | "and"
   | "or";
+
 export type ControlBodyKey = "body" | "alternateBody";
 export type ValueType = "text" | "boolean" | null;
 export type OutputType = "none" | "value" | "boolean";
+export type SlotExpectedType = "value" | "boolean" | "any";
+export type RoutineReturnKind = OutputType;
+export type RoutineBindingKind = "declare" | "expect";
 
 export interface NodeVisualStyle {
   color?: string;
@@ -49,6 +58,12 @@ export interface ProgramNode {
   statements: StatementNode[];
 }
 
+export interface RoutineNode {
+  id: string;
+  name: string;
+  program: ProgramNode;
+}
+
 export interface StatementNodeBase {
   id: string;
   visual?: NodeVisualStyle;
@@ -57,6 +72,7 @@ export interface StatementNodeBase {
 export interface DeclareStatement extends StatementNodeBase {
   kind: "declare";
   variableName: string;
+  bindingKind: RoutineBindingKind;
 }
 
 export interface AssignStatement extends StatementNodeBase {
@@ -75,6 +91,14 @@ export interface StructureCallStatement extends StatementNodeBase {
   args: ExpressionNode[];
 }
 
+export interface RoutineCallStatement extends StatementNodeBase {
+  kind: "routine-call";
+  routineId: string;
+  routineName: string;
+  args: ExpressionNode[];
+  returnKind: "none";
+}
+
 export interface IfStatement extends StatementNodeBase {
   kind: "if";
   condition: ExpressionNode | null;
@@ -89,6 +113,11 @@ export interface WhileStatement extends StatementNodeBase {
   body: StatementNode[];
 }
 
+export interface ReturnStatement extends StatementNodeBase {
+  kind: "return";
+  value: ExpressionNode | null;
+}
+
 export interface ExpressionStatement extends StatementNodeBase {
   kind: "expression";
   expression: ExpressionNode;
@@ -98,8 +127,10 @@ export type StatementNode =
   | DeclareStatement
   | AssignStatement
   | StructureCallStatement
+  | RoutineCallStatement
   | IfStatement
   | WhileStatement
+  | ReturnStatement
   | ExpressionStatement;
 
 export interface ExpressionNodeBase {
@@ -127,6 +158,14 @@ export interface StructureValueExpression extends ExpressionNodeBase {
   structureId: string;
   structureKind: StructureKind;
   operation: BuilderOperation | null;
+  args: ExpressionNode[];
+}
+
+export interface RoutineCallExpression extends ExpressionNodeBase {
+  kind: "routine-call";
+  routineId: string;
+  routineName: string;
+  args: ExpressionNode[];
 }
 
 export interface BinaryExpression extends ExpressionNodeBase {
@@ -146,11 +185,28 @@ export type ExpressionNode =
   | LiteralExpression
   | VariableExpression
   | StructureValueExpression
+  | RoutineCallExpression
   | BinaryExpression
   | UnaryExpression;
 
+export interface RoutineSignatureParam {
+  declarationId: string;
+  name: string;
+}
+
+export interface RoutineSignature {
+  routineId: string;
+  routineName: string;
+  isFunction: boolean;
+  params: RoutineSignatureParam[];
+  returnKind: RoutineReturnKind;
+  isPublishable: boolean;
+  diagnostics: string[];
+}
+
 export interface EditorDocument {
-  program: ProgramNode;
+  routines: RoutineNode[];
+  activeRoutineId: string;
 }
 
 export type EditorLineRole = "block" | "else_header" | "drop";
@@ -233,6 +289,8 @@ export interface CompiledInstruction {
     | "declare"
     | "assign"
     | "call"
+    | "call-routine"
+    | "return"
     | "eval-condition"
     | "jump-if-false"
     | "jump"
@@ -243,9 +301,13 @@ export interface CompiledInstruction {
   breakpointable: boolean;
   jumpTargetIp?: number;
   operation?: OperationDefinition;
+  routineId?: string;
 }
 
-export interface CompileResult {
+export interface CompiledRoutine {
+  routineId: string;
+  routineName: string;
+  signature: RoutineSignature;
   instructions: CompiledInstruction[];
   operations: OperationDefinition[];
   operationNodeIds: string[];
@@ -257,7 +319,19 @@ export interface CompileResult {
   nodeRowNumberMap: Record<string, number[]>;
 }
 
+export interface CompileResult extends CompiledRoutine {
+  activeRoutineId: string;
+  routines: Record<string, CompiledRoutine>;
+  routineSignatures: Record<string, RoutineSignature>;
+}
+
 export interface SerializedEditorDocument {
+  version: 3;
+  routines: RoutineNode[];
+  activeRoutineId: string;
+}
+
+export interface SerializedEditorDocumentV2 {
   version: 2;
   program: ProgramNode;
 }
@@ -277,17 +351,23 @@ export interface EditorBlock {
   valueType: ValueType;
   literalValue?: DataValue | null;
   inputBlock?: EditorBlock | null;
+  inputBlocks?: Array<EditorBlock | null>;
   conditionalMode?: ConditionalMode;
   bodyBlocks?: EditorBlock[];
   alternateBodyBlocks?: EditorBlock[];
   variableName?: string;
   variableSourceId?: string;
   variableOperationMode?: VariableOperationMode;
+  bindingKind?: RoutineBindingKind;
+  routineId?: string;
+  routineName?: string;
+  routineReturnKind?: RoutineReturnKind;
+  routineParamNames?: string[];
 }
 
 export interface EditorInputSlotDefinition {
-  id: "input";
-  expectedType: "value" | "boolean";
+  id: string;
+  expectedType: SlotExpectedType;
   allowDirectTextEntry: boolean;
   title: string;
 }
@@ -309,6 +389,11 @@ export interface EditorDragState {
   variableName?: string;
   variableSourceId?: string;
   variableOperationMode?: VariableOperationMode;
+  bindingKind?: RoutineBindingKind;
+  routineId?: string;
+  routineName?: string;
+  routineReturnKind?: RoutineReturnKind;
+  routineParamNames?: string[];
   x: number;
   y: number;
   width: number;
@@ -319,7 +404,8 @@ export interface EditorDragState {
   visualLineIndex: number;
   chosenIndent: number;
   isOverEditor: boolean;
-  slotTargetBlockId?: string | null;
+  slotTargetKey?: string | null;
+  originSlotOwnerId?: string | null;
   branchTarget?: {
     ownerId: string;
     branch: ControlBodyKey;
@@ -338,6 +424,12 @@ export interface ConditionalWheelOption {
   className: string;
 }
 
+export interface DeclarationBindingWheelOption {
+  bindingKind: RoutineBindingKind;
+  label: string;
+  className: string;
+}
+
 export interface PaletteBlock {
   id: string;
   kind: EditorBlockKind;
@@ -351,6 +443,11 @@ export interface PaletteBlock {
   variableName?: string;
   variableSourceId?: string;
   variableOperationMode?: VariableOperationMode;
+  bindingKind?: RoutineBindingKind;
+  routineId?: string;
+  routineName?: string;
+  routineReturnKind?: RoutineReturnKind;
+  routineParamNames?: string[];
   label: string;
 }
 

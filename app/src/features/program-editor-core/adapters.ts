@@ -2,26 +2,34 @@ import type { DataValue, StructureKind } from "@thesis/core-engine";
 import type {
   BuilderOperation,
   ConditionalMode,
+  ConditionalWheelOption,
+  DeclarationBindingWheelOption,
   DeclareStatement,
   EditorBlock,
   EditorDocument,
   EditorInputSlotDefinition,
   ExpressionNode,
   LegacySerializedEditorDocument,
-  SerializedEditorDocument,
   LiteralExpression,
   NodeVisualStyle,
   OutputType,
   ProgramNode,
+  RoutineBindingKind,
+  RoutineSignature,
+  RoutineReturnKind,
+  SerializedEditorDocument,
+  SerializedEditorDocumentV2,
   StatementNode,
   StructureValueExpression,
   ValueType,
   VariableExpression,
   VariableOperationMode,
-  WheelOption,
-  ConditionalWheelOption
+  WheelOption
 } from "./types";
-import { createEditorDocument } from "./tree";
+import { createEditorDocument, getActiveProgram, replaceActiveProgram } from "./tree";
+import { analyzeDocumentRoutines } from "./routines";
+
+const FUNCTION_BLUE = "#9ec5ff";
 
 const cloneVisual = (color?: string): NodeVisualStyle | undefined =>
   color ? { color } : undefined;
@@ -114,21 +122,24 @@ export const operationNeedsValue = (operation: BuilderOperation | null): boolean
 const variableModeOutputType = (mode: VariableOperationMode): OutputType =>
   mode === "assign"
     ? "none"
-    : ["equals", "not_equals", "greater_than", "greater_or_equal", "less_than", "less_or_equal", "and", "or"].includes(mode)
+    : [
+          "equals",
+          "not_equals",
+          "greater_than",
+          "greater_or_equal",
+          "less_than",
+          "less_or_equal",
+          "and",
+          "or"
+        ].includes(mode)
       ? "boolean"
       : "value";
 
-export const getExpressionOutputType = (expression: ExpressionNode | null): OutputType => {
-  if (!expression) {
-    return "none";
-  }
-  return expression.outputType;
-};
+const routineReturnToOutputType = (returnKind: RoutineReturnKind | undefined): OutputType =>
+  returnKind === "value" || returnKind === "boolean" ? returnKind : "none";
 
-export const blockNeedsInput = (block: EditorBlock): boolean =>
-  block.kind === "conditional" ||
-  (block.kind === "structure" && operationNeedsValue(block.operation)) ||
-  (block.kind === "var_operation" && block.variableOperationMode !== "value");
+export const getExpressionOutputType = (expression: ExpressionNode | null): OutputType =>
+  expression?.outputType ?? "none";
 
 export const getOutputType = (block: EditorBlock): OutputType => {
   if (block.kind === "value") {
@@ -140,6 +151,10 @@ export const getOutputType = (block: EditorBlock): OutputType => {
       return "none";
     }
     return variableModeOutputType(block.variableOperationMode ?? "value");
+  }
+
+  if (block.kind === "routine_call") {
+    return routineReturnToOutputType(block.routineReturnKind);
   }
 
   return (
@@ -155,37 +170,115 @@ export const getOutputType = (block: EditorBlock): OutputType => {
   );
 };
 
-export const slotExpectedType = (block: EditorBlock): "value" | "boolean" | null =>
-  block.kind === "conditional"
-    ? "boolean"
-    : blockNeedsInput(block)
-      ? "value"
-      : null;
-
-export const getBlockInputSlot = (block: EditorBlock): EditorInputSlotDefinition | null => {
-  if (!blockNeedsInput(block)) {
-    return null;
+export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinition[] => {
+  if (block.kind === "conditional" || block.kind === "while") {
+    return [
+      {
+        id: "input",
+        expectedType: "boolean",
+        allowDirectTextEntry: true,
+        title: "Insert a boolean block or type true / false"
+      }
+    ];
   }
 
-  return {
-    id: "input",
-    expectedType: slotExpectedType(block) ?? "value",
-    allowDirectTextEntry: true,
-    title:
-      block.kind === "conditional"
-        ? "Insert a boolean block or type true / false"
-        : block.kind === "var_operation"
-          ? (block.variableOperationMode ?? "value") === "assign"
+  if (block.kind === "structure" && operationNeedsValue(block.operation)) {
+    return [
+      {
+        id: "input",
+        expectedType: "value",
+        allowDirectTextEntry: true,
+        title: "Insert a compatible block or type a value"
+      }
+    ];
+  }
+
+  if (block.kind === "var_operation" && (block.variableOperationMode ?? "value") !== "value") {
+    return [
+      {
+        id: "input",
+        expectedType: "value",
+        allowDirectTextEntry: true,
+        title:
+          (block.variableOperationMode ?? "value") === "assign"
             ? "Insert a value block or type a value"
             : "Insert an operand block or type a value"
-          : "Insert a compatible block or type a value"
+      }
+    ];
+  }
+
+  if (block.kind === "return") {
+    return [
+      {
+        id: "value",
+        expectedType: "any",
+        allowDirectTextEntry: true,
+        title: "Insert a value block or type a value"
+      }
+    ];
+  }
+
+  if (block.kind === "routine_call") {
+    return (block.routineParamNames ?? []).map((paramName, index) => ({
+      id: `arg-${index}`,
+      expectedType: "any",
+      allowDirectTextEntry: true,
+      title: `Insert a value for ${paramName}`
+    }));
+  }
+
+  return [];
+};
+
+export const getBlockInputSlot = (block: EditorBlock): EditorInputSlotDefinition | null =>
+  getBlockInputSlots(block)[0] ?? null;
+
+export const getBlockSlotBlock = (block: EditorBlock, slotId: string): EditorBlock | null => {
+  if (slotId === "input" || slotId === "value") {
+    return block.inputBlock ?? null;
+  }
+
+  const slotIndex = slotId.startsWith("arg-") ? Number(slotId.slice(4)) : -1;
+  return slotIndex >= 0 ? block.inputBlocks?.[slotIndex] ?? null : null;
+};
+
+export const setBlockSlotBlock = (
+  block: EditorBlock,
+  slotId: string,
+  nextBlock: EditorBlock | null
+): EditorBlock => {
+  if (slotId === "input" || slotId === "value") {
+    return {
+      ...block,
+      inputBlock: nextBlock
+    };
+  }
+
+  const slotIndex = slotId.startsWith("arg-") ? Number(slotId.slice(4)) : -1;
+  if (slotIndex < 0) {
+    return block;
+  }
+
+  const nextInputBlocks = [...(block.inputBlocks ?? [])];
+  nextInputBlocks[slotIndex] = nextBlock;
+  return {
+    ...block,
+    inputBlocks: nextInputBlocks
   };
 };
 
-export const isSlotCompatible = (block: EditorBlock, insertedBlock: EditorBlock | null): boolean => {
-  const expected = getBlockInputSlot(block)?.expectedType ?? null;
+export const isSlotCompatible = (
+  block: EditorBlock,
+  insertedBlock: EditorBlock | null,
+  slotId = "input"
+): boolean => {
+  const expected = getBlockInputSlots(block).find((slot) => slot.id === slotId)?.expectedType ?? null;
   if (!expected || !insertedBlock) {
     return false;
+  }
+
+  if (expected === "any") {
+    return getOutputType(insertedBlock) !== "none";
   }
 
   return getOutputType(insertedBlock) === expected;
@@ -199,8 +292,20 @@ export const describeBlock = (block: EditorBlock): string => {
     return "if";
   }
 
+  if (block.kind === "while") {
+    return "while";
+  }
+
+  if (block.kind === "return") {
+    return "return";
+  }
+
+  if (block.kind === "routine_call") {
+    return block.routineName?.trim() || "function";
+  }
+
   if (block.kind === "var_declaration") {
-    return `declare ${block.variableName?.trim() || "variable"}`;
+    return `${block.bindingKind === "expect" ? "expect" : "declare"} ${block.variableName?.trim() || "variable"}`;
   }
 
   if (block.kind === "var_operation") {
@@ -289,7 +394,7 @@ export const createValueBlock = (literalValue: DataValue = "item"): EditorBlock 
   color: undefined,
   operation: null,
   outputType: typeof literalValue === "boolean" ? "boolean" : "value",
-  valueType: inferLiteralValueType(literalValue),
+  valueType: typeof literalValue === "boolean" ? "boolean" : inferLiteralValueType(literalValue),
   literalValue,
   inputBlock: null
 });
@@ -314,20 +419,67 @@ export const createConditionalBlock = (
   alternateBodyBlocks: []
 });
 
-export const createVariableDeclarationBlock = (
-  color = "#b7e4c7",
-  variableName = "variable"
-): EditorBlock => ({
-  id: `var-declaration-${crypto.randomUUID()}`,
-  kind: "var_declaration",
+export const createWhileBlock = (color = "#e99ac3"): EditorBlock => ({
+  id: `while-${crypto.randomUUID()}`,
+  kind: "while",
   color,
   operation: null,
   outputType: "none",
   valueType: null,
   literalValue: null,
   inputBlock: null,
+  bodyBlocks: []
+});
+
+export const createVariableDeclarationBlock = (
+  color = "#b7e4c7",
+  variableName = "variable",
+  bindingKind: RoutineBindingKind = "declare"
+): EditorBlock => ({
+  id: `var-declaration-${crypto.randomUUID()}`,
+  kind: "var_declaration",
+  color: bindingKind === "expect" ? FUNCTION_BLUE : color,
+  operation: null,
+  outputType: "none",
+  valueType: null,
+  literalValue: null,
+  inputBlock: null,
   variableName,
-  variableOperationMode: "value"
+  variableOperationMode: "value",
+  bindingKind
+});
+
+export const createReturnBlock = (color = FUNCTION_BLUE): EditorBlock => ({
+  id: `return-${crypto.randomUUID()}`,
+  kind: "return",
+  color,
+  operation: null,
+  outputType: "none",
+  valueType: null,
+  literalValue: null,
+  inputBlock: null
+});
+
+export const createRoutineCallBlock = (
+  routineId: string,
+  routineName: string,
+  routineReturnKind: RoutineReturnKind,
+  routineParamNames: string[],
+  color = FUNCTION_BLUE
+): EditorBlock => ({
+  id: `routine-call-${crypto.randomUUID()}`,
+  kind: "routine_call",
+  color,
+  operation: null,
+  outputType: routineReturnToOutputType(routineReturnKind),
+  valueType: routineReturnKind === "boolean" ? "boolean" : routineReturnKind === "value" ? "text" : null,
+  literalValue: null,
+  inputBlock: null,
+  inputBlocks: routineParamNames.map(() => null),
+  routineId,
+  routineName,
+  routineReturnKind,
+  routineParamNames
 });
 
 export const createVariableOperationBlock = (
@@ -467,13 +619,31 @@ export const buildVariableOperationWheelOptions = (
   }
 ];
 
+export const buildDeclarationBindingWheelOptions = (
+  currentBindingKind: RoutineBindingKind
+): DeclarationBindingWheelOption[] => [
+  {
+    bindingKind: "declare",
+    label: "declare",
+    className: currentBindingKind === "declare" ? "mint selected" : "mint"
+  },
+  {
+    bindingKind: "expect",
+    label: "expect",
+    className: currentBindingKind === "expect" ? "sky selected" : "sky"
+  }
+];
+
 export interface VariableDeclarationInfo {
   id: string;
   name: string;
   color?: string;
+  bindingKind: RoutineBindingKind;
 }
 
-export const collectVariableDeclarations = (documentOrBlocks: EditorDocument | EditorBlock[]): VariableDeclarationInfo[] => {
+export const collectVariableDeclarations = (
+  documentOrBlocks: EditorDocument | EditorBlock[]
+): VariableDeclarationInfo[] => {
   const blocks = Array.isArray(documentOrBlocks)
     ? documentOrBlocks
     : projectDocumentToLegacyBlocks(documentOrBlocks);
@@ -485,12 +655,21 @@ export const collectVariableDeclarations = (documentOrBlocks: EditorDocument | E
         declarations.push({
           id: block.id,
           name: block.variableName?.trim() || "variable",
-          color: block.color
+          color: block.color,
+          bindingKind: block.bindingKind ?? "declare"
         });
       }
+
       if (block.inputBlock) {
         visit([block.inputBlock]);
       }
+
+      (block.inputBlocks ?? []).forEach((nested) => {
+        if (nested) {
+          visit([nested]);
+        }
+      });
+
       if (block.bodyBlocks) {
         visit(block.bodyBlocks);
       }
@@ -507,7 +686,10 @@ export const collectVariableDeclarations = (documentOrBlocks: EditorDocument | E
 export const synchronizeVariableReferences = (blocks: EditorBlock[]): EditorBlock[] =>
   projectProgramToLegacyBlocks(migrateLegacyBlocksToProgram(blocks));
 
-const variableDeclarationMap = (statements: StatementNode[], map = new Map<string, DeclareStatement>()) => {
+const variableDeclarationMap = (
+  statements: StatementNode[],
+  map = new Map<string, DeclareStatement>()
+) => {
   statements.forEach((statement) => {
     if (statement.kind === "declare") {
       map.set(statement.id, statement);
@@ -542,9 +724,7 @@ const variableBlockToExpression = (block: EditorBlock): VariableExpression => ({
   mode: block.variableOperationMode ?? "value",
   operand: block.inputBlock ? legacyBlockToExpression(block.inputBlock) : null,
   outputType:
-    variableModeOutputType(block.variableOperationMode ?? "value") === "boolean"
-      ? "boolean"
-      : "value",
+    variableModeOutputType(block.variableOperationMode ?? "value") === "boolean" ? "boolean" : "value",
   visual: cloneVisual(block.color)
 });
 
@@ -554,7 +734,8 @@ const structureBlockToExpression = (block: EditorBlock): StructureValueExpressio
   structureId: block.structureId ?? "A",
   structureKind: block.structureKind ?? "stack",
   operation: block.operation,
-  outputType: block.operation === "POP" || block.operation === "DEQUEUE" ? "value" : "value",
+  args: block.inputBlock ? [legacyBlockToExpression(block.inputBlock)] : [],
+  outputType: "value",
   visual: cloneVisual(block.color)
 });
 
@@ -571,7 +752,21 @@ export const legacyBlockToExpression = (block: EditorBlock): ExpressionNode => {
     return structureBlockToExpression(block);
   }
 
-  if (block.kind === "conditional") {
+  if (block.kind === "routine_call") {
+    return {
+      id: block.id,
+      kind: "routine-call",
+      routineId: block.routineId ?? block.id,
+      routineName: block.routineName ?? "function",
+      args: (block.inputBlocks ?? [])
+        .filter((value): value is EditorBlock => !!value)
+        .map(legacyBlockToExpression),
+      outputType: block.routineReturnKind === "boolean" ? "boolean" : "value",
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "conditional" || block.kind === "while") {
     return {
       id: block.id,
       kind: "unary",
@@ -607,11 +802,56 @@ export const legacyBlockToStatement = (block: EditorBlock): StatementNode => {
     };
   }
 
+  if (block.kind === "while") {
+    return {
+      id: block.id,
+      kind: "while",
+      condition: block.inputBlock ? legacyBlockToExpression(block.inputBlock) : null,
+      body: (block.bodyBlocks ?? []).map(legacyBlockToStatement),
+      visual: cloneVisual(block.color)
+    };
+  }
+
   if (block.kind === "var_declaration") {
     return {
       id: block.id,
       kind: "declare",
       variableName: block.variableName?.trim() || "variable",
+      bindingKind: block.bindingKind ?? "declare",
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "return") {
+    return {
+      id: block.id,
+      kind: "return",
+      value: block.inputBlock ? legacyBlockToExpression(block.inputBlock) : null,
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "routine_call") {
+    const args = (block.inputBlocks ?? [])
+      .filter((value): value is EditorBlock => !!value)
+      .map(legacyBlockToExpression);
+
+    if ((block.routineReturnKind ?? "none") === "none") {
+      return {
+        id: block.id,
+        kind: "routine-call",
+        routineId: block.routineId ?? block.id,
+        routineName: block.routineName ?? "function",
+        returnKind: "none",
+        args,
+        visual: cloneVisual(block.color)
+      };
+    }
+
+    return {
+      id: block.id,
+      kind: "expression",
+      expression: legacyBlockToExpression(block),
       visual: cloneVisual(block.color)
     };
   }
@@ -662,7 +902,8 @@ export const migrateLegacyBlocksToProgram = (
 
 const expressionToLegacyBlock = (
   expression: ExpressionNode,
-  declarations: Map<string, DeclareStatement>
+  declarations: Map<string, DeclareStatement>,
+  signatures: Record<string, RoutineSignature>
 ): EditorBlock => {
   if (expression.kind === "literal") {
     return {
@@ -687,7 +928,7 @@ const expressionToLegacyBlock = (
       outputType: expression.outputType,
       valueType: null,
       literalValue: null,
-      inputBlock: expression.operand ? expressionToLegacyBlock(expression.operand, declarations) : null,
+      inputBlock: expression.operand ? expressionToLegacyBlock(expression.operand, declarations, signatures) : null,
       variableSourceId: expression.declarationId,
       variableName: declaration?.variableName ?? expression.variableName,
       variableOperationMode: expression.mode
@@ -705,13 +946,42 @@ const expressionToLegacyBlock = (
       outputType: expression.outputType,
       valueType: null,
       literalValue: null,
-      inputBlock: null
+      inputBlock: expression.args[0] ? expressionToLegacyBlock(expression.args[0], declarations, signatures) : null
+    };
+  }
+
+  if (expression.kind === "routine-call") {
+    const signature = signatures[expression.routineId];
+    const routineParamNames = signature?.params.map((param) => param.name) ?? expression.args.map((_, index) => `arg${index + 1}`);
+    const expectedArgCount = routineParamNames.length;
+    const inputBlocks = Array.from({ length: expectedArgCount }, (_, index) =>
+      expression.args[index] ? expressionToLegacyBlock(expression.args[index]!, declarations, signatures) : null
+    );
+    return {
+      id: expression.id,
+      kind: "routine_call",
+      color: expression.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType: signature?.returnKind === "none" ? "none" : (signature?.returnKind ?? expression.outputType),
+      valueType:
+        (signature?.returnKind ?? expression.outputType) === "boolean"
+          ? "boolean"
+          : (signature?.returnKind ?? expression.outputType) === "value"
+            ? "text"
+            : null,
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks,
+      routineId: expression.routineId,
+      routineName: signature?.routineName ?? expression.routineName,
+      routineReturnKind: signature?.returnKind ?? expression.outputType,
+      routineParamNames
     };
   }
 
   if (expression.kind === "binary") {
-    const left = expressionToLegacyBlock(expression.left, declarations);
-    const right = expression.right ? expressionToLegacyBlock(expression.right, declarations) : null;
+    const left = expressionToLegacyBlock(expression.left, declarations, signatures);
+    const right = expression.right ? expressionToLegacyBlock(expression.right, declarations, signatures) : null;
     return {
       ...left,
       id: expression.id,
@@ -733,20 +1003,22 @@ const expressionToLegacyBlock = (
 
 const statementToLegacyBlock = (
   statement: StatementNode,
-  declarations: Map<string, DeclareStatement>
+  declarations: Map<string, DeclareStatement>,
+  signatures: Record<string, RoutineSignature>
 ): EditorBlock => {
   if (statement.kind === "declare") {
     return {
       id: statement.id,
       kind: "var_declaration",
-      color: statement.visual?.color,
+      color: statement.visual?.color ?? (statement.bindingKind === "expect" ? FUNCTION_BLUE : undefined),
       operation: null,
       outputType: "none",
       valueType: null,
       literalValue: null,
       inputBlock: null,
       variableName: statement.variableName,
-      variableOperationMode: "value"
+      variableOperationMode: "value",
+      bindingKind: statement.bindingKind
     };
   }
 
@@ -758,10 +1030,43 @@ const statementToLegacyBlock = (
       structureId: statement.structureId,
       structureKind: statement.structureKind,
       operation: statement.operation,
-      outputType: statement.operation === "POP" || statement.operation === "DEQUEUE" ? "value" : "none",
+      outputType:
+        statement.operation === "POP" ||
+        statement.operation === "DEQUEUE" ||
+        statement.operation === "REMOVE_FIRST" ||
+        statement.operation === "REMOVE_LAST" ||
+        statement.operation === "GET_HEAD" ||
+        statement.operation === "GET_TAIL" ||
+        statement.operation === "SIZE"
+          ? "value"
+          : "none",
       valueType: null,
       literalValue: null,
-      inputBlock: statement.args[0] ? expressionToLegacyBlock(statement.args[0], declarations) : null
+      inputBlock: statement.args[0] ? expressionToLegacyBlock(statement.args[0], declarations, signatures) : null
+    };
+  }
+
+  if (statement.kind === "routine-call") {
+    const signature = signatures[statement.routineId];
+    const routineParamNames = signature?.params.map((param) => param.name) ?? statement.args.map((_, index) => `arg${index + 1}`);
+    const expectedArgCount = routineParamNames.length;
+    const inputBlocks = Array.from({ length: expectedArgCount }, (_, index) =>
+      statement.args[index] ? expressionToLegacyBlock(statement.args[index]!, declarations, signatures) : null
+    );
+    return {
+      id: statement.id,
+      kind: "routine_call",
+      color: statement.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType: "none",
+      valueType: null,
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks,
+      routineId: statement.routineId,
+      routineName: signature?.routineName ?? statement.routineName,
+      routineReturnKind: signature?.returnKind ?? "none",
+      routineParamNames
     };
   }
 
@@ -774,11 +1079,11 @@ const statementToLegacyBlock = (
       outputType: "none",
       valueType: null,
       literalValue: null,
-      inputBlock: statement.condition ? expressionToLegacyBlock(statement.condition, declarations) : null,
+      inputBlock: statement.condition ? expressionToLegacyBlock(statement.condition, declarations, signatures) : null,
       conditionalMode: statement.mode,
-      bodyBlocks: statement.thenBody.map((child) => statementToLegacyBlock(child, declarations)),
+      bodyBlocks: statement.thenBody.map((child) => statementToLegacyBlock(child, declarations, signatures)),
       alternateBodyBlocks: statement.elseBody
-        ? statement.elseBody.map((child) => statementToLegacyBlock(child, declarations))
+        ? statement.elseBody.map((child) => statementToLegacyBlock(child, declarations, signatures))
         : []
     };
   }
@@ -786,21 +1091,31 @@ const statementToLegacyBlock = (
   if (statement.kind === "while") {
     return {
       id: statement.id,
-      kind: "conditional",
-      color: statement.visual?.color ?? "#f4b6d8",
+      kind: "while",
+      color: statement.visual?.color ?? "#e99ac3",
       operation: null,
       outputType: "none",
       valueType: null,
       literalValue: null,
-      inputBlock: statement.condition ? expressionToLegacyBlock(statement.condition, declarations) : null,
-      conditionalMode: "if",
-      bodyBlocks: statement.body.map((child) => statementToLegacyBlock(child, declarations)),
-      alternateBodyBlocks: []
+      inputBlock: statement.condition ? expressionToLegacyBlock(statement.condition, declarations, signatures) : null,
+      bodyBlocks: statement.body.map((child) => statementToLegacyBlock(child, declarations, signatures))
+    };
+  }
+
+  if (statement.kind === "return") {
+    return {
+      id: statement.id,
+      kind: "return",
+      color: statement.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType: "none",
+      valueType: null,
+      literalValue: null,
+      inputBlock: statement.value ? expressionToLegacyBlock(statement.value, declarations, signatures) : null
     };
   }
 
   if (statement.kind === "assign") {
-    const operand = statement.value ? expressionToLegacyBlock(statement.value, declarations) : null;
     return {
       id: statement.id,
       kind: "var_operation",
@@ -809,7 +1124,7 @@ const statementToLegacyBlock = (
       outputType: "none",
       valueType: null,
       literalValue: null,
-      inputBlock: operand,
+      inputBlock: statement.value ? expressionToLegacyBlock(statement.value, declarations, signatures) : null,
       variableSourceId: statement.targetDeclarationId ?? statement.id,
       variableName: statement.targetName,
       variableOperationMode: "assign"
@@ -817,32 +1132,51 @@ const statementToLegacyBlock = (
   }
 
   return {
-    ...expressionToLegacyBlock(statement.expression, declarations),
+    ...expressionToLegacyBlock(statement.expression, declarations, signatures),
     id: statement.id
   };
 };
 
-export const projectProgramToLegacyBlocks = (program: ProgramNode): EditorBlock[] => {
+export const projectProgramToLegacyBlocks = (
+  program: ProgramNode,
+  signatures: Record<string, RoutineSignature> = {}
+): EditorBlock[] => {
   const declarations = variableDeclarationMap(program.statements);
-  return program.statements.map((statement) => statementToLegacyBlock(statement, declarations));
+  return program.statements.map((statement) => statementToLegacyBlock(statement, declarations, signatures));
 };
 
 export const projectDocumentToLegacyBlocks = (document: EditorDocument): EditorBlock[] =>
-  projectProgramToLegacyBlocks(document.program);
+  projectProgramToLegacyBlocks(getActiveProgram(document), analyzeDocumentRoutines(document));
 
 export const createEditorDocumentFromLegacyBlocks = (
   blocks: EditorBlock[],
-  programId = "program-root"
-): EditorDocument => createEditorDocument(migrateLegacyBlocksToProgram(blocks, programId));
+  source?: EditorDocument | string
+): EditorDocument => {
+  const programId =
+    typeof source === "string" ? source : source ? getActiveProgram(source).id : "program-root";
+  const nextProgram = migrateLegacyBlocksToProgram(blocks, programId);
+  if (source && typeof source !== "string") {
+    return replaceActiveProgram(source, nextProgram);
+  }
+  return createEditorDocument(nextProgram);
+};
 
-export const serializeEditorDocument = (document: EditorDocument) => ({
-  version: 2 as const,
-  program: document.program
+export const serializeEditorDocument = (document: EditorDocument): SerializedEditorDocument => ({
+  version: 3,
+  routines: document.routines,
+  activeRoutineId: document.activeRoutineId
 });
 
 export const deserializeEditorDocument = (
-  payload: SerializedEditorDocument | LegacySerializedEditorDocument
-): EditorDocument =>
-  "program" in payload
-    ? createEditorDocument(payload.program)
-    : createEditorDocumentFromLegacyBlocks(payload.blocks);
+  payload: SerializedEditorDocument | SerializedEditorDocumentV2 | LegacySerializedEditorDocument
+): EditorDocument => {
+  if ("routines" in payload) {
+    return createEditorDocument(payload);
+  }
+
+  if ("program" in payload) {
+    return createEditorDocument(payload.program);
+  }
+
+  return createEditorDocumentFromLegacyBlocks(payload.blocks);
+};

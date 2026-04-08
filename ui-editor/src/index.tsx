@@ -1,5 +1,6 @@
 import {
   normalizeStructureSnapshot,
+  type DataValue,
   type DataNode,
   type EngineEvent,
   type StructureSnapshot
@@ -17,6 +18,13 @@ const cardStyle: CSSProperties = {
 export interface StructuresBoardProps {
   structures: StructureSnapshot[];
   handValue?: string | number | null;
+  variables?: BoardVariableSnapshot[];
+}
+
+export interface BoardVariableSnapshot {
+  name: string;
+  value: DataValue;
+  routineName?: string;
 }
 
 const boardWrapperStyle: CSSProperties = {
@@ -55,7 +63,7 @@ const drawRoundedRect = (
   ctx.closePath();
 };
 
-export function StructuresBoard({ structures }: StructuresBoardProps) {
+export function StructuresBoard({ structures, variables = [] }: StructuresBoardProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -67,8 +75,10 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
     }
 
     const draw = () => {
+      const normalizedStructures = structures.map((structure) => normalizeStructureSnapshot(structure));
       const width = Math.max(host.clientWidth, 320);
-      const height = Math.max(340, Math.ceil(structures.length / 2) * 250);
+      const cardCount = normalizedStructures.length + (variables.length > 0 ? 1 : 0);
+      const height = Math.max(340, Math.ceil(cardCount / 2) * 250);
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
@@ -106,7 +116,7 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
       const cellWidth = (width - gutter * (columns + 1)) / columns;
       const cellHeight = 210;
 
-      structures.map((structure) => normalizeStructureSnapshot(structure)).forEach((structure, index) => {
+      normalizedStructures.forEach((structure, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
         const frameX = gutter + column * (cellWidth + gutter);
@@ -278,6 +288,65 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
           ctx.textAlign = "start";
         }
       });
+
+      if (variables.length > 0) {
+        const index = normalizedStructures.length;
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const frameX = gutter + column * (cellWidth + gutter);
+        const frameY = 28 + row * (cellHeight + 28);
+        const frameWidth = cellWidth;
+        const frameHeight = cellHeight;
+        const maxVisible = Math.min(variables.length, 6);
+
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, 26);
+        ctx.fill();
+        ctx.strokeStyle = "#d3e4f4";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.font = "800 13px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+        ctx.fillStyle = "#4f79b6";
+        ctx.fillText("VARIABLES", frameX + 20, frameY + 24);
+
+        ctx.font = "900 30px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+        ctx.fillStyle = "#355070";
+        ctx.fillText("Vars", frameX + 18, frameY + 58);
+
+        ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+        ctx.fillStyle = "#6d8297";
+        ctx.textAlign = "right";
+        ctx.fillText(`${variables.length} items`, frameX + frameWidth - 18, frameY + 24);
+        ctx.textAlign = "start";
+
+        variables.slice(0, maxVisible).forEach((variable, variableIndex) => {
+          const itemX = frameX + 22;
+          const itemY = frameY + 74 + variableIndex * 22;
+          const itemWidth = frameWidth - 44;
+          const itemHeight = 18;
+
+          ctx.fillStyle = "#edf5ff";
+          drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, 9);
+          ctx.fill();
+
+          ctx.fillStyle = "#355070";
+          ctx.font = "800 12px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+          ctx.textAlign = "start";
+          ctx.fillText(variable.name, itemX + 10, itemY + 12.5);
+
+          ctx.fillStyle = "#4f79b6";
+          ctx.textAlign = "right";
+          ctx.fillText(String(variable.value), frameX + frameWidth - 30, itemY + 12.5);
+          ctx.textAlign = "start";
+        });
+
+        if (variables.length > maxVisible) {
+          ctx.fillStyle = "#6d8297";
+          ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+          ctx.fillText(`+${variables.length - maxVisible} more`, frameX + 24, frameY + frameHeight - 22);
+        }
+      }
     };
 
     draw();
@@ -290,7 +359,7 @@ export function StructuresBoard({ structures }: StructuresBoardProps) {
     return () => {
       resizeObserver.disconnect();
     };
-  }, [structures]);
+  }, [structures, variables]);
 
   return (
     <section style={boardWrapperStyle}>
@@ -606,10 +675,11 @@ export function StepControls({ onStep, onRun, onReset }: StepControlsProps) {
 export interface PuzzleBoardProps {
   structures: StructureSnapshot[];
   handValue?: string | number | null;
+  variables?: BoardVariableSnapshot[];
 }
 
-export function PuzzleBoard({ structures }: PuzzleBoardProps) {
-  return <StructuresBoard structures={structures} />;
+export function PuzzleBoard({ structures, variables }: PuzzleBoardProps) {
+  return <StructuresBoard structures={structures} variables={variables} />;
 }
 
 export interface ExecutionTimelineProps {

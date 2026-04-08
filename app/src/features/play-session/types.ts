@@ -9,9 +9,16 @@ import type { CompileResult, EditorDocument } from "../program-editor-core";
 
 export type PlayRunState = "idle" | "running" | "paused";
 
+export interface RuntimeVariableSnapshot {
+  name: string;
+  value: string | number | boolean;
+  routineName?: string;
+}
+
 export interface PlaySessionState {
   level: LevelDefinition | null;
   structures: StructureSnapshot[];
+  variableSnapshots: RuntimeVariableSnapshot[];
   events: EngineEvent[];
   runState: PlayRunState;
   stepCursor: number;
@@ -28,6 +35,9 @@ export interface PlaySessionController {
   subscribe(listener: (state: PlaySessionState) => void): () => void;
   loadLevel(levelId: string): Promise<void>;
   setDocument(document: EditorDocument): void;
+  createRoutine(name?: string): void;
+  selectRoutine(routineId: string): void;
+  renameRoutine(routineId: string, name: string): void;
   run(): Promise<void>;
   step(): Promise<void>;
   pause(): void;

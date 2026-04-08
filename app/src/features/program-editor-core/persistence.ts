@@ -1,7 +1,8 @@
 import type {
   EditorDocument,
   LegacySerializedEditorDocument,
-  SerializedEditorDocument
+  SerializedEditorDocument,
+  SerializedEditorDocumentV2
 } from "./types";
 import { createEditorDocument } from "./tree";
 import { deserializeEditorDocument as deserializeViaAdapter, serializeEditorDocument } from "./adapters";
@@ -10,7 +11,7 @@ export const serializeProgramDocument = (document: EditorDocument): SerializedEd
   serializeEditorDocument(document);
 
 export const deserializeProgramDocument = (
-  payload: SerializedEditorDocument | LegacySerializedEditorDocument
+  payload: SerializedEditorDocument | SerializedEditorDocumentV2 | LegacySerializedEditorDocument
 ): EditorDocument => deserializeViaAdapter(payload);
 
 export const createEmptyEditorDocument = () => createEditorDocument();

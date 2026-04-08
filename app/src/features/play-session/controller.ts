@@ -1,29 +1,38 @@
 import {
   normalizeStructureSnapshot,
   type DataValue,
-  type EngineEvent,
   type OperationDefinition,
-  type ExecutionStep,
   type StructureSnapshot,
   VisualExecutionEngine
 } from "@thesis/core-engine";
 import type { LevelDefinition } from "@thesis/game-system";
 import type { ProgressData } from "@thesis/storage";
 import {
+  addRoutine,
   compileEditorDocument,
   createEditorDocument,
+  createEmptyProgram,
   findNode,
+  getActiveRoutine,
+  renameRoutine,
+  replaceActiveProgram,
+  setActiveRoutineId,
   type EditorDocument
 } from "../program-editor-core";
 import type {
   CompileResult,
+  CompiledInstruction,
+  CompiledRoutine,
   ExpressionNode,
+  RoutineNode,
+  RoutineSignature,
   StatementNode,
   StructureCallStatement
 } from "../program-editor-core";
 import type {
   PlaySessionController,
   PlaySessionDependencies,
+  RuntimeVariableSnapshot,
   PlaySessionState
 } from "./types";
 
@@ -41,19 +50,38 @@ const goalMatches = (
   return normalize(currentState) === normalize(goalState);
 };
 
-const createInitialState = (): PlaySessionState => ({
-  level: null,
-  structures: [],
-  events: [],
-  runState: "idle",
-  stepCursor: 0,
-  breakpointNodeIds: [],
-  highlightedNodeId: null,
-  status: "Loading level...",
-  completedLevelIds: [],
-  compiledProgram: compileEditorDocument(createEditorDocument()),
-  document: createEditorDocument()
-});
+const MAX_WHILE_ITERATIONS = 20;
+const MAX_FUNCTION_CALL_DEPTH = 20;
+
+interface RuntimeFrame {
+  routineId: string;
+  ip: number;
+  locals: Map<string, DataValue>;
+}
+
+interface ExecutionPoint {
+  frame: RuntimeFrame;
+  routine: CompiledRoutine;
+  instruction: CompiledInstruction;
+}
+
+const createInitialState = (): PlaySessionState => {
+  const document = createEditorDocument();
+  return {
+    level: null,
+    structures: [],
+    variableSnapshots: [],
+    events: [],
+    runState: "idle",
+    stepCursor: 0,
+    breakpointNodeIds: [],
+    highlightedNodeId: null,
+    status: "Loading level...",
+    completedLevelIds: [],
+    compiledProgram: compileEditorDocument(document),
+    document
+  };
+};
 
 export class DefaultPlaySessionController implements PlaySessionController {
   private state: PlaySessionState = createInitialState();
@@ -62,8 +90,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private engine: VisualExecutionEngine | null = null;
   private engineUnsubscribe: (() => void) | null = null;
   private runAbort = false;
-  private runtimeVariables = new Map<string, DataValue>();
   private lastConditionResult: boolean | null = null;
+  private loopIterationCounts = new Map<string, number>();
+  private runtimeFrames: RuntimeFrame[] = [];
+  private routineSelectionBeforeRun: string | null = null;
 
   public constructor(deps: PlaySessionDependencies) {
     this.deps = deps;
@@ -99,12 +129,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.engine = engine;
     this.resetRuntimeState();
 
+    const document = createEditorDocument();
     this.patchState({
       level: loadedLevel,
       structures: loadedLevel.initialState,
       completedLevelIds: progress.completedLevelIds,
-      document: createEditorDocument(),
-      compiledProgram: compileEditorDocument(createEditorDocument()),
+      document,
+      compiledProgram: compileEditorDocument(document),
       events: [],
       breakpointNodeIds: [],
       stepCursor: 0,
@@ -115,15 +146,50 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   public setDocument(document: EditorDocument): void {
-    const compiledProgram = compileEditorDocument(document);
-    const nextStepCursor = Math.min(this.state.stepCursor, compiledProgram.instructions.length);
+    if (this.state.runState === "running") {
+      return;
+    }
 
+    this.runAbort = true;
+    this.resetRuntimeState();
+    const compiledProgram = compileEditorDocument(document);
     this.patchState({
       document,
       compiledProgram,
-      stepCursor: nextStepCursor,
-      highlightedNodeId: compiledProgram.instructions[nextStepCursor]?.nodeId ?? null
+      stepCursor: 0,
+      highlightedNodeId: null,
+      runState: "idle"
     });
+  }
+
+  public createRoutine(name = "routine"): void {
+    if (this.state.runState === "running") {
+      return;
+    }
+    const nextDocument = addRoutine(this.state.document, name);
+    const nextRoutine = getActiveRoutine(nextDocument);
+    this.setDocument(nextDocument);
+    this.patchState({
+      status: `Routine "${nextRoutine.name}" created.`
+    });
+  }
+
+  public selectRoutine(routineId: string): void {
+    if (this.state.runState === "running") {
+      return;
+    }
+    this.setDocument(setActiveRoutineId(this.state.document, routineId));
+  }
+
+  public renameRoutine(routineId: string, name: string): void {
+    if (this.state.runState === "running") {
+      return;
+    }
+    const normalizedName = name.trim();
+    if (!normalizedName) {
+      return;
+    }
+    this.setDocument(renameRoutine(this.state.document, routineId, normalizedName));
   }
 
   public async run(): Promise<void> {
@@ -138,27 +204,22 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     this.runAbort = false;
     this.patchState({
-      runState: "running",
-      highlightedNodeId: prepared.instructions[this.state.stepCursor]?.nodeId ?? null
+      runState: "running"
     });
 
     try {
       while (!this.runAbort) {
-        const currentInstruction = prepared.instructions[this.state.stepCursor];
-        if (!currentInstruction) {
+        const currentPoint = this.getCurrentExecutionPoint(prepared);
+        if (!currentPoint) {
           break;
         }
 
-        const breakpointNodeId = currentInstruction.breakpointable
-          ? currentInstruction.nodeId
-          : null;
         if (
-          this.state.stepCursor > 0 &&
-          breakpointNodeId &&
-          this.state.breakpointNodeIds.includes(breakpointNodeId)
+          currentPoint.instruction.breakpointable &&
+          this.state.breakpointNodeIds.includes(currentPoint.instruction.nodeId) &&
+          !(this.runtimeFrames.length === 1 && currentPoint.frame.ip === 0)
         ) {
           this.patchState({
-            highlightedNodeId: breakpointNodeId,
             runState: "paused",
             status: "Paused at breakpoint."
           });
@@ -169,6 +230,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!executedInstruction) {
           break;
         }
+
         await new Promise((resolve) => window.setTimeout(resolve, 340));
       }
 
@@ -177,19 +239,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
         return;
       }
 
-      this.patchState({
-        runState: "idle",
-        stepCursor: 0,
-        highlightedNodeId: null
-      });
+      this.finishExecution();
       await this.evaluateProgress();
     } catch (error) {
-      this.patchState({
-        runState: "idle",
-        stepCursor: 0,
-        highlightedNodeId: null,
-        status: error instanceof Error ? error.message : "The program could not run."
-      });
+      this.finishExecution(
+        error instanceof Error ? error.message : "The program could not run."
+      );
     }
   }
 
@@ -206,11 +261,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     try {
       const executedInstruction = this.executeVisibleInstruction(prepared);
       if (!executedInstruction) {
-        this.patchState({
-          stepCursor: 0,
-          highlightedNodeId: null,
-          runState: "idle"
-        });
+        this.finishExecution();
         await this.evaluateProgress();
         return;
       }
@@ -222,12 +273,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
             : "One block executed."
       });
     } catch (error) {
-      this.patchState({
-        stepCursor: 0,
-        highlightedNodeId: null,
-        runState: "idle",
-        status: error instanceof Error ? error.message : "The program could not run."
-      });
+      this.finishExecution(
+        error instanceof Error ? error.message : "The program could not run."
+      );
     }
   }
 
@@ -252,6 +300,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       events: [],
       stepCursor: 0,
       highlightedNodeId: null,
+      document: this.restoreSelectedRoutine(this.state.document),
       structures: this.state.level.initialState,
       status: "Reset. Try a different sequence."
     });
@@ -259,12 +308,16 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
   public clearDocument(): void {
     this.runAbort = true;
-    const emptyDocument = createEditorDocument();
     this.resetRuntimeState();
+    const activeRoutine = getActiveRoutine(this.state.document);
+    const clearedDocument = replaceActiveProgram(
+      this.restoreSelectedRoutine(this.state.document),
+      createEmptyProgram(activeRoutine.program.id)
+    );
     this.patchState({
       runState: "idle",
-      document: emptyDocument,
-      compiledProgram: compileEditorDocument(emptyDocument),
+      document: clearedDocument,
+      compiledProgram: compileEditorDocument(clearedDocument),
       events: [],
       stepCursor: 0,
       highlightedNodeId: null,
@@ -301,11 +354,66 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   private patchState(partial: Partial<PlaySessionState>): void {
+    const nextDocument = partial.document ?? this.state.document;
     this.state = {
       ...this.state,
-      ...partial
+      ...partial,
+      variableSnapshots: partial.variableSnapshots ?? this.getVisibleVariableSnapshots(nextDocument)
     };
     this.listeners.forEach((listener) => listener(this.state));
+  }
+
+  private getDeclarationLookup(document: EditorDocument): Map<string, { name: string; routineName: string }> {
+    const lookup = new Map<string, { name: string; routineName: string }>();
+    const visitStatements = (statements: StatementNode[], routineName: string) => {
+      statements.forEach((statement) => {
+        if (statement.kind === "declare") {
+          lookup.set(statement.id, {
+            name: statement.variableName,
+            routineName
+          });
+          return;
+        }
+        if (statement.kind === "if") {
+          visitStatements(statement.thenBody, routineName);
+          visitStatements(statement.elseBody ?? [], routineName);
+          return;
+        }
+        if (statement.kind === "while") {
+          visitStatements(statement.body, routineName);
+        }
+      });
+    };
+
+    document.routines.forEach((routine) => {
+      visitStatements(routine.program.statements, routine.name);
+    });
+    return lookup;
+  }
+
+  private getVisibleVariableSnapshots(document: EditorDocument): RuntimeVariableSnapshot[] {
+    if (this.runtimeFrames.length === 0) {
+      return [];
+    }
+
+    const declarationLookup = this.getDeclarationLookup(document);
+    const variables = new Map<string, RuntimeVariableSnapshot>();
+
+    this.runtimeFrames.forEach((frame) => {
+      frame.locals.forEach((value, key) => {
+        const declaration = declarationLookup.get(key);
+        if (!declaration) {
+          return;
+        }
+        variables.set(declaration.name, {
+          name: declaration.name,
+          value,
+          routineName: declaration.routineName
+        });
+      });
+    });
+
+    return [...variables.values()].sort((left, right) => left.name.localeCompare(right.name));
   }
 
   private syncFromEngine(): void {
@@ -320,146 +428,375 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   private resetRuntimeState(): void {
-    this.runtimeVariables.clear();
     this.lastConditionResult = null;
+    this.loopIterationCounts.clear();
+    this.runtimeFrames = [];
+    this.routineSelectionBeforeRun = null;
   }
 
-  private prepareExecution() {
+  private prepareExecution(): CompileResult | null {
     if (!this.engine) {
       return null;
     }
 
-    if (this.state.document.program.statements.length === 0) {
+    const activeRoutine = getActiveRoutine(this.state.document);
+    const activeCompiled =
+      this.state.compiledProgram.routines[activeRoutine.id] ?? this.state.compiledProgram;
+
+    if (activeRoutine.program.statements.length === 0) {
       this.patchState({ status: "Drag at least one block into the editor." });
       return null;
     }
 
-    if (!this.state.compiledProgram.isComplete) {
+    if (!activeCompiled.isComplete) {
       const diagnostic =
-        this.state.compiledProgram.diagnostics[0] ??
+        activeCompiled.diagnostics[0] ??
         "Finish each block and fill any missing value slots.";
       this.patchState({ status: diagnostic });
       return null;
     }
 
-    if (this.state.stepCursor === 0) {
+    if (this.runtimeFrames.length === 0) {
       this.patchState({ events: [] });
       this.engine.reset();
-      this.resetRuntimeState();
       this.syncFromEngine();
+      this.routineSelectionBeforeRun = this.state.document.activeRoutineId;
+      this.runtimeFrames = [
+        {
+          routineId: activeRoutine.id,
+          ip: 0,
+          locals: new Map<string, DataValue>()
+        }
+      ];
+      this.updateExecutionFocus(this.state.compiledProgram);
     }
 
     return this.state.compiledProgram;
   }
 
-  private executeVisibleInstruction(compiled: CompileResult) {
-    let ip = this.state.stepCursor;
-    let visibleInstruction = compiled.instructions[ip] ?? null;
+  private restoreSelectedRoutine(document: EditorDocument): EditorDocument {
+    if (!this.routineSelectionBeforeRun) {
+      return document;
+    }
+    return setActiveRoutineId(document, this.routineSelectionBeforeRun);
+  }
 
-    while (ip < compiled.instructions.length) {
-      const instruction = compiled.instructions[ip]!;
-      const nextIp = this.executeInstruction(compiled, instruction, ip);
-      ip = nextIp;
-      if (instruction.breakpointable) {
-        while (ip < compiled.instructions.length && !compiled.instructions[ip]!.breakpointable) {
-          ip = this.executeInstruction(compiled, compiled.instructions[ip]!, ip);
-        }
-        this.patchState({
-          stepCursor: ip,
-          highlightedNodeId: compiled.instructions[ip]?.nodeId ?? null
-        });
-        return visibleInstruction;
+  private finishExecution(status?: string): void {
+    const restoredDocument = this.restoreSelectedRoutine(this.state.document);
+    const compiledProgram = compileEditorDocument(restoredDocument);
+    this.patchState({
+      runState: "idle",
+      stepCursor: 0,
+      highlightedNodeId: null,
+      document: restoredDocument,
+      compiledProgram,
+      ...(status ? { status } : {})
+    });
+    this.resetRuntimeState();
+  }
+
+  private getCurrentExecutionPoint(compiled: CompileResult): ExecutionPoint | null {
+    while (this.runtimeFrames.length > 0) {
+      const frame = this.runtimeFrames[this.runtimeFrames.length - 1]!;
+      const routine = compiled.routines[frame.routineId];
+      if (!routine) {
+        throw new Error("A running routine could not be found.");
       }
-      visibleInstruction = compiled.instructions[ip] ?? null;
+
+      if (frame.ip < routine.instructions.length) {
+        return {
+          frame,
+          routine,
+          instruction: routine.instructions[frame.ip]!
+        };
+      }
+
+      if (this.runtimeFrames.length === 1) {
+        return null;
+      }
+
+      this.runtimeFrames.pop();
     }
 
-    this.patchState({
-      stepCursor: ip,
-      highlightedNodeId: null
-    });
     return null;
   }
 
-  private executeInstruction(
-    compiled: CompileResult,
-    instruction: CompileResult["instructions"][number],
-    ip: number
-  ): number {
-    const statement = findNode(this.state.document.program, instruction.nodeId);
+  private updateExecutionFocus(compiled: CompileResult): void {
+    const currentPoint = this.getCurrentExecutionPoint(compiled);
+    if (!currentPoint) {
+      this.patchState({
+        stepCursor: 0,
+        highlightedNodeId: null,
+        document: this.restoreSelectedRoutine(this.state.document)
+      });
+      return;
+    }
+
+    this.patchState({
+      stepCursor: currentPoint.frame.ip,
+      highlightedNodeId: currentPoint.instruction.nodeId,
+      document:
+        this.state.document.activeRoutineId === currentPoint.frame.routineId
+          ? this.state.document
+          : setActiveRoutineId(this.state.document, currentPoint.frame.routineId)
+    });
+  }
+
+  private executeVisibleInstruction(compiled: CompileResult): CompiledInstruction | null {
+    let visibleInstruction: CompiledInstruction | null = null;
+
+    while (true) {
+      const currentPoint = this.getCurrentExecutionPoint(compiled);
+      if (!currentPoint) {
+        this.updateExecutionFocus(compiled);
+        return visibleInstruction;
+      }
+
+      if (!visibleInstruction && currentPoint.instruction.breakpointable) {
+        visibleInstruction = currentPoint.instruction;
+      }
+
+      this.executeInstruction(compiled, currentPoint);
+
+      if (visibleInstruction) {
+        while (true) {
+          const nextPoint = this.getCurrentExecutionPoint(compiled);
+          if (!nextPoint || nextPoint.instruction.breakpointable) {
+            break;
+          }
+          this.executeInstruction(compiled, nextPoint);
+        }
+
+        this.updateExecutionFocus(compiled);
+        return visibleInstruction;
+      }
+    }
+  }
+
+  private setLocalValue(
+    locals: Map<string, DataValue>,
+    declarationId: string,
+    variableName: string,
+    value: DataValue
+  ) {
+    locals.set(declarationId, value);
+    locals.set(variableName, value);
+  }
+
+  private readVariableValue(declarationId: string, variableName: string): DataValue {
+    const frameStack = [...this.runtimeFrames].reverse();
+    for (const frame of frameStack) {
+      if (frame.locals.has(declarationId)) {
+        return frame.locals.get(declarationId)!;
+      }
+      if (frame.locals.has(variableName)) {
+        return frame.locals.get(variableName)!;
+      }
+    }
+
+    throw new Error(`Variable "${variableName}" has not been assigned yet.`);
+  }
+
+  private createRoutineLocals(signature: RoutineSignature, args: DataValue[]): Map<string, DataValue> {
+    const locals = new Map<string, DataValue>();
+    signature.params.forEach((param, index) => {
+      this.setLocalValue(locals, param.declarationId, param.name, args[index] ?? false);
+    });
+    return locals;
+  }
+
+  private createSourceOperation(
+    operation: "POP" | "DEQUEUE" | "REMOVE_FIRST" | "REMOVE_LAST" | "GET_HEAD" | "GET_TAIL" | "SIZE",
+    sourceId: string
+  ): OperationDefinition {
+    switch (operation) {
+      case "POP":
+        return { type: "POP", sourceId };
+      case "DEQUEUE":
+        return { type: "DEQUEUE", sourceId };
+      case "REMOVE_FIRST":
+        return { type: "REMOVE_FIRST", sourceId };
+      case "REMOVE_LAST":
+        return { type: "REMOVE_LAST", sourceId };
+      case "GET_HEAD":
+        return { type: "GET_HEAD", sourceId };
+      case "GET_TAIL":
+        return { type: "GET_TAIL", sourceId };
+      case "SIZE":
+        return { type: "SIZE", sourceId };
+    }
+  }
+
+  private createTargetOperation(
+    operation: "PUSH" | "ENQUEUE" | "APPEND" | "PREPEND",
+    targetId: string,
+    value?: DataValue
+  ): OperationDefinition {
+    switch (operation) {
+      case "PUSH":
+        return value === undefined ? { type: "PUSH", targetId } : { type: "PUSH", targetId, value };
+      case "ENQUEUE":
+        return value === undefined
+          ? { type: "ENQUEUE", targetId }
+          : { type: "ENQUEUE", targetId, value };
+      case "APPEND":
+        return value === undefined ? { type: "APPEND", targetId } : { type: "APPEND", targetId, value };
+      case "PREPEND":
+        return value === undefined
+          ? { type: "PREPEND", targetId }
+          : { type: "PREPEND", targetId, value };
+    }
+  }
+
+  private isSourceOperation(
+    operation: StructureCallStatement["operation"]
+  ): operation is "POP" | "DEQUEUE" | "REMOVE_FIRST" | "REMOVE_LAST" | "GET_HEAD" | "GET_TAIL" | "SIZE" {
+    return (
+      operation === "POP" ||
+      operation === "DEQUEUE" ||
+      operation === "REMOVE_FIRST" ||
+      operation === "REMOVE_LAST" ||
+      operation === "GET_HEAD" ||
+      operation === "GET_TAIL" ||
+      operation === "SIZE"
+    );
+  }
+
+  private isTargetOperation(
+    operation: StructureCallStatement["operation"]
+  ): operation is "PUSH" | "ENQUEUE" | "APPEND" | "PREPEND" {
+    return (
+      operation === "PUSH" ||
+      operation === "ENQUEUE" ||
+      operation === "APPEND" ||
+      operation === "PREPEND"
+    );
+  }
+
+  private executeInstruction(compiled: CompileResult, point: ExecutionPoint): void {
+    const { frame, instruction } = point;
+    const statement = findNode(this.state.document, instruction.nodeId);
 
     switch (instruction.kind) {
       case "declare":
-        if (statement?.kind === "declare") {
-          this.runtimeVariables.set(statement.id, false);
+        if (statement?.kind === "declare" && !frame.locals.has(statement.id)) {
+          this.setLocalValue(frame.locals, statement.id, statement.variableName, false);
         }
-        return ip + 1;
+        frame.ip += 1;
+        return;
       case "assign":
         if (!statement || statement.kind !== "assign") {
           throw new Error("Assignment target is missing.");
         }
-        this.runtimeVariables.set(
+        this.setLocalValue(
+          frame.locals,
           statement.targetDeclarationId ?? statement.targetName,
-          this.evaluateExpression(statement.value).value
+          statement.targetName,
+          this.evaluateExpression(statement.value, compiled).value
         );
-        return ip + 1;
+        frame.ip += 1;
+        return;
       case "expression":
         if (!statement || statement.kind !== "expression") {
           throw new Error("Expression statement is missing.");
         }
-        this.evaluateExpression(statement.expression);
-        return ip + 1;
+        this.evaluateExpression(statement.expression, compiled);
+        frame.ip += 1;
+        return;
       case "call":
         if (!statement || statement.kind !== "call") {
           throw new Error("Call statement is missing.");
         }
-        this.executeCallStatement(statement);
-        return ip + 1;
+        this.executeCallStatement(statement, compiled);
+        frame.ip += 1;
+        return;
+      case "call-routine":
+        if (!statement || statement.kind !== "routine-call") {
+          throw new Error("Routine call statement is missing.");
+        }
+        this.invokeRoutineFrame(statement.routineId, statement.args, compiled);
+        frame.ip += 1;
+        return;
+      case "return":
+        if (!statement || statement.kind !== "return") {
+          throw new Error("Return statement is missing.");
+        }
+        if (this.runtimeFrames.length === 1) {
+          this.runtimeFrames = [];
+          return;
+        }
+        this.runtimeFrames.pop();
+        return;
       case "eval-condition":
         if (!statement || (statement.kind !== "if" && statement.kind !== "while")) {
           throw new Error("Conditional statement is missing.");
         }
-        this.lastConditionResult = this.asBoolean(this.evaluateExpression(statement.condition).value);
-        return ip + 1;
-      case "jump-if-false": {
-        const nextIp =
-          this.lastConditionResult === false ? (instruction.jumpTargetIp ?? ip + 1) : ip + 1;
+        this.lastConditionResult = this.asBoolean(this.evaluateExpression(statement.condition, compiled).value);
+        if (statement.kind === "while" && this.lastConditionResult) {
+          const iterationKey = `${frame.routineId}:${statement.id}`;
+          const nextIterations = (this.loopIterationCounts.get(iterationKey) ?? 0) + 1;
+          this.loopIterationCounts.set(iterationKey, nextIterations);
+          if (nextIterations > MAX_WHILE_ITERATIONS) {
+            throw new Error(
+              `A while block can run at most ${MAX_WHILE_ITERATIONS} iterations for now.`
+            );
+          }
+        }
+        frame.ip += 1;
+        return;
+      case "jump-if-false":
+        frame.ip =
+          this.lastConditionResult === false ? (instruction.jumpTargetIp ?? frame.ip + 1) : frame.ip + 1;
         this.lastConditionResult = null;
-        return nextIp;
-      }
+        return;
       case "jump":
-        return instruction.jumpTargetIp ?? ip + 1;
+        frame.ip = instruction.jumpTargetIp ?? frame.ip + 1;
+        return;
     }
   }
 
-  private executeCallStatement(statement: StructureCallStatement): void {
+  private invokeRoutineFrame(
+    routineId: string,
+    args: ExpressionNode[],
+    compiled: CompileResult
+  ): void {
+    const signature = compiled.routineSignatures[routineId];
+    if (!signature?.isPublishable || signature.returnKind !== "none") {
+      throw new Error("Only publishable action functions can be called as standalone blocks.");
+    }
+    if (this.runtimeFrames.length >= MAX_FUNCTION_CALL_DEPTH) {
+      throw new Error(
+        `Functions can call each other at most ${MAX_FUNCTION_CALL_DEPTH} levels deep for now.`
+      );
+    }
+    const values = args.map((arg) => this.evaluateExpression(arg, compiled).value);
+    this.runtimeFrames.push({
+      routineId,
+      ip: 0,
+      locals: this.createRoutineLocals(signature, values)
+    });
+  }
+
+  private executeCallStatement(statement: StructureCallStatement, compiled: CompileResult): void {
     if (!this.engine || !statement.operation) {
       throw new Error("The block could not run.");
     }
 
     let operation: OperationDefinition;
-    if (
-      statement.operation === "POP" ||
-      statement.operation === "DEQUEUE" ||
-      statement.operation === "REMOVE_FIRST" ||
-      statement.operation === "REMOVE_LAST" ||
-      statement.operation === "GET_HEAD" ||
-      statement.operation === "GET_TAIL" ||
-      statement.operation === "SIZE"
-    ) {
-      operation = {
-        type: statement.operation,
-        sourceId: statement.structureId
-      };
-    } else {
-      const argument = statement.args[0] ? this.evaluateExpression(statement.args[0]) : null;
+    if (this.isSourceOperation(statement.operation)) {
+      operation = this.createSourceOperation(statement.operation, statement.structureId);
+    } else if (this.isTargetOperation(statement.operation)) {
+      const argument = statement.args[0] ? this.evaluateExpression(statement.args[0], compiled) : null;
       if (!argument) {
         throw new Error("Finish each block and fill any missing value slots.");
       }
-      operation = {
-        type: statement.operation,
-        targetId: statement.structureId,
-        ...(argument.kind === "literal" ? { value: argument.value } : {})
-      };
+      operation = this.createTargetOperation(
+        statement.operation,
+        statement.structureId,
+        argument.kind === "literal" ? argument.value : undefined
+      );
+    } else {
+      throw new Error("The block could not run.");
     }
 
     this.engine.executeOperation(operation);
@@ -467,7 +804,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   private evaluateExpression(
-    expression: ExpressionNode | null
+    expression: ExpressionNode | null,
+    compiled: CompileResult
   ): { kind: "literal" | "hand"; value: DataValue } {
     if (!expression) {
       throw new Error("Finish each block and fill any missing value slots.");
@@ -483,21 +821,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!this.engine || !expression.operation) {
           throw new Error("Only complete value-producing blocks can be used here.");
         }
-        if (
-          expression.operation !== "POP" &&
-          expression.operation !== "DEQUEUE" &&
-          expression.operation !== "REMOVE_FIRST" &&
-          expression.operation !== "REMOVE_LAST" &&
-          expression.operation !== "GET_HEAD" &&
-          expression.operation !== "GET_TAIL" &&
-          expression.operation !== "SIZE"
-        ) {
+        if (!this.isSourceOperation(expression.operation)) {
           throw new Error("Only value-producing blocks can be used here.");
         }
-        this.engine.executeOperation({
-          type: expression.operation,
-          sourceId: expression.structureId
-        });
+        this.engine.executeOperation(this.createSourceOperation(expression.operation, expression.structureId));
         this.syncFromEngine();
         const handValue = this.engine.getState().handValue;
         if (!handValue) {
@@ -506,6 +833,21 @@ export class DefaultPlaySessionController implements PlaySessionController {
         return {
           kind: "hand",
           value: handValue.value
+        };
+      }
+      case "routine-call": {
+        const result = this.runRoutineDirect(
+          compiled,
+          expression.routineId,
+          expression.args.map((arg) => this.evaluateExpression(arg, compiled).value),
+          1
+        );
+        if (result === undefined) {
+          throw new Error(`${expression.routineName} did not return a value.`);
+        }
+        return {
+          kind: "literal",
+          value: result
         };
       }
       case "variable": {
@@ -519,22 +861,22 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (expression.mode === "assign") {
           throw new Error("Assignment blocks cannot be evaluated as expressions.");
         }
-        const operand = this.evaluateExpression(expression.operand);
+        const operand = this.evaluateExpression(expression.operand, compiled);
         return {
           kind: "literal",
           value: this.applyVariableOperator(expression.mode, storedValue, operand.value)
         };
       }
       case "binary": {
-        const left = this.evaluateExpression(expression.left);
-        const right = this.evaluateExpression(expression.right);
+        const left = this.evaluateExpression(expression.left, compiled);
+        const right = this.evaluateExpression(expression.right, compiled);
         return {
           kind: "literal",
           value: this.applyVariableOperator(expression.operator, left.value, right.value)
         };
       }
       case "unary": {
-        const operand = this.evaluateExpression(expression.operand);
+        const operand = this.evaluateExpression(expression.operand, compiled);
         return {
           kind: "literal",
           value: !this.asBoolean(operand.value)
@@ -543,16 +885,243 @@ export class DefaultPlaySessionController implements PlaySessionController {
     }
   }
 
-  private readVariableValue(declarationId: string, variableName: string): DataValue {
-    if (this.runtimeVariables.has(declarationId)) {
-      return this.runtimeVariables.get(declarationId)!;
+  private runRoutineDirect(
+    compiled: CompileResult,
+    routineId: string,
+    args: DataValue[],
+    depth: number
+  ): DataValue | undefined {
+    if (depth > MAX_FUNCTION_CALL_DEPTH) {
+      throw new Error(
+        `Functions can call each other at most ${MAX_FUNCTION_CALL_DEPTH} levels deep for now.`
+      );
     }
 
-    if (this.runtimeVariables.has(variableName)) {
-      return this.runtimeVariables.get(variableName)!;
+    const routineNode = this.state.document.routines.find((routine) => routine.id === routineId);
+    const signature = compiled.routineSignatures[routineId];
+    if (!routineNode || !signature?.isPublishable) {
+      throw new Error("This function is not publishable yet.");
     }
 
+    const locals = this.createRoutineLocals(signature, args);
+    const frames = [...this.runtimeFrames.map((frame) => frame.locals), locals];
+    const loopCounts = new Map<string, number>();
+
+    const executeStatements = (statements: StatementNode[]): DataValue | undefined => {
+      for (const statement of statements) {
+        switch (statement.kind) {
+          case "declare":
+            if (!locals.has(statement.id)) {
+              this.setLocalValue(locals, statement.id, statement.variableName, false);
+            }
+            break;
+          case "assign":
+            this.setLocalValue(
+              locals,
+              statement.targetDeclarationId ?? statement.targetName,
+              statement.targetName,
+              this.evaluateExpressionDirect(statement.value, compiled, frames, depth).value
+            );
+            break;
+          case "expression":
+            this.evaluateExpressionDirect(statement.expression, compiled, frames, depth);
+            break;
+          case "call":
+            this.executeCallStatementDirect(statement, compiled, frames, depth);
+            break;
+          case "routine-call":
+            this.runRoutineDirect(
+              compiled,
+              statement.routineId,
+              statement.args.map((arg) => this.evaluateExpressionDirect(arg, compiled, frames, depth).value),
+              depth + 1
+            );
+            break;
+          case "if": {
+            const branchTaken = this.asBoolean(
+              this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value
+            );
+            const branchResult = executeStatements(branchTaken ? statement.thenBody : statement.elseBody ?? []);
+            if (branchResult !== undefined) {
+              return branchResult;
+            }
+            break;
+          }
+          case "while": {
+            while (this.asBoolean(this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value)) {
+              const iterationKey = statement.id;
+              const nextIterations = (loopCounts.get(iterationKey) ?? 0) + 1;
+              loopCounts.set(iterationKey, nextIterations);
+              if (nextIterations > MAX_WHILE_ITERATIONS) {
+                throw new Error(
+                  `A while block can run at most ${MAX_WHILE_ITERATIONS} iterations for now.`
+                );
+              }
+              const loopResult = executeStatements(statement.body);
+              if (loopResult !== undefined) {
+                return loopResult;
+              }
+            }
+            break;
+          }
+          case "return":
+            return statement.value
+              ? this.evaluateExpressionDirect(statement.value, compiled, frames, depth).value
+              : undefined;
+        }
+      }
+
+      return undefined;
+    };
+
+    return executeStatements(routineNode.program.statements);
+  }
+
+  private executeCallStatementDirect(
+    statement: StructureCallStatement,
+    compiled: CompileResult,
+    frames: Map<string, DataValue>[],
+    depth: number
+  ): void {
+    if (!this.engine || !statement.operation) {
+      throw new Error("The block could not run.");
+    }
+
+    let operation: OperationDefinition;
+    if (this.isSourceOperation(statement.operation)) {
+      operation = this.createSourceOperation(statement.operation, statement.structureId);
+    } else if (this.isTargetOperation(statement.operation)) {
+      const argument = statement.args[0]
+        ? this.evaluateExpressionDirect(statement.args[0], compiled, frames, depth)
+        : null;
+      if (!argument) {
+        throw new Error("Finish each block and fill any missing value slots.");
+      }
+      operation = this.createTargetOperation(
+        statement.operation,
+        statement.structureId,
+        argument.kind === "literal" ? argument.value : undefined
+      );
+    } else {
+      throw new Error("The block could not run.");
+    }
+
+    this.engine.executeOperation(operation);
+    this.syncFromEngine();
+  }
+
+  private evaluateExpressionDirect(
+    expression: ExpressionNode | null,
+    compiled: CompileResult,
+    frames: Map<string, DataValue>[],
+    depth: number
+  ): { kind: "literal" | "hand"; value: DataValue } {
+    if (!expression) {
+      throw new Error("Finish each block and fill any missing value slots.");
+    }
+
+    switch (expression.kind) {
+      case "literal":
+        return {
+          kind: "literal",
+          value: expression.value
+        };
+      case "structure": {
+        if (!this.engine || !expression.operation || !this.isSourceOperation(expression.operation)) {
+          throw new Error("Only value-producing blocks can be used here.");
+        }
+        this.engine.executeOperation(this.createSourceOperation(expression.operation, expression.structureId));
+        this.syncFromEngine();
+        const handValue = this.engine.getState().handValue;
+        if (!handValue) {
+          throw new Error("No value was extracted.");
+        }
+        return {
+          kind: "hand",
+          value: handValue.value
+        };
+      }
+      case "routine-call": {
+        const result = this.runRoutineDirect(
+          compiled,
+          expression.routineId,
+          expression.args.map((arg) => this.evaluateExpressionDirect(arg, compiled, frames, depth + 1).value),
+          depth + 1
+        );
+        if (result === undefined) {
+          throw new Error(`${expression.routineName} did not return a value.`);
+        }
+        return {
+          kind: "literal",
+          value: result
+        };
+      }
+      case "variable": {
+        const storedValue = this.readVariableValueFromFrames(
+          frames,
+          expression.declarationId,
+          expression.variableName
+        );
+        if (expression.mode === "value") {
+          return {
+            kind: "literal",
+            value: storedValue
+          };
+        }
+        if (expression.mode === "assign") {
+          throw new Error("Assignment blocks cannot be evaluated as expressions.");
+        }
+        const operand = this.evaluateExpressionDirect(expression.operand, compiled, frames, depth);
+        return {
+          kind: "literal",
+          value: this.applyVariableOperator(expression.mode, storedValue, operand.value)
+        };
+      }
+      case "binary": {
+        const left = this.evaluateExpressionDirect(expression.left, compiled, frames, depth);
+        const right = this.evaluateExpressionDirect(expression.right, compiled, frames, depth);
+        return {
+          kind: "literal",
+          value: this.applyVariableOperator(expression.operator, left.value, right.value)
+        };
+      }
+      case "unary": {
+        const operand = this.evaluateExpressionDirect(expression.operand, compiled, frames, depth);
+        return {
+          kind: "literal",
+          value: !this.asBoolean(operand.value)
+        };
+      }
+    }
+  }
+
+  private readVariableValueFromFrames(
+    frames: Map<string, DataValue>[],
+    declarationId: string,
+    variableName: string
+  ): DataValue {
+    for (let index = frames.length - 1; index >= 0; index -= 1) {
+      const frame = frames[index]!;
+      if (frame.has(declarationId)) {
+        return frame.get(declarationId)!;
+      }
+      if (frame.has(variableName)) {
+        return frame.get(variableName)!;
+      }
+    }
     throw new Error(`Variable "${variableName}" has not been assigned yet.`);
+  }
+
+  private isValueProducingOperation(operation: OperationDefinition["type"]): boolean {
+    return (
+      operation === "POP" ||
+      operation === "DEQUEUE" ||
+      operation === "REMOVE_FIRST" ||
+      operation === "REMOVE_LAST" ||
+      operation === "GET_HEAD" ||
+      operation === "GET_TAIL" ||
+      operation === "SIZE"
+    );
   }
 
   private applyVariableOperator(
@@ -620,7 +1189,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   private isNumeric(value: DataValue): boolean {
-    return typeof value === "number" || (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value)));
+    return (
+      typeof value === "number" ||
+      (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value)))
+    );
   }
 
   private async evaluateProgress(): Promise<void> {

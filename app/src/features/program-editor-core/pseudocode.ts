@@ -12,8 +12,10 @@ const emitExpression = (expression: ExpressionNode | null): string => {
       return typeof expression.value === "string" ? `"${expression.value}"` : String(expression.value);
     case "structure":
       return expression.operation
-        ? `${expression.structureId}.${expression.operation.toLowerCase()}()`
+        ? `${expression.structureId}.${expression.operation.toLowerCase()}(${expression.args.map(emitExpression).join(", ")})`
         : expression.structureId;
+    case "routine-call":
+      return `${expression.routineName}(${expression.args.map(emitExpression).join(", ")})`;
     case "variable":
       switch (expression.mode) {
         case "value":
@@ -57,7 +59,7 @@ const emitExpression = (expression: ExpressionNode | null): string => {
 const emitStatement = (statement: StatementNode, depth: number, lines: string[]) => {
   switch (statement.kind) {
     case "declare":
-      lines.push(`${indent(depth)}declare ${statement.variableName}`);
+      lines.push(`${indent(depth)}${statement.bindingKind === "expect" ? "expect" : "declare"} ${statement.variableName}`);
       return;
     case "assign":
       lines.push(`${indent(depth)}${statement.targetName} <- ${emitExpression(statement.value)}`);
@@ -70,6 +72,16 @@ const emitStatement = (statement: StatementNode, depth: number, lines: string[])
       lines.push(`${indent(depth)}${callee}${suffix}`);
       return;
     }
+    case "routine-call":
+      lines.push(`${indent(depth)}${statement.routineName}(${statement.args.map(emitExpression).join(", ")})`);
+      return;
+    case "return":
+      lines.push(
+        statement.value
+          ? `${indent(depth)}return ${emitExpression(statement.value)}`
+          : `${indent(depth)}return`
+      );
+      return;
     case "expression":
       lines.push(`${indent(depth)}${emitExpression(statement.expression)}`);
       return;
@@ -88,8 +100,11 @@ const emitStatement = (statement: StatementNode, depth: number, lines: string[])
   }
 };
 
-export const emitPseudoCode = (document: EditorDocument): string => {
-  const lines: string[] = [];
-  document.program.statements.forEach((statement) => emitStatement(statement, 0, lines));
-  return lines.join("\n");
-};
+export const emitPseudoCode = (document: EditorDocument): string =>
+  document.routines
+    .map((routine) => {
+      const lines: string[] = [`routine ${routine.name}`];
+      routine.program.statements.forEach((statement) => emitStatement(statement, 1, lines));
+      return lines.join("\n");
+    })
+    .join("\n\n");

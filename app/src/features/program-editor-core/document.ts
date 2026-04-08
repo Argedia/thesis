@@ -4,6 +4,7 @@ export const buildEditorLineLayoutFromBlocks = (blocks: EditorBlock[]): EditorLi
   const lines: EditorLineLayout[] = [];
   let dropLineId = 0;
   let codeLineNumber = 0;
+  const isControlBlock = (block: EditorBlock) => block.kind === "conditional" || block.kind === "while";
 
   const pushDropLine = (config: {
     depth: number;
@@ -67,8 +68,8 @@ export const buildEditorLineLayoutFromBlocks = (blocks: EditorBlock[]): EditorLi
         lineNumber: (codeLineNumber += 1),
         depth,
         indentCurrent: depth,
-        indentPotential: block.kind === "conditional" ? [depth, depth + 1] : [depth],
-        increaseNextIndentation: block.kind === "conditional",
+        indentPotential: isControlBlock(block) ? [depth, depth + 1] : [depth],
+        increaseNextIndentation: isControlBlock(block),
         bodyOwnerPath,
         controlPath,
         block,
@@ -125,7 +126,7 @@ export const buildEditorLineLayoutFromBlocks = (blocks: EditorBlock[]): EditorLi
       if (index === currentBlocks.length - 1) {
         pushDropLine({
           depth,
-          indentPotential: block.kind === "conditional" ? [depth, depth + 1] : [depth],
+          indentPotential: isControlBlock(block) ? [depth, depth + 1] : [depth],
           bodyOwnerPath,
           controlPath,
           insertionRootIndex:

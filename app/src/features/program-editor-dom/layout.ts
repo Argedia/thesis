@@ -111,29 +111,31 @@ export const computeWheelLayout = (labels: string[]): WheelLayout => {
   const totalOptions = labels.length;
   const dense = totalOptions > 10;
   const medium = totalOptions > 6;
-  const angleStart = dense ? -86 : medium ? -82 : -75;
-  const angleEnd = dense ? 86 : medium ? 82 : 75;
-  const buttonMinWidth = dense ? 52 : medium ? 64 : 112;
+  const angleStart = dense ? -84 : medium ? -78 : -72;
+  const angleEnd = dense ? 84 : medium ? 78 : 72;
+  const buttonMinWidth = dense ? 52 : medium ? 60 : 104;
   const buttonPaddingX = dense ? 8 : medium ? 10 : 13;
   const buttonPaddingY = dense ? 6 : medium ? 8 : 11;
   const buttonFontSize = dense ? 11.5 : medium ? 12.5 : 13.5;
   const buttonBorderRadius = dense ? 16 : 18;
   const buttonHeight = buttonFontSize + buttonPaddingY * 2 + 4;
-  const widestLabel = labels.reduce((max, label) => Math.max(max, label.length), 1);
-  const estimatedButtonWidth = Math.max(
-    buttonMinWidth,
-    Math.ceil(widestLabel * buttonFontSize * 0.72 + buttonPaddingX * 2 + 8)
+  const estimatedButtonWidths = labels.map((label) =>
+    Math.max(buttonMinWidth, Math.ceil(label.length * buttonFontSize * 0.72 + buttonPaddingX * 2 + 8))
   );
+  const widestButtonWidth = estimatedButtonWidths.reduce((max, width) => Math.max(max, width), buttonMinWidth);
+  const averageButtonWidth =
+    estimatedButtonWidths.reduce((sum, width) => sum + width, 0) / Math.max(estimatedButtonWidths.length, 1);
   const spanRadians = ((angleEnd - angleStart) * Math.PI) / 180;
   const desiredGap = Math.max(
-    dense ? buttonHeight * 1.05 : medium ? buttonHeight * 1.1 : buttonHeight * 1.14,
-    estimatedButtonWidth * (dense ? 0.78 : medium ? 0.72 : 0.6)
+    dense ? buttonHeight * 1.02 : medium ? buttonHeight * 1.06 : buttonHeight * 1.1,
+    averageButtonWidth * (dense ? 0.56 : medium ? 0.62 : 0.58),
+    widestButtonWidth * (dense ? 0.36 : medium ? 0.42 : 0.48)
   );
   const radius = Math.max(
-    dense ? 148 : medium ? 116 : 88,
+    dense ? 124 : medium ? 96 : 82,
     Math.ceil((desiredGap * Math.max(totalOptions - 1, 1)) / Math.max(spanRadians, 0.1))
   );
-  const buttonHalfWidth = estimatedButtonWidth / 2;
+  const buttonHalfWidth = widestButtonWidth / 2;
   const buttonHalfHeight = buttonHeight / 2;
   const baseX = buttonHalfWidth + 8;
   const width = Math.ceil(baseX + radius + buttonHalfWidth + 14);

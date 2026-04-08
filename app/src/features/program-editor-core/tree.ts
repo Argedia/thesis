@@ -4,6 +4,7 @@ import type {
   ParentContainerMatch,
   ProgramContainerRef,
   ProgramNode,
+  RoutineNode,
   StatementNode
 } from "./types";
 
@@ -19,6 +20,11 @@ const cloneExpression = (expression: ExpressionNode): ExpressionNode => ({
         right: expression.right ? cloneExpression(expression.right) : null
       }
     : {}),
+  ...((expression.kind === "structure" || expression.kind === "routine-call")
+    ? {
+        args: expression.args.map(cloneExpression)
+      }
+    : {}),
   ...(expression.kind === "unary"
     ? { operand: expression.operand ? cloneExpression(expression.operand) : null }
     : {})
@@ -30,8 +36,11 @@ export const cloneStatement = (statement: StatementNode): StatementNode => ({
   ...(statement.kind === "assign"
     ? { value: statement.value ? cloneExpression(statement.value) : null }
     : {}),
-  ...(statement.kind === "call"
+  ...((statement.kind === "call" || statement.kind === "routine-call")
     ? { args: statement.args.map(cloneExpression) }
+    : {}),
+  ...(statement.kind === "return"
+    ? { value: statement.value ? cloneExpression(statement.value) : null }
     : {}),
   ...(statement.kind === "expression"
     ? { expression: cloneExpression(statement.expression) }
@@ -56,15 +65,160 @@ export const cloneProgram = (program: ProgramNode): ProgramNode => ({
   statements: program.statements.map(cloneStatement)
 });
 
+export const cloneRoutine = (routine: RoutineNode): RoutineNode => ({
+  ...routine,
+  program: cloneProgram(routine.program)
+});
+
 export const createEmptyProgram = (id = "program-root"): ProgramNode => ({
   id,
   kind: "program",
   statements: []
 });
 
-export const createEditorDocument = (input?: ProgramNode): EditorDocument => ({
-  program: input ? cloneProgram(input) : createEmptyProgram()
+export const createRoutine = (name = "main", id = `routine-${crypto.randomUUID()}`): RoutineNode => ({
+  id,
+  name,
+  program: createEmptyProgram(`${id}-program`)
 });
+
+const routineContainsReturn = (routine: RoutineNode): boolean => {
+  const visit = (statements: StatementNode[]): boolean =>
+    statements.some((statement) => {
+      if (statement.kind === "return") {
+        return true;
+      }
+      if (statement.kind === "if") {
+        return visit(statement.thenBody) || visit(statement.elseBody ?? []);
+      }
+      if (statement.kind === "while") {
+        return visit(statement.body);
+      }
+      return false;
+    });
+
+  return visit(routine.program.statements);
+};
+
+export const normalizeRoutineBindings = (routine: RoutineNode): RoutineNode => {
+  const isFunction = routineContainsReturn(routine);
+
+  const normalizeStatements = (statements: StatementNode[], depth: number): StatementNode[] =>
+    statements.map((statement) => {
+      if (statement.kind === "declare") {
+        return {
+          ...statement,
+          bindingKind:
+            isFunction && depth === 0 && statement.bindingKind === "expect" ? "expect" : "declare"
+        };
+      }
+      if (statement.kind === "if") {
+        return {
+          ...statement,
+          thenBody: normalizeStatements(statement.thenBody, depth + 1),
+          elseBody: statement.elseBody ? normalizeStatements(statement.elseBody, depth + 1) : null
+        };
+      }
+      if (statement.kind === "while") {
+        return {
+          ...statement,
+          body: normalizeStatements(statement.body, depth + 1)
+        };
+      }
+      return statement;
+    });
+
+  return {
+    ...routine,
+    program: {
+      ...routine.program,
+      statements: normalizeStatements(routine.program.statements, 0)
+    }
+  };
+};
+
+export const normalizeEditorDocument = (document: EditorDocument): EditorDocument => {
+  const routines = (document.routines.length > 0 ? document.routines : [createRoutine("main")]).map(
+    normalizeRoutineBindings
+  );
+  const activeRoutineId =
+    routines.find((routine) => routine.id === document.activeRoutineId)?.id ?? routines[0]!.id;
+  return {
+    routines,
+    activeRoutineId
+  };
+};
+
+export const createEditorDocument = (input?: ProgramNode | RoutineNode[] | EditorDocument): EditorDocument => {
+  if (!input) {
+    const mainRoutine = createRoutine("main");
+    return {
+      routines: [mainRoutine],
+      activeRoutineId: mainRoutine.id
+    };
+  }
+
+  if ("routines" in input) {
+    return normalizeEditorDocument({
+      routines: input.routines.map(cloneRoutine),
+      activeRoutineId: input.activeRoutineId
+    });
+  }
+
+  if (Array.isArray(input)) {
+    const routines = input.map(cloneRoutine);
+    return normalizeEditorDocument({
+      routines,
+      activeRoutineId: routines[0]?.id ?? createRoutine("main").id
+    });
+  }
+
+  const routine = createRoutine("main");
+  routine.program = cloneProgram(input);
+  return normalizeEditorDocument({
+    routines: [routine],
+    activeRoutineId: routine.id
+  });
+};
+
+export const getActiveRoutine = (document: EditorDocument): RoutineNode =>
+  document.routines.find((routine) => routine.id === document.activeRoutineId) ?? document.routines[0]!;
+
+export const getActiveProgram = (document: EditorDocument): ProgramNode => getActiveRoutine(document).program;
+
+export const setActiveRoutineId = (document: EditorDocument, activeRoutineId: string): EditorDocument =>
+  normalizeEditorDocument({
+    ...document,
+    activeRoutineId
+  });
+
+export const addRoutine = (document: EditorDocument, name = "routine"): EditorDocument => {
+  const routine = createRoutine(name);
+  return normalizeEditorDocument({
+    routines: [...document.routines.map(cloneRoutine), routine],
+    activeRoutineId: routine.id
+  });
+};
+
+export const renameRoutine = (
+  document: EditorDocument,
+  routineId: string,
+  name: string
+): EditorDocument =>
+  normalizeEditorDocument({
+    ...document,
+    routines: document.routines.map((routine) =>
+      routine.id === routineId ? { ...routine, name } : cloneRoutine(routine)
+    )
+  });
+
+export const replaceActiveProgram = (document: EditorDocument, program: ProgramNode): EditorDocument =>
+  normalizeEditorDocument({
+    ...document,
+    routines: document.routines.map((routine) =>
+      routine.id === document.activeRoutineId ? { ...routine, program: cloneProgram(program) } : cloneRoutine(routine)
+    )
+  });
 
 export const listStatements = (program: ProgramNode): StatementNode[] => program.statements;
 
@@ -87,7 +241,7 @@ const getContainerStatements = (
   return (owner as Extract<StatementNode, { kind: "while" }>).body;
 };
 
-export const findNode = (program: ProgramNode, nodeId: string): StatementNode | null => {
+const findNodeInProgram = (program: ProgramNode, nodeId: string): StatementNode | null => {
   const visit = (statements: StatementNode[]): StatementNode | null => {
     for (const statement of statements) {
       if (statement.id === nodeId) {
@@ -120,6 +274,22 @@ export const findNode = (program: ProgramNode, nodeId: string): StatementNode | 
 
   return visit(program.statements);
 };
+
+export const findNode = (source: ProgramNode | EditorDocument, nodeId: string): StatementNode | null => {
+  if ("routines" in source) {
+    for (const routine of source.routines) {
+      const node = findNodeInProgram(routine.program, nodeId);
+      if (node) {
+        return node;
+      }
+    }
+    return null;
+  }
+  return findNodeInProgram(source, nodeId);
+};
+
+export const findRoutineByNodeId = (document: EditorDocument, nodeId: string): RoutineNode | null =>
+  document.routines.find((routine) => !!findNodeInProgram(routine.program, nodeId)) ?? null;
 
 export const findParentContainer = (
   program: ProgramNode,
@@ -185,9 +355,7 @@ const updateStatementContainers = (
     }
     return {
       ...statement,
-      thenBody: statement.thenBody.map((child) =>
-        updateStatementContainers(child, container, nextStatements)
-      ),
+      thenBody: statement.thenBody.map((child) => updateStatementContainers(child, container, nextStatements)),
       elseBody: statement.elseBody
         ? statement.elseBody.map((child) => updateStatementContainers(child, container, nextStatements))
         : null
@@ -273,8 +441,7 @@ export const insertNode = (
   index: number,
   node: StatementNode
 ): ProgramNode => {
-  const owner =
-    container.kind === "program" ? program : findNode(program, container.ownerId);
+  const owner = container.kind === "program" ? program : findNodeInProgram(program, container.ownerId);
   if (!owner) {
     return program;
   }
@@ -293,7 +460,7 @@ export const moveNode = (
   targetIndex: number
 ): ProgramNode => {
   const targetOwner =
-    targetContainer.kind === "program" ? null : findNode(program, targetContainer.ownerId);
+    targetContainer.kind === "program" ? null : findNodeInProgram(program, targetContainer.ownerId);
   if (targetOwner && statementContainsNodeId(targetOwner, nodeId)) {
     return program;
   }
@@ -330,6 +497,13 @@ const updateExpressionNode = (
     };
   }
 
+  if (expression.kind === "structure" || expression.kind === "routine-call") {
+    return {
+      ...expression,
+      args: expression.args.map((arg) => updateExpressionNode(arg, targetId, updater))
+    };
+  }
+
   if (expression.kind === "unary") {
     return {
       ...expression,
@@ -343,7 +517,7 @@ const updateExpressionNode = (
 export const replaceExpression = (
   program: ProgramNode,
   ownerId: string,
-  _slotId: string,
+  slotId: string,
   expression: ExpressionNode | null
 ): ProgramNode => {
   const updateStatement = (statement: StatementNode): StatementNode => {
@@ -351,14 +525,23 @@ export const replaceExpression = (
       if (statement.kind === "assign") {
         return { ...statement, value: expression };
       }
-      if (statement.kind === "call") {
-        return { ...statement, args: expression ? [expression] : [] };
+      if (statement.kind === "call" || statement.kind === "routine-call") {
+        const nextArgs = [...statement.args];
+        const slotIndex = slotId.startsWith("arg-") ? Number(slotId.slice(4)) : 0;
+        nextArgs[slotIndex] = expression!;
+        return {
+          ...statement,
+          args: expression ? nextArgs.filter((value) => value !== undefined) : nextArgs
+        } as StatementNode;
       }
       if (statement.kind === "if") {
         return { ...statement, condition: expression };
       }
       if (statement.kind === "while") {
         return { ...statement, condition: expression };
+      }
+      if (statement.kind === "return") {
+        return { ...statement, value: expression };
       }
       if (statement.kind === "expression") {
         return { ...statement, expression: expression ?? statement.expression };

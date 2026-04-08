@@ -8,6 +8,7 @@ import type {
   StatementNode,
   WhileStatement
 } from "./types";
+import { getActiveRoutine } from "./tree";
 
 const executableRowKinds = new Set(["statement", "if-header", "while-header"]);
 
@@ -145,10 +146,11 @@ export const projectProgramRows = (document: EditorDocument): ProjectionResult =
   const rows: EditorRow[] = [];
   const dropZones: DropZone[] = [];
   const nodeRowMap: Record<string, string[]> = {};
+  const activeRoutine = getActiveRoutine(document);
 
   visitStatements(
-    document.program.statements,
-    { kind: "program", programId: document.program.id },
+    activeRoutine.program.statements,
+    { kind: "program", programId: activeRoutine.program.id },
     0,
     rows,
     dropZones,

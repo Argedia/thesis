@@ -36,7 +36,7 @@ export interface UiPreferencesRepository {
 
 export class JsonLevelRepository implements LevelRepository {
   constructor(
-    private readonly basePath = "/levels",
+    private readonly basePath = "levels",
     private readonly importedLevelsKey = "visual-data-structures-imported-levels"
   ) {}
 
@@ -47,7 +47,7 @@ export class JsonLevelRepository implements LevelRepository {
       return importedLevel;
     }
 
-    const response = await fetch(`${this.basePath}/${id}.json`);
+    const response = await fetch(this.resolveBundledUrl(`${id}.json`));
     if (response.ok) {
       return response.json() as Promise<LevelDefinition>;
     }
@@ -62,7 +62,7 @@ export class JsonLevelRepository implements LevelRepository {
   }
 
   public async listLevels(): Promise<LevelDefinition[]> {
-    const response = await fetch(`${this.basePath}/index.json`);
+    const response = await fetch(this.resolveBundledUrl("index.json"));
     if (!response.ok) {
       throw new Error("Level index could not be loaded.");
     }
@@ -96,6 +96,17 @@ export class JsonLevelRepository implements LevelRepository {
     }
 
     return JSON.parse(raw) as LevelDefinition[];
+  }
+
+  private resolveBundledUrl(fileName: string): string {
+    const trimmedBasePath = this.basePath.replace(/^\/+|\/+$/g, "");
+    const relativePath = trimmedBasePath ? `${trimmedBasePath}/${fileName}` : fileName;
+
+    if (typeof document !== "undefined" && document.baseURI) {
+      return new URL(relativePath, document.baseURI).toString();
+    }
+
+    return `/${relativePath}`;
   }
 }
 
