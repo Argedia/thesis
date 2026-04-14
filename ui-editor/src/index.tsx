@@ -6,6 +6,7 @@ import {
   type StructureSnapshot
 } from "@thesis/core-engine";
 import type { EditorPanelId, PlayerPanelId } from "@thesis/game-system";
+import i18next from "i18next";
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 
 const cardStyle: CSSProperties = {
@@ -26,6 +27,9 @@ export interface BoardVariableSnapshot {
   value: DataValue;
   routineName?: string;
 }
+
+const t = (key: string, options?: Record<string, unknown>) =>
+  i18next.t(key, options) as string;
 
 const boardWrapperStyle: CSSProperties = {
   ...cardStyle,
@@ -146,7 +150,7 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
 
         ctx.font = "800 13px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
         ctx.fillStyle = labelColor;
-        ctx.fillText(structure.kind.toUpperCase(), frameX + 20, frameY + 24);
+        ctx.fillText(t(`structures.${structure.kind}`).toUpperCase(), frameX + 20, frameY + 24);
 
         ctx.font = "900 30px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
         ctx.fillStyle = "#355070";
@@ -155,7 +159,11 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
         ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
         ctx.fillStyle = "#6d8297";
         ctx.textAlign = "right";
-        ctx.fillText(`${structure.values.length} items`, frameX + frameWidth - 18, frameY + 24);
+        ctx.fillText(
+          `${structure.values.length} ${t("common.items")}`,
+          frameX + frameWidth - 18,
+          frameY + 24
+        );
         ctx.textAlign = "start";
 
         if (structure.kind === "stack") {
@@ -284,7 +292,7 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
           ctx.fillStyle = "#9eb0bf";
           ctx.font = "700 15px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
           ctx.textAlign = "center";
-          ctx.fillText("Empty", frameX + frameWidth / 2, frameY + frameHeight / 2 + 18);
+          ctx.fillText(t("common.empty"), frameX + frameWidth / 2, frameY + frameHeight / 2 + 18);
           ctx.textAlign = "start";
         }
       });
@@ -308,16 +316,20 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
 
         ctx.font = "800 13px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
         ctx.fillStyle = "#4f79b6";
-        ctx.fillText("VARIABLES", frameX + 20, frameY + 24);
+        ctx.fillText(t("common.variables").toUpperCase(), frameX + 20, frameY + 24);
 
         ctx.font = "900 30px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
         ctx.fillStyle = "#355070";
-        ctx.fillText("Vars", frameX + 18, frameY + 58);
+        ctx.fillText(t("structures.variablesShort"), frameX + 18, frameY + 58);
 
         ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
         ctx.fillStyle = "#6d8297";
         ctx.textAlign = "right";
-        ctx.fillText(`${variables.length} items`, frameX + frameWidth - 18, frameY + 24);
+        ctx.fillText(
+          `${variables.length} ${t("common.items")}`,
+          frameX + frameWidth - 18,
+          frameY + 24
+        );
         ctx.textAlign = "start";
 
         variables.slice(0, maxVisible).forEach((variable, variableIndex) => {
@@ -344,7 +356,11 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
         if (variables.length > maxVisible) {
           ctx.fillStyle = "#6d8297";
           ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-          ctx.fillText(`+${variables.length - maxVisible} more`, frameX + 24, frameY + frameHeight - 22);
+          ctx.fillText(
+            `+${variables.length - maxVisible} ${t("common.more")}`,
+            frameX + 24,
+            frameY + frameHeight - 22
+          );
         }
       }
     };
@@ -387,12 +403,12 @@ export function EventLog({ events }: EventLogProps) {
       }}
     >
       <div style={{ fontSize: "1.35rem", fontWeight: 900, color: "#355070" }}>
-        Action Feed
+        {t("board.executionFeed")}
       </div>
       <div style={{ display: "grid", gap: "0.5rem", marginTop: "1rem" }}>
         {events.length === 0 ? (
           <span style={{ color: "#6f86a6", fontWeight: 700 }}>
-            Press the play button to watch the actions.
+            {t("board.runHint")}
           </span>
         ) : null}
 

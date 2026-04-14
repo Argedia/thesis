@@ -22,6 +22,7 @@ import {
   wheelTransform,
   type DragGeometry
 } from "./layout";
+import { t } from "../i18n-helpers";
 import {
   analyzeDocumentRoutines,
   blockColorClass,
@@ -105,6 +106,8 @@ interface PreviewDescriptor {
   control?: boolean;
   variable?: boolean;
 }
+
+type PaletteGroupId = "structures" | "values" | "logic" | "functions" | "variables";
 
 type ControlEditorBlock = EditorBlock & {
   kind: "conditional" | "while";
@@ -619,7 +622,7 @@ export class PlayEditorEngine {
   }
 
   private getControlLabel(block: Pick<EditorBlock, "kind">): string {
-    return block.kind === "while" ? "while" : "if";
+    return block.kind === "while" ? t("blocks.while").toLowerCase() : t("blocks.if").toLowerCase();
   }
 
   private createBlockFromPalette(block: PaletteBlock): EditorBlock | null {
@@ -2287,56 +2290,92 @@ export class PlayEditorEngine {
     if (block.kind === "structure") {
       return {
         chip: block.structureId,
-        label: "Data Structure"
+        label: t("structures.dataStructure")
       };
     }
 
     if (block.kind === "conditional") {
       return {
         chip: "IF",
-        label: "Conditional"
+        label: t("blocks.conditional")
       };
     }
 
     if (block.kind === "while") {
       return {
         chip: "WH",
-        label: "While"
+        label: t("blocks.while")
       };
     }
 
     if (block.kind === "return") {
       return {
         chip: "RET",
-        label: "Return"
+        label: t("blocks.return")
       };
     }
 
     if (block.kind === "routine_call") {
       return {
         chip: "FN",
-        label: block.routineName ?? "Function"
+        label: block.routineName ?? t("blocks.function")
       };
     }
 
     if (block.kind === "var_declaration") {
       return {
         chip: "VAR",
-        label: "Declaration"
+        label: t("blocks.declaration")
       };
     }
 
     if (block.kind === "var_operation") {
       return {
         chip: block.variableName?.slice(0, 3).toUpperCase() ?? "VAR",
-        label: block.variableName ?? "Variable"
+        label: block.variableName ?? t("blocks.variable")
       };
     }
 
     return {
       chip: "T",
-      label: "Value"
+      label: t("blocks.value")
     };
+  }
+
+  private getPaletteGroupId(block: PaletteBlock): PaletteGroupId {
+    if (block.kind === "structure") {
+      return "structures";
+    }
+
+    if (block.kind === "value") {
+      return "values";
+    }
+
+    if (block.kind === "conditional" || block.kind === "while") {
+      return "logic";
+    }
+
+    if (block.kind === "return" || block.kind === "routine_call") {
+      return "functions";
+    }
+
+    return "variables";
+  }
+
+  private getPaletteGroupLabel(groupId: PaletteGroupId): string {
+    switch (groupId) {
+      case "structures":
+        return t("editor.groupStructures");
+      case "values":
+        return t("editor.groupValues");
+      case "logic":
+        return t("editor.groupLogic");
+      case "functions":
+        return t("editor.groupFunctions");
+      case "variables":
+      default:
+        return t("editor.groupVariables");
+    }
   }
 
   private renderDefinitionContent(
@@ -2365,32 +2404,61 @@ export class PlayEditorEngine {
 
     const heading = document.createElement("div");
     heading.className = "builder-heading";
-    heading.innerHTML = "<strong>Blocks</strong><span>Drag a structure block into the editor.</span>";
+    heading.innerHTML = `<strong>${t("editor.blocks")}</strong><span>${t("editor.dragHint")}</span>`;
     palette.appendChild(heading);
 
-    const list = document.createElement("div");
-    list.className = "palette-list";
+    const groups = document.createElement("div");
+    groups.className = "palette-groups";
 
-    this.paletteBlocks.forEach((block) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "editor-block palette sky";
-      if (block.kind === "var_declaration" && this.isActiveRoutineFunction()) {
-        button.classList.add("palette-declaration-function-ready");
+    const groupOrder: PaletteGroupId[] = [
+      "structures",
+      "values",
+      "logic",
+      "functions",
+      "variables"
+    ];
+
+    groupOrder.forEach((groupId) => {
+      const groupBlocks = this.paletteBlocks.filter((block) => this.getPaletteGroupId(block) === groupId);
+      if (groupBlocks.length === 0) {
+        return;
       }
-      this.applyBlockColor(button, block.color);
-      this.renderDefinitionContent(button, this.getDefinitionDescriptor(block));
-      if (this.isLocked()) {
-        button.disabled = true;
-      }
-      button.addEventListener("pointerdown", (event) => {
-        const rect = button.getBoundingClientRect();
-        this.startPaletteDrag(event, block, rect);
+
+      const section = document.createElement("section");
+      section.className = "palette-group";
+
+      const sectionHeading = document.createElement("div");
+      sectionHeading.className = "palette-group-heading";
+      sectionHeading.textContent = this.getPaletteGroupLabel(groupId);
+      section.appendChild(sectionHeading);
+
+      const list = document.createElement("div");
+      list.className = "palette-list palette-group-list";
+
+      groupBlocks.forEach((block) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "editor-block palette sky";
+        if (block.kind === "var_declaration" && this.isActiveRoutineFunction()) {
+          button.classList.add("palette-declaration-function-ready");
+        }
+        this.applyBlockColor(button, block.color);
+        this.renderDefinitionContent(button, this.getDefinitionDescriptor(block));
+        if (this.isLocked()) {
+          button.disabled = true;
+        }
+        button.addEventListener("pointerdown", (event) => {
+          const rect = button.getBoundingClientRect();
+          this.startPaletteDrag(event, block, rect);
+        });
+        list.appendChild(button);
       });
-      list.appendChild(button);
+
+      section.appendChild(list);
+      groups.appendChild(section);
     });
 
-    palette.appendChild(list);
+    palette.appendChild(groups);
     container.appendChild(palette);
   }
 
@@ -2402,7 +2470,7 @@ export class PlayEditorEngine {
 
     const heading = document.createElement("div");
     heading.className = "builder-heading";
-    heading.innerHTML = "<strong>Program</strong><span>Build your sequence here.</span>";
+    heading.innerHTML = `<strong>${t("editor.program")}</strong><span>${t("editor.buildHint")}</span>`;
     editor.appendChild(heading);
 
     const lane = document.createElement("div");

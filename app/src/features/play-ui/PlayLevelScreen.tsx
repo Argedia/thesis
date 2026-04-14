@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import { Panel, PuzzleBoard, Screen } from "@thesis/ui-editor";
 import { compileEditorDocument, createEditorDocument } from "../program-editor-core";
@@ -10,6 +11,7 @@ import {
   type PlaySessionState
 } from "../play-session";
 import { APP_ROUTES } from "../../types/routes";
+import { t as translate } from "../../i18n-helpers";
 
 const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
@@ -24,12 +26,13 @@ const initialSessionState = (): PlaySessionState => ({
   stepCursor: 0,
   breakpointNodeIds: [],
   highlightedNodeId: null,
-  status: "Loading level...",
+  status: translate("common.loadingLevel"),
   completedLevelIds: [],
   compiledProgram: compileEditorDocument(createEditorDocument())
 });
 
 export function PlayLevelScreen() {
+  const { t } = useTranslation();
   const { levelId } = useParams<{ levelId: string }>();
   const [sessionState, setSessionState] = useState<PlaySessionState>(initialSessionState);
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
@@ -91,11 +94,11 @@ export function PlayLevelScreen() {
         <div className="settings-shell">
           <header className="topbar">
             <Link className="back-link" to={APP_ROUTES.play}>
-              Back
+              {t("common.back")}
             </Link>
             <div>
-              <p className="eyebrow">Play Mode</p>
-              <h1>Loading level</h1>
+              <p className="eyebrow">{t("common.playMode")}</p>
+              <h1>{t("common.loadingLevel")}</h1>
             </div>
           </header>
         </div>
@@ -112,15 +115,15 @@ export function PlayLevelScreen() {
     compiledProgram.operations.length;
 
   const handleCreateRoutine = () => {
-    const name = window.prompt("Routine name", "routine");
+    const name = window.prompt(t("editor.routineName"), t("editor.routineDefault"));
     if (name === null) {
       return;
     }
-    controller.createRoutine(name.trim() || "routine");
+    controller.createRoutine(name.trim() || t("editor.routineDefault"));
   };
 
   const handleRenameRoutine = (routineId: string, currentName: string) => {
-    const nextName = window.prompt("Rename routine", currentName);
+    const nextName = window.prompt(t("editor.renameRoutine"), currentName);
     if (nextName === null) {
       return;
     }
@@ -135,7 +138,7 @@ export function PlayLevelScreen() {
             type="button"
             className="level-info-toggle"
             aria-expanded={isLevelInfoOpen}
-            aria-label={isLevelInfoOpen ? "Hide level info" : "Show level info"}
+            aria-label={isLevelInfoOpen ? t("common.hideLevelInfo") : t("common.showLevelInfo")}
             onClick={() => setIsLevelInfoOpen((current) => !current)}
           >
             i
@@ -144,18 +147,20 @@ export function PlayLevelScreen() {
           <div className="level-info-panel">
             <div className="level-info-header">
               <div className="level-info-title-group">
-                <p className="eyebrow">Play Mode</p>
+                <p className="eyebrow">{t("common.playMode")}</p>
                 <h1>{level.title}</h1>
               </div>
 
               <Link className="back-link level-info-back" to={APP_ROUTES.play}>
-                Levels
+                {t("common.levels")}
               </Link>
             </div>
 
             <div className="level-info-actions">
-              <span className="mini-tag">Goal</span>
-              <span className="mini-tag">Max Steps: {level.constraints.maxSteps}</span>
+              <span className="mini-tag">{t("common.goal")}</span>
+              <span className="mini-tag">
+                {t("common.maxSteps")}: {level.constraints.maxSteps}
+              </span>
               <button
                 type="button"
                 className="mini-action"
@@ -164,20 +169,20 @@ export function PlayLevelScreen() {
                 onPointerLeave={() => setIsShowingGoalPreview(false)}
                 onPointerCancel={() => setIsShowingGoalPreview(false)}
               >
-                Preview Result
+                {t("common.previewResult")}
               </button>
             </div>
 
             <div className="level-info-actions">
               {level.constraints.allowedOperations.map((operation) => (
                 <span key={operation} className="mini-tag">
-                  {operation}
+                  {t(`operations.${operation}`)}
                 </span>
               ))}
             </div>
 
             <p className="level-info-description">
-              {level.metadata.description ?? "Solve the puzzle."}
+              {level.metadata.description ?? t("common.solvePuzzle")}
             </p>
           </div>
         </div>
@@ -185,9 +190,9 @@ export function PlayLevelScreen() {
         <section className="play-dual-stage">
           <aside className="device-shell terminal-device">
             <div className="device-header terminal-header">
-              <span className="device-label">Program Console</span>
+              <span className="device-label">{t("board.programConsole")}</span>
               <span className="device-time">
-                {sessionState.runState === "running" ? "RUN" : "EDIT"}
+                {sessionState.runState === "running" ? t("state.run") : t("state.edit")}
               </span>
             </div>
 
@@ -221,19 +226,19 @@ export function PlayLevelScreen() {
 
                   <div className="ide-run-actions">
                     <button type="button" onClick={() => void controller.run()}>
-                      Play
+                      {t("actions.play")}
                     </button>
                     <button type="button" onClick={() => void controller.step()}>
-                      Step
+                      {t("actions.step")}
                     </button>
                     <button type="button" onClick={() => controller.pause()}>
-                      Pause
+                      {t("actions.pause")}
                     </button>
                     <button type="button" onClick={() => controller.reset()}>
-                      Reset
+                      {t("actions.reset")}
                     </button>
                     <button type="button" onClick={() => controller.clearDocument()}>
-                      Clear
+                      {t("actions.clear")}
                     </button>
                   </div>
                 </div>
@@ -255,16 +260,19 @@ export function PlayLevelScreen() {
 
                 <div className="ide-output-panel">
                   <div className="ide-output-tabs">
-                    <span className="ide-output-tab active">OUTPUT</span>
+                    <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
                     <span className="ide-output-meta">
-                      {visibleRoutineOperations}/{level.constraints.maxSteps} blocks
+                      {t("board.blocksCount", {
+                        count: visibleRoutineOperations,
+                        max: level.constraints.maxSteps
+                      })}
                     </span>
                   </div>
                   <div className="ide-output-body">
                     <div className="ide-output-line primary">{sessionState.status}</div>
                     {sessionState.events.length === 0 ? (
                       <div className="ide-output-line muted">
-                        Run your program to watch operations appear here.
+                        {t("board.runHint")}
                       </div>
                     ) : (
                       sessionState.events.slice(-6).map((event, index) => (
@@ -285,9 +293,9 @@ export function PlayLevelScreen() {
 
           <section className="device-shell board-device">
             <div className="device-header board-header">
-              <span className="device-label">Play Board</span>
+              <span className="device-label">{t("board.playBoard")}</span>
               <span className="device-time">
-                {sessionState.completedLevelIds.includes(level.id) ? "DONE" : "LIVE"}
+                {sessionState.completedLevelIds.includes(level.id) ? t("state.done") : t("state.live")}
               </span>
             </div>
 
@@ -303,10 +311,10 @@ export function PlayLevelScreen() {
                 </div>
 
                 <div className="board-lower-panels">
-                  <Panel title="Execution Feed" accent="#ffffff">
+                  <Panel title={t("board.executionFeed")} accent="#ffffff">
                     <div className="timeline-list">
                       {sessionState.events.length === 0 ? (
-                        <p>Run your program to watch the data move.</p>
+                        <p>{t("board.feedHint")}</p>
                       ) : null}
                       {sessionState.events.map((event, index) => (
                         <div

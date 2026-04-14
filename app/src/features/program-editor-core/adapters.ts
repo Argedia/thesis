@@ -28,6 +28,7 @@ import type {
 } from "./types";
 import { createEditorDocument, getActiveProgram, replaceActiveProgram } from "./tree";
 import { analyzeDocumentRoutines } from "./routines";
+import { t, translateOperationName } from "../../i18n-helpers";
 
 const FUNCTION_BLUE = "#9ec5ff";
 
@@ -82,35 +83,12 @@ export const describeOperation = (
   operation: BuilderOperation | null,
   structureId?: string
 ): string => {
-  const label = structureId ?? "Value";
+  const label = structureId ?? t("blocks.value");
   if (!operation) {
     return label;
   }
 
-  switch (operation) {
-    case "POP":
-      return `${label}.pop`;
-    case "PUSH":
-      return `${label}.push`;
-    case "DEQUEUE":
-      return `${label}.dequeue`;
-    case "ENQUEUE":
-      return `${label}.enqueue`;
-    case "APPEND":
-      return `${label}.append`;
-    case "PREPEND":
-      return `${label}.prepend`;
-    case "REMOVE_FIRST":
-      return `${label}.remove_first`;
-    case "REMOVE_LAST":
-      return `${label}.remove_last`;
-    case "GET_HEAD":
-      return `${label}.get_head`;
-    case "GET_TAIL":
-      return `${label}.get_tail`;
-    case "SIZE":
-      return `${label}.size`;
-  }
+  return `${label}.${translateOperationName(operation)}`;
 };
 
 export const operationNeedsValue = (operation: BuilderOperation | null): boolean =>
@@ -285,7 +263,7 @@ export const isSlotCompatible = (
 };
 
 export const describeValue = (value: DataValue | null | undefined): string =>
-  value === null || value === undefined ? "value" : `"${String(value)}"`;
+  value === null || value === undefined ? t("blocks.value") : `"${String(value)}"`;
 
 export const describeBlock = (block: EditorBlock): string => {
   if (block.kind === "conditional") {
@@ -293,23 +271,25 @@ export const describeBlock = (block: EditorBlock): string => {
   }
 
   if (block.kind === "while") {
-    return "while";
+    return t("blocks.while").toLowerCase();
   }
 
   if (block.kind === "return") {
-    return "return";
+    return t("blocks.return").toLowerCase();
   }
 
   if (block.kind === "routine_call") {
-    return block.routineName?.trim() || "function";
+    return block.routineName?.trim() || t("blocks.function").toLowerCase();
   }
 
   if (block.kind === "var_declaration") {
-    return `${block.bindingKind === "expect" ? "expect" : "declare"} ${block.variableName?.trim() || "variable"}`;
+    return `${t(`bindings.${block.bindingKind === "expect" ? "expect" : "declare"}`)} ${
+      block.variableName?.trim() || t("blocks.variable").toLowerCase()
+    }`;
   }
 
   if (block.kind === "var_operation") {
-    const name = block.variableName?.trim() || "variable";
+    const name = block.variableName?.trim() || t("blocks.variable").toLowerCase();
     switch (block.variableOperationMode ?? "value") {
       case "assign":
         return `${name} =`;

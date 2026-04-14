@@ -10,6 +10,7 @@
   "dependencies": {
     "@thesis/core-engine": "0.1.0",
     "@thesis/game-system": "0.1.0",
+    "i18next": "^26.0.4",
     "react": "^18.3.1"
   }
 }

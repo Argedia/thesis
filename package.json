@@ -13,5 +13,9 @@
     "check:generated-src": "node scripts/check-no-generated-in-src.mjs",
     "build": "npm run check:generated-src && npm run build -w core-engine && npm run build -w game-system && npm run build -w storage && npm run build -w ui-editor && npm run build -w app && npm run check:generated-src",
     "dev": "npm run dev -w app"
+  },
+  "dependencies": {
+    "i18next": "^26.0.4",
+    "react-i18next": "^17.0.2"
   }
 }
