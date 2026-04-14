@@ -14,7 +14,10 @@ import type {
   NodeVisualStyle,
   OutputType,
   ProgramNode,
+  RoutineCallMode,
   RoutineBindingKind,
+  RoutineExportKind,
+  RoutineMemberKind,
   RoutineSignature,
   RoutineReturnKind,
   SerializedEditorDocument,
@@ -132,7 +135,23 @@ export const getOutputType = (block: EditorBlock): OutputType => {
   }
 
   if (block.kind === "routine_call") {
-    return routineReturnToOutputType(block.routineReturnKind);
+    return block.routineCallMode === "reference"
+      ? "value"
+      : routineReturnToOutputType(block.routineReturnKind);
+  }
+
+  if (block.kind === "routine_value") {
+    return "value";
+  }
+
+  if (block.kind === "routine_member") {
+    if (block.routineMemberKind === "function") {
+      return block.routineCallMode === "reference"
+        ? "value"
+        : routineReturnToOutputType(block.routineReturnKind);
+    }
+
+    return block.outputType === "boolean" ? "boolean" : "value";
   }
 
   return (
@@ -197,6 +216,18 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
   }
 
   if (block.kind === "routine_call") {
+    if (block.routineCallMode === "reference") {
+      return [];
+    }
+    return (block.routineParamNames ?? []).map((paramName, index) => ({
+      id: `arg-${index}`,
+      expectedType: "any",
+      allowDirectTextEntry: true,
+      title: `Insert a value for ${paramName}`
+    }));
+  }
+
+  if (block.kind === "routine_member" && block.routineMemberKind === "function" && block.routineCallMode !== "reference") {
     return (block.routineParamNames ?? []).map((paramName, index) => ({
       id: `arg-${index}`,
       expectedType: "any",
@@ -279,7 +310,21 @@ export const describeBlock = (block: EditorBlock): string => {
   }
 
   if (block.kind === "routine_call") {
+    const routineName = block.routineName?.trim() || t("blocks.function").toLowerCase();
+    return block.routineCallMode === "reference" ? routineName : `${routineName}()`;
+  }
+
+  if (block.kind === "routine_value") {
     return block.routineName?.trim() || t("blocks.function").toLowerCase();
+  }
+
+  if (block.kind === "routine_member") {
+    const ownerName = block.routineName?.trim() || t("blocks.function").toLowerCase();
+    const memberName = block.routineMemberName?.trim() || "member";
+    if (block.routineMemberKind === "function" && block.routineCallMode !== "reference") {
+      return `${ownerName}.${memberName}()`;
+    }
+    return `${ownerName}.${memberName}`;
   }
 
   if (block.kind === "var_declaration") {
@@ -445,22 +490,104 @@ export const createRoutineCallBlock = (
   routineName: string,
   routineReturnKind: RoutineReturnKind,
   routineParamNames: string[],
-  color = FUNCTION_BLUE
+  color = FUNCTION_BLUE,
+  routineCallMode: RoutineCallMode = "call"
 ): EditorBlock => ({
   id: `routine-call-${crypto.randomUUID()}`,
   kind: "routine_call",
   color,
   operation: null,
-  outputType: routineReturnToOutputType(routineReturnKind),
-  valueType: routineReturnKind === "boolean" ? "boolean" : routineReturnKind === "value" ? "text" : null,
+  outputType: routineCallMode === "reference" ? "value" : routineReturnToOutputType(routineReturnKind),
+  valueType:
+    routineCallMode === "reference"
+      ? "text"
+      : routineReturnKind === "boolean"
+        ? "boolean"
+        : routineReturnKind === "value"
+          ? "text"
+          : null,
   literalValue: null,
   inputBlock: null,
-  inputBlocks: routineParamNames.map(() => null),
+  inputBlocks: routineCallMode === "reference" ? [] : routineParamNames.map(() => null),
   routineId,
   routineName,
   routineReturnKind,
-  routineParamNames
+  routineParamNames,
+  routineCallMode,
+  routineExportKind: "callable"
 });
+
+export const createRoutineValueBlock = (
+  routineId: string,
+  routineName: string,
+  color = FUNCTION_BLUE
+): EditorBlock => ({
+  id: `routine-value-${crypto.randomUUID()}`,
+  kind: "routine_value",
+  color,
+  operation: null,
+  outputType: "value",
+  valueType: "text",
+  literalValue: null,
+  inputBlock: null,
+  routineId,
+  routineName,
+  routineExportKind: "object-value"
+});
+
+export const createRoutineMemberBlock = (options: {
+  routineId: string;
+  routineName: string;
+  memberName: string;
+  memberKind: RoutineMemberKind;
+  outputType: OutputType;
+  color?: string;
+  memberRoutineId?: string;
+  memberRoutineName?: string;
+  routineReturnKind?: RoutineReturnKind;
+  routineParamNames?: string[];
+  routineCallMode?: RoutineCallMode;
+}): EditorBlock => {
+  const routineCallMode = options.routineCallMode ?? (options.memberKind === "function" ? "call" : "reference");
+  const effectiveOutputType =
+    options.memberKind === "function"
+      ? routineCallMode === "reference"
+        ? "value"
+        : routineReturnToOutputType(options.routineReturnKind)
+      : options.outputType === "boolean"
+        ? "boolean"
+        : "value";
+
+  return {
+    id: `routine-member-${crypto.randomUUID()}`,
+    kind: "routine_member",
+    color: options.color ?? FUNCTION_BLUE,
+    operation: null,
+    outputType: effectiveOutputType,
+    valueType:
+      effectiveOutputType === "boolean"
+        ? "boolean"
+        : effectiveOutputType === "value"
+          ? "text"
+          : null,
+    literalValue: null,
+    inputBlock: null,
+    inputBlocks:
+      options.memberKind === "function" && routineCallMode !== "reference"
+        ? (options.routineParamNames ?? []).map(() => null)
+        : [],
+    routineId: options.routineId,
+    routineName: options.routineName,
+    routineReturnKind: options.routineReturnKind,
+    routineParamNames: options.routineParamNames ?? [],
+    routineCallMode,
+    routineExportKind: "object-value",
+    routineMemberName: options.memberName,
+    routineMemberKind: options.memberKind,
+    routineMemberRoutineId: options.memberRoutineId,
+    routineMemberRoutineName: options.memberRoutineName
+  };
+};
 
 export const createVariableOperationBlock = (
   variableSourceId: string,
@@ -733,6 +860,17 @@ export const legacyBlockToExpression = (block: EditorBlock): ExpressionNode => {
   }
 
   if (block.kind === "routine_call") {
+    if (block.routineCallMode === "reference") {
+      return {
+        id: block.id,
+        kind: "routine-reference",
+        routineId: block.routineId ?? block.id,
+        routineName: block.routineName ?? "function",
+        outputType: "value",
+        visual: cloneVisual(block.color)
+      };
+    }
+
     return {
       id: block.id,
       kind: "routine-call",
@@ -742,6 +880,40 @@ export const legacyBlockToExpression = (block: EditorBlock): ExpressionNode => {
         .filter((value): value is EditorBlock => !!value)
         .map(legacyBlockToExpression),
       outputType: block.routineReturnKind === "boolean" ? "boolean" : "value",
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "routine_value") {
+    return {
+      id: block.id,
+      kind: "routine-value",
+      routineId: block.routineId ?? block.id,
+      routineName: block.routineName ?? "object",
+      outputType: "value",
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "routine_member") {
+    return {
+      id: block.id,
+      kind: "routine-member",
+      routineId: block.routineId ?? block.id,
+      routineName: block.routineName ?? "object",
+      memberName: block.routineMemberName ?? "member",
+      memberKind: block.routineMemberKind ?? "data",
+      memberRoutineId: block.routineMemberRoutineId,
+      memberRoutineName: block.routineMemberRoutineName,
+      callMode:
+        block.routineMemberKind === "function" ? (block.routineCallMode ?? "call") : "reference",
+      args:
+        block.routineMemberKind === "function" && block.routineCallMode !== "reference"
+          ? (block.inputBlocks ?? [])
+              .filter((value): value is EditorBlock => !!value)
+              .map(legacyBlockToExpression)
+          : [],
+      outputType: block.outputType === "boolean" ? "boolean" : "value",
       visual: cloneVisual(block.color)
     };
   }
@@ -812,6 +984,15 @@ export const legacyBlockToStatement = (block: EditorBlock): StatementNode => {
   }
 
   if (block.kind === "routine_call") {
+    if (block.routineCallMode === "reference") {
+      return {
+        id: block.id,
+        kind: "expression",
+        expression: legacyBlockToExpression(block),
+        visual: cloneVisual(block.color)
+      };
+    }
+
     const args = (block.inputBlocks ?? [])
       .filter((value): value is EditorBlock => !!value)
       .map(legacyBlockToExpression);
@@ -826,6 +1007,44 @@ export const legacyBlockToStatement = (block: EditorBlock): StatementNode => {
         args,
         visual: cloneVisual(block.color)
       };
+    }
+
+    return {
+      id: block.id,
+      kind: "expression",
+      expression: legacyBlockToExpression(block),
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "routine_value") {
+    return {
+      id: block.id,
+      kind: "expression",
+      expression: legacyBlockToExpression(block),
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  if (block.kind === "routine_member") {
+    if (block.routineMemberKind === "function" && block.routineCallMode !== "reference") {
+      const args = (block.inputBlocks ?? [])
+        .filter((value): value is EditorBlock => !!value)
+        .map(legacyBlockToExpression);
+      if ((block.routineReturnKind ?? "none") === "none") {
+        return {
+          id: block.id,
+          kind: "routine-member-call",
+          routineId: block.routineId ?? block.id,
+          routineName: block.routineName ?? "object",
+          memberName: block.routineMemberName ?? "member",
+          memberRoutineId: block.routineMemberRoutineId ?? block.id,
+          memberRoutineName: block.routineMemberRoutineName ?? block.routineMemberName ?? "member",
+          returnKind: "none",
+          args,
+          visual: cloneVisual(block.color)
+        };
+      }
     }
 
     return {
@@ -955,7 +1174,93 @@ const expressionToLegacyBlock = (
       routineId: expression.routineId,
       routineName: signature?.routineName ?? expression.routineName,
       routineReturnKind: signature?.returnKind ?? expression.outputType,
-      routineParamNames
+      routineParamNames,
+      routineCallMode: "call",
+      routineExportKind: signature?.exportKind ?? "callable"
+    };
+  }
+
+  if (expression.kind === "routine-reference") {
+    const signature = signatures[expression.routineId];
+    return {
+      id: expression.id,
+      kind: "routine_call",
+      color: expression.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType: "value",
+      valueType: "text",
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks: [],
+      routineId: expression.routineId,
+      routineName: signature?.routineName ?? expression.routineName,
+      routineReturnKind: signature?.returnKind ?? "none",
+      routineParamNames: signature?.params.map((param) => param.name) ?? [],
+      routineCallMode: "reference",
+      routineExportKind: signature?.exportKind ?? "callable"
+    };
+  }
+
+  if (expression.kind === "routine-value") {
+    const signature = signatures[expression.routineId];
+    return {
+      id: expression.id,
+      kind: "routine_value",
+      color: expression.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType: "value",
+      valueType: "text",
+      literalValue: null,
+      inputBlock: null,
+      routineId: expression.routineId,
+      routineName: signature?.routineName ?? expression.routineName,
+      routineExportKind: signature?.exportKind ?? "object-value"
+    };
+  }
+
+  if (expression.kind === "routine-member") {
+    const ownerSignature = signatures[expression.routineId];
+    const memberSignature = ownerSignature?.members.find((member) => member.name === expression.memberName);
+    const routineParamNames = memberSignature?.params?.map((param) => param.name) ?? [];
+    const expectedArgCount = routineParamNames.length;
+    const inputBlocks =
+      expression.memberKind === "function" && expression.callMode !== "reference"
+        ? Array.from({ length: expectedArgCount }, (_, index) =>
+            expression.args[index]
+              ? expressionToLegacyBlock(expression.args[index]!, declarations, signatures)
+              : null
+          )
+        : [];
+    return {
+      id: expression.id,
+      kind: "routine_member",
+      color: expression.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType:
+        expression.memberKind === "function"
+          ? expression.callMode === "reference"
+            ? "value"
+            : expression.outputType
+          : expression.outputType,
+      valueType:
+        expression.outputType === "boolean"
+          ? "boolean"
+          : expression.outputType === "value"
+            ? "text"
+            : null,
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks,
+      routineId: expression.routineId,
+      routineName: ownerSignature?.routineName ?? expression.routineName,
+      routineReturnKind: memberSignature?.returnKind ?? "none",
+      routineParamNames,
+      routineCallMode: expression.memberKind === "function" ? expression.callMode : "reference",
+      routineExportKind: ownerSignature?.exportKind ?? "object-value",
+      routineMemberName: expression.memberName,
+      routineMemberKind: expression.memberKind,
+      routineMemberRoutineId: memberSignature?.routineId ?? expression.memberRoutineId,
+      routineMemberRoutineName: memberSignature?.routineName ?? expression.memberRoutineName
     };
   }
 
@@ -1046,7 +1351,40 @@ const statementToLegacyBlock = (
       routineId: statement.routineId,
       routineName: signature?.routineName ?? statement.routineName,
       routineReturnKind: signature?.returnKind ?? "none",
-      routineParamNames
+      routineParamNames,
+      routineCallMode: "call",
+      routineExportKind: signature?.exportKind ?? "callable"
+    };
+  }
+
+  if (statement.kind === "routine-member-call") {
+    const ownerSignature = signatures[statement.routineId];
+    const memberSignature = ownerSignature?.members.find((member) => member.name === statement.memberName);
+    const routineParamNames = memberSignature?.params?.map((param) => param.name) ?? statement.args.map((_, index) => `arg${index + 1}`);
+    const expectedArgCount = routineParamNames.length;
+    const inputBlocks = Array.from({ length: expectedArgCount }, (_, index) =>
+      statement.args[index] ? expressionToLegacyBlock(statement.args[index]!, declarations, signatures) : null
+    );
+    return {
+      id: statement.id,
+      kind: "routine_member",
+      color: statement.visual?.color ?? FUNCTION_BLUE,
+      operation: null,
+      outputType: "none",
+      valueType: null,
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks,
+      routineId: statement.routineId,
+      routineName: ownerSignature?.routineName ?? statement.routineName,
+      routineReturnKind: memberSignature?.returnKind ?? "none",
+      routineParamNames,
+      routineCallMode: "call",
+      routineExportKind: ownerSignature?.exportKind ?? "object-value",
+      routineMemberName: statement.memberName,
+      routineMemberKind: "function",
+      routineMemberRoutineId: memberSignature?.routineId ?? statement.memberRoutineId,
+      routineMemberRoutineName: memberSignature?.routineName ?? statement.memberRoutineName
     };
   }
 

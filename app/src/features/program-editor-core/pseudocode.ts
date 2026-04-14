@@ -16,6 +16,15 @@ const emitExpression = (expression: ExpressionNode | null): string => {
         : expression.structureId;
     case "routine-call":
       return `${expression.routineName}(${expression.args.map(emitExpression).join(", ")})`;
+    case "routine-reference":
+      return expression.routineName;
+    case "routine-value":
+      return expression.routineName;
+    case "routine-member":
+      if (expression.memberKind === "function" && expression.callMode !== "reference") {
+        return `${expression.routineName}.${expression.memberName}(${expression.args.map(emitExpression).join(", ")})`;
+      }
+      return `${expression.routineName}.${expression.memberName}`;
     case "variable":
       switch (expression.mode) {
         case "value":
@@ -74,6 +83,11 @@ const emitStatement = (statement: StatementNode, depth: number, lines: string[])
     }
     case "routine-call":
       lines.push(`${indent(depth)}${statement.routineName}(${statement.args.map(emitExpression).join(", ")})`);
+      return;
+    case "routine-member-call":
+      lines.push(
+        `${indent(depth)}${statement.routineName}.${statement.memberName}(${statement.args.map(emitExpression).join(", ")})`
+      );
       return;
     case "return":
       lines.push(

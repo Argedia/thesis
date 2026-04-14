@@ -108,6 +108,9 @@ const expressionProvidesValue = (expression: ExpressionNode | null): boolean => 
     case "structure":
       return structureExpressionSupportsValue(expression.operation);
     case "routine-call":
+    case "routine-reference":
+    case "routine-value":
+    case "routine-member":
       return true;
     case "variable":
       if (expression.mode === "assign") {
@@ -144,9 +147,33 @@ const expressionCanExecuteAtRuntime = (
       const signature = signatures[expression.routineId];
       return (
         !!signature &&
+        signature.exportKind === "callable" &&
         signature.isPublishable &&
         signature.returnKind !== "none" &&
         expression.args.length === signature.params.length &&
+        expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
+      );
+    }
+    case "routine-reference": {
+      const signature = signatures[expression.routineId];
+      return !!signature && signature.exportKind === "callable" && signature.isPublishable;
+    }
+    case "routine-value": {
+      const signature = signatures[expression.routineId];
+      return !!signature && signature.exportKind === "object-value" && signature.isPublishable;
+    }
+    case "routine-member": {
+      const ownerSignature = signatures[expression.routineId];
+      const memberSignature = ownerSignature?.members.find((member) => member.name === expression.memberName);
+      if (!ownerSignature || ownerSignature.exportKind !== "object-value" || !memberSignature) {
+        return false;
+      }
+      if (expression.memberKind !== "function" || expression.callMode === "reference") {
+        return true;
+      }
+      return (
+        memberSignature.supportsCall &&
+        expression.args.length === (memberSignature.params?.length ?? 0) &&
         expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
       );
     }
@@ -282,7 +309,59 @@ const compileExpression = (
           expression.args.length === signature.params.length &&
           expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
             ? []
-            : ["Finish each block and fill any missing value slots."]
+          : ["Finish each block and fill any missing value slots."]
+      };
+    }
+    case "routine-reference": {
+      const signature = signatures[expression.routineId];
+      return {
+        operations: [],
+        operationNodeIds: [],
+        provides: null,
+        isComplete: !!signature && signature.exportKind === "callable" && signature.isPublishable,
+        unsupportedFeatures: [],
+        diagnostics:
+          !!signature && signature.exportKind === "callable" && signature.isPublishable
+            ? []
+            : [`${expression.routineName} is not publishable as a function reference yet.`]
+      };
+    }
+    case "routine-value": {
+      const signature = signatures[expression.routineId];
+      return {
+        operations: [],
+        operationNodeIds: [],
+        provides: null,
+        isComplete: !!signature && signature.exportKind === "object-value" && signature.isPublishable,
+        unsupportedFeatures: [],
+        diagnostics:
+          !!signature && signature.exportKind === "object-value" && signature.isPublishable
+            ? []
+            : [`${expression.routineName} is not publishable as an object value yet.`]
+      };
+    }
+    case "routine-member": {
+      const ownerSignature = signatures[expression.routineId];
+      const memberSignature = ownerSignature?.members.find((member) => member.name === expression.memberName);
+      const isReferenceOrData =
+        expression.memberKind !== "function" || expression.callMode === "reference";
+      const isComplete =
+        !!ownerSignature &&
+        ownerSignature.exportKind === "object-value" &&
+        !!memberSignature &&
+        (isReferenceOrData
+          ? true
+          : expression.args.length === (memberSignature.params?.length ?? 0) &&
+            expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures)));
+      return {
+        operations: [],
+        operationNodeIds: [],
+        provides: null,
+        isComplete,
+        unsupportedFeatures: [],
+        diagnostics: isComplete
+          ? []
+          : [`${expression.routineName}.${expression.memberName} is not executable yet.`]
       };
     }
     case "variable":
@@ -489,6 +568,28 @@ const compileStatement = (
       }
       return;
     }
+    case "routine-member-call": {
+      const ownerSignature = signatures[statement.routineId];
+      const memberSignature = ownerSignature?.members.find((member) => member.name === statement.memberName);
+      appendInstruction(context, {
+        instructionId: `ins-${statement.id}-routine-member-call`,
+        kind: "call-member",
+        nodeId: statement.id,
+        rowIds,
+        rowNumbers,
+        breakpointable: true,
+        routineId: statement.memberRoutineId
+      });
+      if (!ownerSignature || ownerSignature.exportKind !== "object-value" || !memberSignature) {
+        context.diagnostics.push(`${statement.routineName}.${statement.memberName} is not publishable yet.`);
+      } else if (
+        statement.args.length !== (memberSignature.params?.length ?? 0) ||
+        !statement.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
+      ) {
+        context.diagnostics.push("Finish each block and fill any missing value slots.");
+      }
+      return;
+    }
     case "return":
       appendInstruction(context, {
         instructionId: `ins-${statement.id}-return`,
@@ -651,7 +752,10 @@ export const compileEditorDocument = (document: EditorDocument): CompileResult =
   Object.values(routines).forEach((routine) => {
     const extraDiagnostics: string[] = [];
     routine.instructions.forEach((instruction) => {
-      if (instruction.kind !== "call-routine" || !instruction.routineId) {
+      if (
+        (instruction.kind !== "call-routine" && instruction.kind !== "call-member") ||
+        !instruction.routineId
+      ) {
         return;
       }
       const targetRoutine = routines[instruction.routineId];

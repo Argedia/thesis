@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Button, DialogTrigger, Input, Label, TextField } from "react-aria-components";
 import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import { Panel, PuzzleBoard, Screen } from "@thesis/ui-editor";
 import { compileEditorDocument, createEditorDocument } from "../program-editor-core";
@@ -12,6 +13,7 @@ import {
 } from "../play-session";
 import { APP_ROUTES } from "../../types/routes";
 import { t as translate } from "../../i18n-helpers";
+import { AppDialog, AppModal, AppPopover } from "../../components/ui/AppOverlay";
 
 const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
@@ -37,8 +39,27 @@ export function PlayLevelScreen() {
   const [sessionState, setSessionState] = useState<PlaySessionState>(initialSessionState);
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
   const [isLevelInfoOpen, setIsLevelInfoOpen] = useState(false);
+  const [dialogValue, setDialogValue] = useState("");
+  const [dialogError, setDialogError] = useState("");
   const controllerRef = useRef<PlaySessionController | null>(null);
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
+
+  const [dialogState, setDialogState] = useState<
+    | null
+    | {
+        kind: "text";
+        title: string;
+        initialValue?: string;
+        validate?: (value: string) => string | null;
+        resolve: (value: string | null) => void;
+      }
+    | {
+        kind: "alert";
+        title: string;
+        message: string;
+        resolve: () => void;
+      }
+  >(null);
 
   const controller = useMemo(() => {
     if (!controllerRef.current) {
@@ -114,16 +135,91 @@ export function PlayLevelScreen() {
     (visibleRoutine && compiledProgram.routines[visibleRoutine.id]?.operations.length) ??
     compiledProgram.operations.length;
 
-  const handleCreateRoutine = () => {
-    const name = window.prompt(t("editor.routineName"), t("editor.routineDefault"));
+  const closeDialog = () => {
+    setDialogState(null);
+    setDialogValue("");
+    setDialogError("");
+  };
+
+  const dismissDialog = () => {
+    if (!dialogState) {
+      return;
+    }
+
+    if (dialogState.kind === "text") {
+      dialogState.resolve(null);
+    } else {
+      dialogState.resolve();
+    }
+    closeDialog();
+  };
+
+  const requestTextInput = (options: {
+    title: string;
+    initialValue?: string;
+    validate?: (value: string) => string | null;
+  }) =>
+    new Promise<string | null>((resolve) => {
+      setDialogValue(options.initialValue ?? "");
+      setDialogError("");
+      setDialogState({
+        kind: "text",
+        ...options,
+        resolve
+      });
+    });
+
+  const showAlert = (options: { title?: string; message: string }) =>
+    new Promise<void>((resolve) => {
+      setDialogValue("");
+      setDialogError("");
+      setDialogState({
+        kind: "alert",
+        title: options.title ?? t("common.notice"),
+        message: options.message,
+        resolve
+      });
+    });
+
+  const handleDialogSubmit = () => {
+    if (!dialogState) {
+      return;
+    }
+
+    if (dialogState.kind === "alert") {
+      dialogState.resolve();
+      closeDialog();
+      return;
+    }
+
+    const nextError = dialogState.validate?.(dialogValue) ?? null;
+    if (nextError) {
+      setDialogError(nextError);
+      return;
+    }
+
+    dialogState.resolve(dialogValue);
+    closeDialog();
+  };
+
+  const handleCreateRoutine = async () => {
+    const name = await requestTextInput({
+      title: t("editor.routineName"),
+      initialValue: t("editor.routineDefault"),
+      validate: (value) => (value.trim() ? null : t("messages.valueEmpty"))
+    });
     if (name === null) {
       return;
     }
     controller.createRoutine(name.trim() || t("editor.routineDefault"));
   };
 
-  const handleRenameRoutine = (routineId: string, currentName: string) => {
-    const nextName = window.prompt(t("editor.renameRoutine"), currentName);
+  const handleRenameRoutine = async (routineId: string, currentName: string) => {
+    const nextName = await requestTextInput({
+      title: t("editor.renameRoutine"),
+      initialValue: currentName,
+      validate: (value) => (value.trim() ? null : t("messages.valueEmpty"))
+    });
     if (nextName === null) {
       return;
     }
@@ -133,58 +229,59 @@ export function PlayLevelScreen() {
   return (
     <Screen mode="player">
       <div className="play-shell">
-        <div className={`level-info-dock${isLevelInfoOpen ? " open" : ""}`}>
-          <button
-            type="button"
-            className="level-info-toggle"
-            aria-expanded={isLevelInfoOpen}
-            aria-label={isLevelInfoOpen ? t("common.hideLevelInfo") : t("common.showLevelInfo")}
-            onClick={() => setIsLevelInfoOpen((current) => !current)}
-          >
-            i
-          </button>
+        <div className="level-info-dock">
+          <DialogTrigger isOpen={isLevelInfoOpen} onOpenChange={setIsLevelInfoOpen}>
+            <Button
+              className="level-info-toggle"
+              aria-label={isLevelInfoOpen ? t("common.hideLevelInfo") : t("common.showLevelInfo")}
+            >
+              i
+            </Button>
 
-          <div className="level-info-panel">
-            <div className="level-info-header">
-              <div className="level-info-title-group">
-                <p className="eyebrow">{t("common.playMode")}</p>
-                <h1>{level.title}</h1>
-              </div>
+            <AppPopover className="level-info-popover" placement="bottom end">
+              <AppDialog aria-label={t("common.playMode")} className="level-info-panel">
+                <div className="level-info-header">
+                  <div className="level-info-title-group">
+                    <p className="eyebrow">{t("common.playMode")}</p>
+                    <h1>{level.title}</h1>
+                  </div>
 
-              <Link className="back-link level-info-back" to={APP_ROUTES.play}>
-                {t("common.levels")}
-              </Link>
-            </div>
+                  <Link className="back-link level-info-back" to={APP_ROUTES.play}>
+                    {t("common.levels")}
+                  </Link>
+                </div>
 
-            <div className="level-info-actions">
-              <span className="mini-tag">{t("common.goal")}</span>
-              <span className="mini-tag">
-                {t("common.maxSteps")}: {level.constraints.maxSteps}
-              </span>
-              <button
-                type="button"
-                className="mini-action"
-                onPointerDown={() => setIsShowingGoalPreview(true)}
-                onPointerUp={() => setIsShowingGoalPreview(false)}
-                onPointerLeave={() => setIsShowingGoalPreview(false)}
-                onPointerCancel={() => setIsShowingGoalPreview(false)}
-              >
-                {t("common.previewResult")}
-              </button>
-            </div>
+                <div className="level-info-actions">
+                  <span className="mini-tag">{t("common.goal")}</span>
+                  <span className="mini-tag">
+                    {t("common.maxSteps")}: {level.constraints.maxSteps}
+                  </span>
+                  <button
+                    type="button"
+                    className="mini-action"
+                    onPointerDown={() => setIsShowingGoalPreview(true)}
+                    onPointerUp={() => setIsShowingGoalPreview(false)}
+                    onPointerLeave={() => setIsShowingGoalPreview(false)}
+                    onPointerCancel={() => setIsShowingGoalPreview(false)}
+                  >
+                    {t("common.previewResult")}
+                  </button>
+                </div>
 
-            <div className="level-info-actions">
-              {level.constraints.allowedOperations.map((operation) => (
-                <span key={operation} className="mini-tag">
-                  {t(`operations.${operation}`)}
-                </span>
-              ))}
-            </div>
+                <div className="level-info-actions">
+                  {level.constraints.allowedOperations.map((operation) => (
+                    <span key={operation} className="mini-tag">
+                      {t(`operations.${operation}`)}
+                    </span>
+                  ))}
+                </div>
 
-            <p className="level-info-description">
-              {level.metadata.description ?? t("common.solvePuzzle")}
-            </p>
-          </div>
+                <p className="level-info-description">
+                  {level.metadata.description ?? t("common.solvePuzzle")}
+                </p>
+              </AppDialog>
+            </AppPopover>
+          </DialogTrigger>
         </div>
 
         <section className="play-dual-stage">
@@ -255,6 +352,8 @@ export function PlayLevelScreen() {
                     onToggleBreakpoint={(nodeId) => controller.toggleBreakpoint(nodeId)}
                     onChange={(document) => controller.setDocument(document)}
                     onStatus={(message) => controller.setStatus(message)}
+                    onRequestTextInput={requestTextInput}
+                    onShowAlert={showAlert}
                   />
                 </div>
 
@@ -332,6 +431,44 @@ export function PlayLevelScreen() {
             </div>
           </section>
         </section>
+
+        <AppModal isOpen={dialogState !== null} onOpenChange={(isOpen) => !isOpen && dismissDialog()}>
+          {dialogState?.kind === "text" ? (
+            <AppDialog title={dialogState.title}>
+              <TextField
+                autoFocus
+                className="app-text-dialog-field"
+                value={dialogValue}
+                onChange={setDialogValue}
+              >
+                <Label className="app-text-dialog-label">{dialogState.title}</Label>
+                <Input className="app-text-dialog-input" />
+              </TextField>
+
+              {dialogError ? <p className="app-dialog-error">{dialogError}</p> : null}
+
+              <div className="app-dialog-actions">
+                <Button className="app-dialog-button secondary" onPress={dismissDialog}>
+                  {t("common.cancel")}
+                </Button>
+                <Button className="app-dialog-button" onPress={handleDialogSubmit}>
+                  {t("common.save")}
+                </Button>
+              </div>
+            </AppDialog>
+          ) : null}
+
+          {dialogState?.kind === "alert" ? (
+            <AppDialog title={dialogState.title}>
+              <p className="app-dialog-message">{dialogState.message}</p>
+              <div className="app-dialog-actions">
+                <Button className="app-dialog-button" onPress={handleDialogSubmit}>
+                  {t("common.ok")}
+                </Button>
+              </div>
+            </AppDialog>
+          ) : null}
+        </AppModal>
       </div>
     </Screen>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { PlayEditorSurfaceProps } from "./model";
-import { PlayEditorEngine } from "./PlayEditorEngine";
+import { PlayEditorEngine } from "./engine/PlayEditorEngine";
 
 export function PlayEditorSurface(props: PlayEditorSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);

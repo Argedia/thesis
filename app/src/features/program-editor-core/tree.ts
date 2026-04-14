@@ -20,7 +20,9 @@ const cloneExpression = (expression: ExpressionNode): ExpressionNode => ({
         right: expression.right ? cloneExpression(expression.right) : null
       }
     : {}),
-  ...((expression.kind === "structure" || expression.kind === "routine-call")
+  ...((expression.kind === "structure" ||
+      expression.kind === "routine-call" ||
+      expression.kind === "routine-member")
     ? {
         args: expression.args.map(cloneExpression)
       }
@@ -36,7 +38,9 @@ export const cloneStatement = (statement: StatementNode): StatementNode => ({
   ...(statement.kind === "assign"
     ? { value: statement.value ? cloneExpression(statement.value) : null }
     : {}),
-  ...((statement.kind === "call" || statement.kind === "routine-call")
+  ...((statement.kind === "call" ||
+      statement.kind === "routine-call" ||
+      statement.kind === "routine-member-call")
     ? { args: statement.args.map(cloneExpression) }
     : {}),
   ...(statement.kind === "return"
@@ -497,7 +501,11 @@ const updateExpressionNode = (
     };
   }
 
-  if (expression.kind === "structure" || expression.kind === "routine-call") {
+  if (
+    expression.kind === "structure" ||
+    expression.kind === "routine-call" ||
+    expression.kind === "routine-member"
+  ) {
     return {
       ...expression,
       args: expression.args.map((arg) => updateExpressionNode(arg, targetId, updater))
@@ -525,7 +533,11 @@ export const replaceExpression = (
       if (statement.kind === "assign") {
         return { ...statement, value: expression };
       }
-      if (statement.kind === "call" || statement.kind === "routine-call") {
+      if (
+        statement.kind === "call" ||
+        statement.kind === "routine-call" ||
+        statement.kind === "routine-member-call"
+      ) {
         const nextArgs = [...statement.args];
         const slotIndex = slotId.startsWith("arg-") ? Number(slotId.slice(4)) : 0;
         nextArgs[slotIndex] = expression!;

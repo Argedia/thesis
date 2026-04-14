@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@thesis/game-system": "0.1.0"
+    "@thesis/game-system": "0.1.0",
+    "zod": "^4.3.6"
   }
 }

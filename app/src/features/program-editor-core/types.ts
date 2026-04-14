@@ -21,7 +21,9 @@ export type EditorBlockKind =
   | "var_declaration"
   | "var_operation"
   | "return"
-  | "routine_call";
+  | "routine_call"
+  | "routine_value"
+  | "routine_member";
 
 export type ConditionalMode = "if" | "if-else";
 export type VariableOperationMode =
@@ -47,6 +49,9 @@ export type OutputType = "none" | "value" | "boolean";
 export type SlotExpectedType = "value" | "boolean" | "any";
 export type RoutineReturnKind = OutputType;
 export type RoutineBindingKind = "declare" | "expect";
+export type RoutineCallMode = "call" | "reference";
+export type RoutineExportKind = "none" | "callable" | "object-value";
+export type RoutineMemberKind = "data" | "function";
 
 export interface NodeVisualStyle {
   color?: string;
@@ -99,6 +104,17 @@ export interface RoutineCallStatement extends StatementNodeBase {
   returnKind: "none";
 }
 
+export interface RoutineMemberCallStatement extends StatementNodeBase {
+  kind: "routine-member-call";
+  routineId: string;
+  routineName: string;
+  memberName: string;
+  memberRoutineId: string;
+  memberRoutineName: string;
+  args: ExpressionNode[];
+  returnKind: "none";
+}
+
 export interface IfStatement extends StatementNodeBase {
   kind: "if";
   condition: ExpressionNode | null;
@@ -128,6 +144,7 @@ export type StatementNode =
   | AssignStatement
   | StructureCallStatement
   | RoutineCallStatement
+  | RoutineMemberCallStatement
   | IfStatement
   | WhileStatement
   | ReturnStatement
@@ -168,6 +185,30 @@ export interface RoutineCallExpression extends ExpressionNodeBase {
   args: ExpressionNode[];
 }
 
+export interface RoutineReferenceExpression extends ExpressionNodeBase {
+  kind: "routine-reference";
+  routineId: string;
+  routineName: string;
+}
+
+export interface RoutineValueExpression extends ExpressionNodeBase {
+  kind: "routine-value";
+  routineId: string;
+  routineName: string;
+}
+
+export interface RoutineMemberExpression extends ExpressionNodeBase {
+  kind: "routine-member";
+  routineId: string;
+  routineName: string;
+  memberName: string;
+  memberKind: RoutineMemberKind;
+  memberRoutineId?: string;
+  memberRoutineName?: string;
+  callMode: RoutineCallMode;
+  args: ExpressionNode[];
+}
+
 export interface BinaryExpression extends ExpressionNodeBase {
   kind: "binary";
   operator: VariableOperationMode;
@@ -186,12 +227,26 @@ export type ExpressionNode =
   | VariableExpression
   | StructureValueExpression
   | RoutineCallExpression
+  | RoutineReferenceExpression
+  | RoutineValueExpression
+  | RoutineMemberExpression
   | BinaryExpression
   | UnaryExpression;
 
 export interface RoutineSignatureParam {
   declarationId: string;
   name: string;
+}
+
+export interface RoutineMemberSignature {
+  name: string;
+  kind: RoutineMemberKind;
+  outputType: Exclude<OutputType, "none">;
+  supportsCall: boolean;
+  routineId?: string;
+  routineName?: string;
+  returnKind?: RoutineReturnKind;
+  params?: RoutineSignatureParam[];
 }
 
 export interface RoutineSignature {
@@ -201,6 +256,8 @@ export interface RoutineSignature {
   params: RoutineSignatureParam[];
   returnKind: RoutineReturnKind;
   isPublishable: boolean;
+  exportKind: RoutineExportKind;
+  members: RoutineMemberSignature[];
   diagnostics: string[];
 }
 
@@ -290,6 +347,7 @@ export interface CompiledInstruction {
     | "assign"
     | "call"
     | "call-routine"
+    | "call-member"
     | "return"
     | "eval-condition"
     | "jump-if-false"
@@ -363,6 +421,12 @@ export interface EditorBlock {
   routineName?: string;
   routineReturnKind?: RoutineReturnKind;
   routineParamNames?: string[];
+  routineCallMode?: RoutineCallMode;
+  routineExportKind?: RoutineExportKind;
+  routineMemberName?: string;
+  routineMemberKind?: RoutineMemberKind;
+  routineMemberRoutineId?: string;
+  routineMemberRoutineName?: string;
 }
 
 export interface EditorInputSlotDefinition {
@@ -394,6 +458,12 @@ export interface EditorDragState {
   routineName?: string;
   routineReturnKind?: RoutineReturnKind;
   routineParamNames?: string[];
+  routineCallMode?: RoutineCallMode;
+  routineExportKind?: RoutineExportKind;
+  routineMemberName?: string;
+  routineMemberKind?: RoutineMemberKind;
+  routineMemberRoutineId?: string;
+  routineMemberRoutineName?: string;
   x: number;
   y: number;
   width: number;
@@ -448,6 +518,12 @@ export interface PaletteBlock {
   routineName?: string;
   routineReturnKind?: RoutineReturnKind;
   routineParamNames?: string[];
+  routineCallMode?: RoutineCallMode;
+  routineExportKind?: RoutineExportKind;
+  routineMemberName?: string;
+  routineMemberKind?: RoutineMemberKind;
+  routineMemberRoutineId?: string;
+  routineMemberRoutineName?: string;
   label: string;
 }
 
@@ -465,4 +541,13 @@ export interface PlayEditorSurfaceProps extends EditorSurfaceAdapter {
   breakpointNodeIds?: string[];
   onToggleBreakpoint?: (nodeId: string) => void;
   onStatus?: (message: string) => void;
+  onRequestTextInput?: (options: {
+    title: string;
+    initialValue?: string;
+    validate?: (value: string) => string | null;
+  }) => Promise<string | null>;
+  onShowAlert?: (options: {
+    title?: string;
+    message: string;
+  }) => Promise<void>;
 }

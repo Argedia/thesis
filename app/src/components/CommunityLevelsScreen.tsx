@@ -11,7 +11,11 @@ import type {
   LevelSource,
   StructureTag
 } from "@thesis/game-system";
-import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
+import {
+  JsonLevelRepository,
+  LocalProgressRepository,
+  parseImportedLevelDefinition
+} from "@thesis/storage";
 import { Panel, Screen } from "@thesis/ui-editor";
 import { APP_ROUTES } from "../types/routes";
 
@@ -40,102 +44,6 @@ const difficultyRank: Record<LevelDifficulty, number> = {
   easy: 1,
   medium: 2,
   hard: 3
-};
-
-const inferStructures = (level: LevelDefinition): StructureTag[] => {
-  const tags = new Set<StructureTag>();
-
-  level.initialState.forEach((structure) => {
-    if (structure.kind === "stack") {
-      tags.add("stack");
-    }
-    if (structure.kind === "queue") {
-      tags.add("queue");
-    }
-    if (structure.kind === "list") {
-      tags.add("list");
-    }
-  });
-
-  return tags.size > 0 ? [...tags] : ["stack"];
-};
-
-const isLevelShape = (value: unknown): value is Partial<LevelDefinition> & {
-  id: string;
-  title: string;
-  initialState: LevelDefinition["initialState"];
-  goalState: LevelDefinition["goalState"];
-  constraints: LevelDefinition["constraints"];
-  playLayout?: LevelDefinition["playLayout"];
-  editorLayout?: LevelDefinition["editorLayout"];
-} => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const candidate = value as Record<string, unknown>;
-  return (
-    typeof candidate.id === "string" &&
-    typeof candidate.title === "string" &&
-    Array.isArray(candidate.initialState) &&
-    Array.isArray(candidate.goalState) &&
-    typeof candidate.constraints === "object" &&
-    candidate.constraints !== null
-  );
-};
-
-const normalizeImportedLevel = (
-  level: Partial<LevelDefinition> & {
-    id: string;
-    title: string;
-    initialState: LevelDefinition["initialState"];
-    goalState: LevelDefinition["goalState"];
-    constraints: LevelDefinition["constraints"];
-    playLayout?: LevelDefinition["playLayout"];
-    editorLayout?: LevelDefinition["editorLayout"];
-  }
-): LevelDefinition => {
-  const normalizedBase: LevelDefinition = {
-    id: level.id,
-    title: level.title,
-    initialState: level.initialState,
-    goalState: level.goalState,
-    constraints: level.constraints,
-    playLayout: level.playLayout ?? {
-      panelOrder: ["board", "steps", "timeline"],
-      initialPanel: "board"
-    },
-    editorLayout: level.editorLayout ?? {
-      structureOrder: level.initialState.map((structure) => structure.id),
-      leftPanel: "palette",
-      rightPanel: "inspector",
-      bottomPanel: "timeline",
-      openTabs: ["canvas", "preview"]
-    },
-    metadata: level.metadata ?? {
-      source: "my-levels",
-      structuresUsed: ["stack"],
-      difficulty: "medium",
-      author: "You",
-      description: "Imported level"
-    },
-    tooling: level.tooling ?? {
-      availableStructures: ["stack", "queue", "list"],
-      advancedToolsEnabled: true
-    }
-  };
-
-  return {
-    ...normalizedBase,
-    metadata: {
-      ...normalizedBase.metadata,
-      source: "my-levels",
-      structuresUsed:
-        normalizedBase.metadata.structuresUsed.length > 0
-          ? normalizedBase.metadata.structuresUsed
-          : inferStructures(normalizedBase)
-    }
-  };
 };
 
 export function CommunityLevelsScreen() {
@@ -270,13 +178,7 @@ export function CommunityLevelsScreen() {
 
     try {
       const raw = await file.text();
-      const parsed = JSON.parse(raw) as unknown;
-
-      if (!isLevelShape(parsed)) {
-        throw new Error("That file does not look like a level.");
-      }
-
-      const normalizedLevel = normalizeImportedLevel(parsed);
+      const normalizedLevel = parseImportedLevelDefinition(JSON.parse(raw) as unknown);
       await levelRepository.importLevel(normalizedLevel);
       setErrorMessage("");
       await loadData();

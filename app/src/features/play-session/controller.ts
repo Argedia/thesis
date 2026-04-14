@@ -56,7 +56,27 @@ const MAX_FUNCTION_CALL_DEPTH = 20;
 interface RuntimeFrame {
   routineId: string;
   ip: number;
-  locals: Map<string, DataValue>;
+  locals: Map<string, RuntimeStoredValue>;
+}
+
+interface RuntimeFunctionReferenceValue {
+  kind: "routine-reference";
+  routineId: string;
+  routineName: string;
+}
+
+interface RuntimeObjectValue {
+  kind: "routine-object";
+  routineId: string;
+  routineName: string;
+}
+
+type RuntimeStoredValue = DataValue | RuntimeFunctionReferenceValue | RuntimeObjectValue;
+
+interface RuntimeObjectInstance {
+  routineId: string;
+  routineName: string;
+  locals: Map<string, RuntimeStoredValue>;
 }
 
 interface ExecutionPoint {
@@ -93,6 +113,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private lastConditionResult: boolean | null = null;
   private loopIterationCounts = new Map<string, number>();
   private runtimeFrames: RuntimeFrame[] = [];
+  private runtimeObjectInstances = new Map<string, RuntimeObjectInstance>();
   private routineSelectionBeforeRun: string | null = null;
 
   public constructor(deps: PlaySessionDependencies) {
@@ -407,7 +428,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         }
         variables.set(declaration.name, {
           name: declaration.name,
-          value,
+          value: this.formatRuntimeValue(value),
           routineName: declaration.routineName
         });
       });
@@ -427,10 +448,35 @@ export class DefaultPlaySessionController implements PlaySessionController {
     });
   }
 
+  private isPrimitiveValue(value: RuntimeStoredValue): value is DataValue {
+    return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+  }
+
+  private isRoutineReferenceValue(value: RuntimeStoredValue): value is RuntimeFunctionReferenceValue {
+    return typeof value === "object" && value !== null && value.kind === "routine-reference";
+  }
+
+  private isRoutineObjectValue(value: RuntimeStoredValue): value is RuntimeObjectValue {
+    return typeof value === "object" && value !== null && value.kind === "routine-object";
+  }
+
+  private formatRuntimeValue(value: RuntimeStoredValue): string | number | boolean {
+    if (this.isPrimitiveValue(value)) {
+      return value;
+    }
+
+    if (this.isRoutineReferenceValue(value)) {
+      return `[fn ${value.routineName}]`;
+    }
+
+    return `[object ${value.routineName}]`;
+  }
+
   private resetRuntimeState(): void {
     this.lastConditionResult = null;
     this.loopIterationCounts.clear();
     this.runtimeFrames = [];
+    this.runtimeObjectInstances.clear();
     this.routineSelectionBeforeRun = null;
   }
 
@@ -574,16 +620,16 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   private setLocalValue(
-    locals: Map<string, DataValue>,
+    locals: Map<string, RuntimeStoredValue>,
     declarationId: string,
     variableName: string,
-    value: DataValue
+    value: RuntimeStoredValue
   ) {
     locals.set(declarationId, value);
     locals.set(variableName, value);
   }
 
-  private readVariableValue(declarationId: string, variableName: string): DataValue {
+  private readVariableValue(declarationId: string, variableName: string): RuntimeStoredValue {
     const frameStack = [...this.runtimeFrames].reverse();
     for (const frame of frameStack) {
       if (frame.locals.has(declarationId)) {
@@ -597,12 +643,29 @@ export class DefaultPlaySessionController implements PlaySessionController {
     throw new Error(`Variable "${variableName}" has not been assigned yet.`);
   }
 
-  private createRoutineLocals(signature: RoutineSignature, args: DataValue[]): Map<string, DataValue> {
-    const locals = new Map<string, DataValue>();
+  private createRoutineLocals(signature: RoutineSignature, args: RuntimeStoredValue[]): Map<string, RuntimeStoredValue> {
+    const locals = new Map<string, RuntimeStoredValue>();
     signature.params.forEach((param, index) => {
       this.setLocalValue(locals, param.declarationId, param.name, args[index] ?? false);
     });
     return locals;
+  }
+
+  private assignScopedValue(
+    frames: Map<string, RuntimeStoredValue>[],
+    declarationId: string,
+    variableName: string,
+    value: RuntimeStoredValue
+  ): void {
+    for (let index = frames.length - 1; index >= 0; index -= 1) {
+      const frame = frames[index]!;
+      if (frame.has(declarationId) || frame.has(variableName)) {
+        this.setLocalValue(frame, declarationId, variableName, value);
+        return;
+      }
+    }
+
+    this.setLocalValue(frames[frames.length - 1]!, declarationId, variableName, value);
   }
 
   private createSourceOperation(
@@ -717,6 +780,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
         this.invokeRoutineFrame(statement.routineId, statement.args, compiled);
         frame.ip += 1;
         return;
+      case "call-member":
+        if (!statement || statement.kind !== "routine-member-call") {
+          throw new Error("Member call statement is missing.");
+        }
+        this.invokeObjectMember(statement.routineId, statement.memberName, statement.args, compiled, 1);
+        frame.ip += 1;
+        return;
       case "return":
         if (!statement || statement.kind !== "return") {
           throw new Error("Return statement is missing.");
@@ -731,7 +801,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!statement || (statement.kind !== "if" && statement.kind !== "while")) {
           throw new Error("Conditional statement is missing.");
         }
-        this.lastConditionResult = this.asBoolean(this.evaluateExpression(statement.condition, compiled).value);
+        this.lastConditionResult = this.asBoolean(
+          this.assertPrimitiveValue(this.evaluateExpression(statement.condition, compiled).value)
+        );
         if (statement.kind === "while" && this.lastConditionResult) {
           const iterationKey = `${frame.routineId}:${statement.id}`;
           const nextIterations = (this.loopIterationCounts.get(iterationKey) ?? 0) + 1;
@@ -793,7 +865,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       operation = this.createTargetOperation(
         statement.operation,
         statement.structureId,
-        argument.kind === "literal" ? argument.value : undefined
+        argument.kind === "literal" ? this.assertPrimitiveValue(argument.value) : undefined
       );
     } else {
       throw new Error("The block could not run.");
@@ -803,10 +875,186 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.syncFromEngine();
   }
 
+  private getObjectInstance(
+    compiled: CompileResult,
+    routineId: string,
+    depth: number
+  ): RuntimeObjectInstance {
+    const existing = this.runtimeObjectInstances.get(routineId);
+    if (existing) {
+      return existing;
+    }
+
+    const signature = compiled.routineSignatures[routineId];
+    const routineNode = this.state.document.routines.find((routine) => routine.id === routineId);
+    if (!signature || signature.exportKind !== "object-value" || !signature.isPublishable || !routineNode) {
+      throw new Error("This routine is not publishable as an object yet.");
+    }
+
+    const locals = new Map<string, RuntimeStoredValue>();
+    const frames = [locals];
+    const executeStatements = (statements: StatementNode[]): boolean => {
+      for (const statement of statements) {
+        switch (statement.kind) {
+          case "declare":
+            if (!locals.has(statement.id)) {
+              this.setLocalValue(locals, statement.id, statement.variableName, false);
+            }
+            break;
+          case "assign":
+            this.assignScopedValue(
+              frames,
+              statement.targetDeclarationId ?? statement.targetName,
+              statement.targetName,
+              this.evaluateExpressionDirect(statement.value, compiled, frames, depth + 1).value
+            );
+            break;
+          case "expression":
+            this.evaluateExpressionDirect(statement.expression, compiled, frames, depth + 1);
+            break;
+          case "call":
+            this.executeCallStatementDirect(statement, compiled, frames, depth + 1);
+            break;
+          case "routine-call":
+            this.runRoutineDirect(
+              compiled,
+              statement.routineId,
+              statement.args.map((arg) => this.evaluateExpressionDirect(arg, compiled, frames, depth + 1).value),
+              depth + 1,
+              frames
+            );
+            break;
+          case "routine-member-call":
+            this.invokeObjectMemberDirect(
+              statement.routineId,
+              statement.memberName,
+              statement.args,
+              compiled,
+              frames,
+              depth + 1
+            );
+            break;
+          case "if": {
+            const branchTaken = this.asBoolean(
+              this.assertPrimitiveValue(
+                this.evaluateExpressionDirect(statement.condition, compiled, frames, depth + 1).value
+              )
+            );
+            if (executeStatements(branchTaken ? statement.thenBody : statement.elseBody ?? [])) {
+              return true;
+            }
+            break;
+          }
+          case "while": {
+            const iterationKey = `${routineId}:${statement.id}`;
+            while (
+              this.asBoolean(
+                this.assertPrimitiveValue(
+                  this.evaluateExpressionDirect(statement.condition, compiled, frames, depth + 1).value
+                )
+              )
+            ) {
+              const nextIterations = (this.loopIterationCounts.get(iterationKey) ?? 0) + 1;
+              this.loopIterationCounts.set(iterationKey, nextIterations);
+              if (nextIterations > MAX_WHILE_ITERATIONS) {
+                throw new Error(
+                  `A while block can run at most ${MAX_WHILE_ITERATIONS} iterations for now.`
+                );
+              }
+              if (executeStatements(statement.body)) {
+                return true;
+              }
+            }
+            break;
+          }
+          case "return":
+            return true;
+        }
+      }
+
+      return false;
+    };
+
+    executeStatements(routineNode.program.statements);
+    const instance: RuntimeObjectInstance = {
+      routineId,
+      routineName: routineNode.name,
+      locals
+    };
+    this.runtimeObjectInstances.set(routineId, instance);
+    return instance;
+  }
+
+  private readObjectMemberValue(
+    compiled: CompileResult,
+    routineId: string,
+    memberName: string,
+    depth: number
+  ): RuntimeStoredValue {
+    const instance = this.getObjectInstance(compiled, routineId, depth);
+    if (instance.locals.has(memberName)) {
+      return instance.locals.get(memberName)!;
+    }
+    throw new Error(`Member "${instance.routineName}.${memberName}" is not available yet.`);
+  }
+
+  private invokeObjectMember(
+    routineId: string,
+    memberName: string,
+    args: ExpressionNode[],
+    compiled: CompileResult,
+    depth: number
+  ): RuntimeStoredValue | undefined {
+    const memberValue = this.readObjectMemberValue(compiled, routineId, memberName, depth);
+    if (!this.isRoutineReferenceValue(memberValue)) {
+      throw new Error(`Member "${memberName}" is not callable.`);
+    }
+
+    const evaluatedArgs = args.map((arg) => this.evaluateExpression(arg, compiled).value);
+    return this.runRoutineDirect(
+      compiled,
+      memberValue.routineId,
+      evaluatedArgs,
+      depth + 1,
+      [this.getObjectInstance(compiled, routineId, depth).locals]
+    );
+  }
+
+  private invokeObjectMemberDirect(
+    routineId: string,
+    memberName: string,
+    args: ExpressionNode[],
+    compiled: CompileResult,
+    frames: Map<string, RuntimeStoredValue>[],
+    depth: number
+  ): RuntimeStoredValue | undefined {
+    const memberValue = this.readObjectMemberValue(compiled, routineId, memberName, depth);
+    if (!this.isRoutineReferenceValue(memberValue)) {
+      throw new Error(`Member "${memberName}" is not callable.`);
+    }
+
+    const evaluatedArgs = args.map((arg) => this.evaluateExpressionDirect(arg, compiled, frames, depth).value);
+    return this.runRoutineDirect(
+      compiled,
+      memberValue.routineId,
+      evaluatedArgs,
+      depth + 1,
+      [this.getObjectInstance(compiled, routineId, depth).locals]
+    );
+  }
+
+  private assertPrimitiveValue(value: RuntimeStoredValue): DataValue {
+    if (this.isPrimitiveValue(value)) {
+      return value;
+    }
+
+    throw new Error("Only primitive values can be moved into data structures for now.");
+  }
+
   private evaluateExpression(
     expression: ExpressionNode | null,
     compiled: CompileResult
-  ): { kind: "literal" | "hand"; value: DataValue } {
+  ): { kind: "literal" | "hand"; value: RuntimeStoredValue } {
     if (!expression) {
       throw new Error("Finish each block and fill any missing value slots.");
     }
@@ -850,6 +1098,38 @@ export class DefaultPlaySessionController implements PlaySessionController {
           value: result
         };
       }
+      case "routine-reference":
+        return {
+          kind: "literal",
+          value: {
+            kind: "routine-reference",
+            routineId: expression.routineId,
+            routineName: expression.routineName
+          }
+        };
+      case "routine-value":
+        this.getObjectInstance(compiled, expression.routineId, 1);
+        return {
+          kind: "literal",
+          value: {
+            kind: "routine-object",
+            routineId: expression.routineId,
+            routineName: expression.routineName
+          }
+        };
+      case "routine-member":
+        if (expression.memberKind !== "function" || expression.callMode === "reference") {
+          return {
+            kind: "literal",
+            value: this.readObjectMemberValue(compiled, expression.routineId, expression.memberName, 1)
+          };
+        }
+        return {
+          kind: "literal",
+          value:
+            this.invokeObjectMember(expression.routineId, expression.memberName, expression.args, compiled, 1) ??
+            false
+        };
       case "variable": {
         const storedValue = this.readVariableValue(expression.declarationId, expression.variableName);
         if (expression.mode === "value") {
@@ -864,7 +1144,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const operand = this.evaluateExpression(expression.operand, compiled);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(expression.mode, storedValue, operand.value)
+          value: this.applyVariableOperator(
+            expression.mode,
+            this.assertPrimitiveValue(storedValue),
+            this.assertPrimitiveValue(operand.value)
+          )
         };
       }
       case "binary": {
@@ -872,14 +1156,18 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const right = this.evaluateExpression(expression.right, compiled);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(expression.operator, left.value, right.value)
+          value: this.applyVariableOperator(
+            expression.operator,
+            this.assertPrimitiveValue(left.value),
+            this.assertPrimitiveValue(right.value)
+          )
         };
       }
       case "unary": {
         const operand = this.evaluateExpression(expression.operand, compiled);
         return {
           kind: "literal",
-          value: !this.asBoolean(operand.value)
+          value: !this.asBoolean(this.assertPrimitiveValue(operand.value))
         };
       }
     }
@@ -888,9 +1176,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private runRoutineDirect(
     compiled: CompileResult,
     routineId: string,
-    args: DataValue[],
-    depth: number
-  ): DataValue | undefined {
+    args: RuntimeStoredValue[],
+    depth: number,
+    outerFrames: Map<string, RuntimeStoredValue>[] = []
+  ): RuntimeStoredValue | undefined {
     if (depth > MAX_FUNCTION_CALL_DEPTH) {
       throw new Error(
         `Functions can call each other at most ${MAX_FUNCTION_CALL_DEPTH} levels deep for now.`
@@ -904,10 +1193,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
     }
 
     const locals = this.createRoutineLocals(signature, args);
-    const frames = [...this.runtimeFrames.map((frame) => frame.locals), locals];
+    const frames = [...outerFrames, locals];
     const loopCounts = new Map<string, number>();
 
-    const executeStatements = (statements: StatementNode[]): DataValue | undefined => {
+    const executeStatements = (statements: StatementNode[]): RuntimeStoredValue | undefined => {
       for (const statement of statements) {
         switch (statement.kind) {
           case "declare":
@@ -916,8 +1205,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
             }
             break;
           case "assign":
-            this.setLocalValue(
-              locals,
+            this.assignScopedValue(
+              frames,
               statement.targetDeclarationId ?? statement.targetName,
               statement.targetName,
               this.evaluateExpressionDirect(statement.value, compiled, frames, depth).value
@@ -934,12 +1223,25 @@ export class DefaultPlaySessionController implements PlaySessionController {
               compiled,
               statement.routineId,
               statement.args.map((arg) => this.evaluateExpressionDirect(arg, compiled, frames, depth).value),
+              depth + 1,
+              frames
+            );
+            break;
+          case "routine-member-call":
+            this.invokeObjectMemberDirect(
+              statement.routineId,
+              statement.memberName,
+              statement.args,
+              compiled,
+              frames,
               depth + 1
             );
             break;
           case "if": {
             const branchTaken = this.asBoolean(
-              this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value
+              this.assertPrimitiveValue(
+                this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value
+              )
             );
             const branchResult = executeStatements(branchTaken ? statement.thenBody : statement.elseBody ?? []);
             if (branchResult !== undefined) {
@@ -948,7 +1250,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
             break;
           }
           case "while": {
-            while (this.asBoolean(this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value)) {
+            while (
+              this.asBoolean(
+                this.assertPrimitiveValue(
+                  this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value
+                )
+              )
+            ) {
               const iterationKey = statement.id;
               const nextIterations = (loopCounts.get(iterationKey) ?? 0) + 1;
               loopCounts.set(iterationKey, nextIterations);
@@ -980,7 +1288,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private executeCallStatementDirect(
     statement: StructureCallStatement,
     compiled: CompileResult,
-    frames: Map<string, DataValue>[],
+    frames: Map<string, RuntimeStoredValue>[],
     depth: number
   ): void {
     if (!this.engine || !statement.operation) {
@@ -1000,7 +1308,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       operation = this.createTargetOperation(
         statement.operation,
         statement.structureId,
-        argument.kind === "literal" ? argument.value : undefined
+        argument.kind === "literal" ? this.assertPrimitiveValue(argument.value) : undefined
       );
     } else {
       throw new Error("The block could not run.");
@@ -1013,9 +1321,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private evaluateExpressionDirect(
     expression: ExpressionNode | null,
     compiled: CompileResult,
-    frames: Map<string, DataValue>[],
+    frames: Map<string, RuntimeStoredValue>[],
     depth: number
-  ): { kind: "literal" | "hand"; value: DataValue } {
+  ): { kind: "literal" | "hand"; value: RuntimeStoredValue } {
     if (!expression) {
       throw new Error("Finish each block and fill any missing value slots.");
     }
@@ -1046,7 +1354,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
           compiled,
           expression.routineId,
           expression.args.map((arg) => this.evaluateExpressionDirect(arg, compiled, frames, depth + 1).value),
-          depth + 1
+          depth + 1,
+          frames
         );
         if (result === undefined) {
           throw new Error(`${expression.routineName} did not return a value.`);
@@ -1056,6 +1365,44 @@ export class DefaultPlaySessionController implements PlaySessionController {
           value: result
         };
       }
+      case "routine-reference":
+        return {
+          kind: "literal",
+          value: {
+            kind: "routine-reference",
+            routineId: expression.routineId,
+            routineName: expression.routineName
+          }
+        };
+      case "routine-value":
+        this.getObjectInstance(compiled, expression.routineId, depth + 1);
+        return {
+          kind: "literal",
+          value: {
+            kind: "routine-object",
+            routineId: expression.routineId,
+            routineName: expression.routineName
+          }
+        };
+      case "routine-member":
+        if (expression.memberKind !== "function" || expression.callMode === "reference") {
+          return {
+            kind: "literal",
+            value: this.readObjectMemberValue(compiled, expression.routineId, expression.memberName, depth + 1)
+          };
+        }
+        return {
+          kind: "literal",
+          value:
+            this.invokeObjectMemberDirect(
+              expression.routineId,
+              expression.memberName,
+              expression.args,
+              compiled,
+              frames,
+              depth + 1
+            ) ?? false
+        };
       case "variable": {
         const storedValue = this.readVariableValueFromFrames(
           frames,
@@ -1074,7 +1421,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const operand = this.evaluateExpressionDirect(expression.operand, compiled, frames, depth);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(expression.mode, storedValue, operand.value)
+          value: this.applyVariableOperator(
+            expression.mode,
+            this.assertPrimitiveValue(storedValue),
+            this.assertPrimitiveValue(operand.value)
+          )
         };
       }
       case "binary": {
@@ -1082,24 +1433,28 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const right = this.evaluateExpressionDirect(expression.right, compiled, frames, depth);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(expression.operator, left.value, right.value)
+          value: this.applyVariableOperator(
+            expression.operator,
+            this.assertPrimitiveValue(left.value),
+            this.assertPrimitiveValue(right.value)
+          )
         };
       }
       case "unary": {
         const operand = this.evaluateExpressionDirect(expression.operand, compiled, frames, depth);
         return {
           kind: "literal",
-          value: !this.asBoolean(operand.value)
+          value: !this.asBoolean(this.assertPrimitiveValue(operand.value))
         };
       }
     }
   }
 
   private readVariableValueFromFrames(
-    frames: Map<string, DataValue>[],
+    frames: Map<string, RuntimeStoredValue>[],
     declarationId: string,
     variableName: string
-  ): DataValue {
+  ): RuntimeStoredValue {
     for (let index = frames.length - 1; index >= 0; index -= 1) {
       const frame = frames[index]!;
       if (frame.has(declarationId)) {

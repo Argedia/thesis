@@ -32,7 +32,11 @@ const resources = {
         empty: "Empty",
         noVariables: "No variables yet",
         items: "items",
-        more: "more"
+        more: "more",
+        ok: "OK",
+        cancel: "Cancel",
+        save: "Save",
+        notice: "Notice"
       },
       actions: {
         play: "Play",
@@ -66,6 +70,8 @@ const resources = {
         groupLogic: "Logic",
         groupFunctions: "Functions",
         groupVariables: "Variables",
+        variableNamePrompt: "Variable name",
+        valuePrompt: "Value",
         routineName: "Routine name",
         renameRoutine: "Rename routine",
         routineDefault: "routine",
@@ -92,6 +98,11 @@ const resources = {
       bindings: {
         declare: "declare",
         expect: "expect"
+      },
+      messages: {
+        variableNameEmpty: "Variable name cannot be empty.",
+        variableNameExists: "Variable \"{{name}}\" already exists.",
+        valueEmpty: "Value cannot be empty."
       },
       operations: {
         POP: "pop",
@@ -136,7 +147,11 @@ const resources = {
         empty: "Vacío",
         noVariables: "Aún no hay variables",
         items: "elementos",
-        more: "más"
+        more: "más",
+        ok: "Aceptar",
+        cancel: "Cancelar",
+        save: "Guardar",
+        notice: "Aviso"
       },
       actions: {
         play: "Ejecutar",
@@ -170,6 +185,8 @@ const resources = {
         groupLogic: "Lógica",
         groupFunctions: "Funciones",
         groupVariables: "Variables",
+        variableNamePrompt: "Nombre de variable",
+        valuePrompt: "Valor",
         routineName: "Nombre de la viñeta",
         renameRoutine: "Renombrar viñeta",
         routineDefault: "viñeta",
@@ -196,6 +213,11 @@ const resources = {
       bindings: {
         declare: "declarar",
         expect: "esperar"
+      },
+      messages: {
+        variableNameEmpty: "El nombre de la variable no puede estar vacío.",
+        variableNameExists: "La variable \"{{name}}\" ya existe.",
+        valueEmpty: "El valor no puede estar vacío."
       },
       operations: {
         POP: "desapilar",
