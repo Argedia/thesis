@@ -30,6 +30,26 @@ export interface BlockActionContext {
 export class BlockActionController {
   public constructor(private readonly ctx: BlockActionContext) {}
 
+  private resolveVariableModeOutputType(mode: VariableOperationMode): EditorBlock["outputType"] {
+    if (mode === "assign") {
+      return "none";
+    }
+    if (
+      mode === "equals" ||
+      mode === "not_equals" ||
+      mode === "greater_than" ||
+      mode === "greater_or_equal" ||
+      mode === "less_than" ||
+      mode === "less_or_equal" ||
+      mode === "not" ||
+      mode === "and" ||
+      mode === "or"
+    ) {
+      return "boolean";
+    }
+    return "value";
+  }
+
   public updateBlockOperation(blockId: string, operation: EditorBlock["operation"]): void {
     if (this.ctx.isLocked()) {
       return;
@@ -81,11 +101,25 @@ export class BlockActionController {
     }
 
     this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-        ...currentBlock,
-        variableOperationMode: mode,
-        inputBlock: mode === "value" ? null : currentBlock.inputBlock ?? null
-      }))
+      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => {
+        if (currentBlock.kind === "var_binary_operation") {
+          const normalizedMode =
+            mode === "value" || mode === "assign" ? "add" : mode;
+          return {
+            ...currentBlock,
+            variableOperationMode: normalizedMode,
+            outputType: this.resolveVariableModeOutputType(normalizedMode),
+            inputBlocks: currentBlock.inputBlocks ?? [null, null]
+          };
+        }
+
+        return {
+          ...currentBlock,
+          variableOperationMode: mode,
+          outputType: this.resolveVariableModeOutputType(mode),
+          inputBlock: mode === "value" ? null : currentBlock.inputBlock ?? null
+        };
+      })
     );
   }
 

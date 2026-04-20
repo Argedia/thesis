@@ -3,14 +3,43 @@ import type { PaletteGroupId } from "../BlockMetadata";
 import { getLabelI18nKey, getPaletteGroup, getStaticChip } from "../BlockMetadata";
 
 export class PaletteDescriptorService {
+  private getStructureChip(structureKind: PaletteBlock["structureKind"]): string {
+    switch (structureKind) {
+      case "stack":
+        return "PIL";
+      case "queue":
+        return "COL";
+      case "list":
+        return "LIS";
+      default:
+        return "EDS";
+    }
+  }
+
+  private getStructureName(
+    block: PaletteBlock,
+    translate: (key: string) => string
+  ): string {
+    const typeLabel =
+      block.structureKind === "stack"
+        ? translate("structures.stack")
+        : block.structureKind === "queue"
+          ? translate("structures.queue")
+          : block.structureKind === "list"
+            ? translate("structures.list")
+            : translate("structures.dataStructure");
+    const idLabel = block.structureId?.trim();
+    return idLabel ? `${typeLabel} ${idLabel}` : typeLabel;
+  }
+
   public getDefinitionDescriptor(
     block: PaletteBlock,
     translate: (key: string) => string
   ): { chip?: string; label: string } {
     if (block.kind === "structure") {
       return {
-        chip: block.structureId,
-        label: translate("structures.dataStructure")
+        chip: this.getStructureChip(block.structureKind),
+        label: this.getStructureName(block, translate)
       };
     }
 
@@ -45,6 +74,13 @@ export class PaletteDescriptorService {
       return {
         chip: block.variableName?.slice(0, 3).toUpperCase() ?? "VAR",
         label: block.variableName ?? translate("blocks.variable")
+      };
+    }
+
+    if (block.kind === "var_binary_operation") {
+      return {
+        chip: "OP",
+        label: translate("blocks.operation")
       };
     }
 

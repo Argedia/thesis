@@ -70,6 +70,8 @@ const resources = {
         groupLogic: "Logic",
         groupFunctions: "Functions",
         groupVariables: "Variables",
+        groupVariableBlocks: "Blocks",
+        groupDeclaredVariables: "Declared",
         variableNamePrompt: "Variable name",
         valuePrompt: "Value",
         routineName: "Routine name",
@@ -91,6 +93,7 @@ const resources = {
         return: "Return",
         declaration: "Declaration",
         variable: "Variable",
+        operation: "Operation",
         value: "Value",
         text: "Text",
         function: "Function"
@@ -185,6 +188,8 @@ const resources = {
         groupLogic: "Lógica",
         groupFunctions: "Funciones",
         groupVariables: "Variables",
+        groupVariableBlocks: "Bloques",
+        groupDeclaredVariables: "Declaradas",
         variableNamePrompt: "Nombre de variable",
         valuePrompt: "Valor",
         routineName: "Nombre de la viñeta",
@@ -206,6 +211,7 @@ const resources = {
         return: "Retorno",
         declaration: "Declaración",
         variable: "Variable",
+        operation: "Operación",
         value: "Valor",
         text: "Texto",
         function: "Función"

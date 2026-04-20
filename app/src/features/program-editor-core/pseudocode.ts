@@ -2,6 +2,39 @@ import type { EditorDocument, ExpressionNode, StatementNode } from "./types";
 
 const indent = (depth: number) => "    ".repeat(depth);
 
+const emitBinaryOperator = (operator: string): string => {
+  switch (operator) {
+    case "add":
+      return "+";
+    case "subtract":
+      return "-";
+    case "multiply":
+      return "*";
+    case "divide":
+      return "/";
+    case "modulo":
+      return "%";
+    case "equals":
+      return "==";
+    case "not_equals":
+      return "!=";
+    case "greater_than":
+      return ">";
+    case "greater_or_equal":
+      return ">=";
+    case "less_than":
+      return "<";
+    case "less_or_equal":
+      return "<=";
+    case "and":
+      return "and";
+    case "or":
+      return "or";
+    default:
+      return String(operator);
+  }
+};
+
 const emitExpression = (expression: ExpressionNode | null): string => {
   if (!expression) {
     return "<missing>";
@@ -53,13 +86,15 @@ const emitExpression = (expression: ExpressionNode | null): string => {
           return `${expression.variableName} < ${emitExpression(expression.operand)}`;
         case "less_or_equal":
           return `${expression.variableName} <= ${emitExpression(expression.operand)}`;
+        case "not":
+          return `not ${emitExpression(expression.operand)}`;
         case "and":
           return `${expression.variableName} and ${emitExpression(expression.operand)}`;
         case "or":
           return `${expression.variableName} or ${emitExpression(expression.operand)}`;
       }
     case "binary":
-      return `${emitExpression(expression.left)} ${expression.operator} ${emitExpression(expression.right)}`;
+      return `${emitExpression(expression.left)} ${emitBinaryOperator(expression.operator)} ${emitExpression(expression.right)}`;
     case "unary":
       return `${expression.operator} ${emitExpression(expression.operand)}`;
   }

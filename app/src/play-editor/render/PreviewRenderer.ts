@@ -40,6 +40,7 @@ export class PreviewRenderer {
       if (blockKind === "structure") return options.structureId;
       if (blockKind === "var_declaration") return options.bindingKind === "expect" ? "EXP" : "VAR";
       if (blockKind === "var_operation") return options.variableName?.slice(0, 3).toUpperCase() ?? "VAR";
+      if (blockKind === "var_binary_operation") return "OP";
       return undefined;
     };
 
@@ -67,7 +68,10 @@ export class PreviewRenderer {
           (draggingBlock.kind === "structure" && !draggingBlock.operation) ||
           this.ctx.isControlBlock(draggingBlock),
         control: this.ctx.isControlBlock(draggingBlock),
-        variable: draggingBlock.kind === "var_declaration" || draggingBlock.kind === "var_operation"
+        variable:
+          draggingBlock.kind === "var_declaration" ||
+          draggingBlock.kind === "var_operation" ||
+          draggingBlock.kind === "var_binary_operation"
       };
     }
 
@@ -92,6 +96,8 @@ export class PreviewRenderer {
                       : `${dragState.routineName ?? "object"}.${dragState.routineMemberName ?? "member"}`
                     : dragState.blockKind === "var_operation"
                       ? dragState.variableName ?? "variable"
+                      : dragState.blockKind === "var_binary_operation"
+                        ? "operation"
                       : dragState.blockKind === "value"
                         ? "value"
                         : "Data Structure",
@@ -107,7 +113,10 @@ export class PreviewRenderer {
         dragState.blockKind === "while" ||
         dragState.blockKind === "structure",
       control: dragState.blockKind === "conditional" || dragState.blockKind === "while",
-      variable: dragState.blockKind === "var_declaration" || dragState.blockKind === "var_operation"
+      variable:
+        dragState.blockKind === "var_declaration" ||
+        dragState.blockKind === "var_operation" ||
+        dragState.blockKind === "var_binary_operation"
     };
   }
 

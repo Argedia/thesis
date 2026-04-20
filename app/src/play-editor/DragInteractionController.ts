@@ -330,14 +330,12 @@ export class DragInteractionController {
             block.kind === "var_operation" &&
             block.variableSourceId === dragState.variableSourceId
           );
+        case "var_binary_operation":
+          return block.kind === "var_binary_operation";
         default:
           return block.kind === "structure" && block.structureId === dragState.structureId;
       }
     };
-
-    this.ctx.setDragState(null);
-    this.ctx.setDragBaseLineRects(null);
-    this.ctx.render();
 
     if (dragState.isOverEditor || slotTargetId) {
       if (dragState.source === "palette" && this.ctx.getBlocks().length >= this.ctx.getMaxBlocks()) {
@@ -377,5 +375,9 @@ export class DragInteractionController {
         }
       }
     }
+
+    this.ctx.setDragState(null);
+    this.ctx.setDragBaseLineRects(null);
+    this.ctx.render();
   };
 }

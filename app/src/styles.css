@@ -340,7 +340,8 @@ button:disabled {
 	display: grid;
 	grid-template-columns: minmax(520px, 0.92fr) minmax(0, 1.08fr);
 	gap: 1rem;
-	align-items: start;
+	align-items: stretch;
+	min-height: 0;
 }
 
 .level-info-dock {
@@ -541,6 +542,9 @@ button:disabled {
 }
 
 .terminal-panel {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr);
+	min-height: 0;
 	padding: 0.85rem;
 	background: #f3f6fa;
 }
@@ -603,7 +607,9 @@ button:disabled {
 .ide-shell {
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr) 164px;
-	min-height: 720px;
+	height: clamp(620px, calc(100vh - 5.5rem), 760px);
+	max-height: calc(100vh - 5.5rem);
+	min-height: 0;
 	border: 1px solid #cfd9e5;
 	border-radius: 18px;
 	overflow: hidden;
@@ -695,34 +701,55 @@ button:disabled {
 }
 
 .ide-editor-frame {
+	display: grid;
 	min-height: 0;
 	background: #f8fbff;
+	overflow: hidden;
+}
+
+.ide-editor-frame .play-editor-surface {
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .ide-editor-frame .scratch-shell {
 	height: 100%;
+	min-height: 0;
 	gap: 0;
+	overflow: hidden;
 }
 
 .ide-editor-frame .scratch-workbench {
 	height: 100%;
+	min-height: 0;
 	grid-template-columns: 240px minmax(0, 1fr);
 	gap: 0;
 	background: #f8fbff;
+	overflow: hidden;
 }
 
 .ide-editor-frame .scratch-palette {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	height: 100%;
+	min-height: 0;
 	gap: 0.9rem;
 	align-content: start;
 	padding: 0.8rem 0.75rem;
 	background: #edf3f9;
 	border-right: 1px solid #d8e2ee;
+	overflow: hidden;
 }
 
 .ide-editor-frame .scratch-editor {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	min-height: 0;
 	gap: 0.85rem;
 	padding: 0.8rem 0.95rem 0.95rem;
 	background: #f8fbff;
+	overflow: hidden;
 }
 
 .ide-editor-frame .builder-heading {
@@ -748,7 +775,38 @@ button:disabled {
 }
 
 .ide-editor-frame .palette-groups {
+	min-height: 0;
+	max-height: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+	direction: rtl;
 	gap: 0.75rem;
+	padding-right: 0.2rem;
+	padding-bottom: 0.7rem;
+	scroll-padding-bottom: 0.7rem;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(124, 145, 165, 0.42) transparent;
+}
+
+.ide-editor-frame .palette-groups > * {
+	direction: ltr;
+}
+
+.ide-editor-frame .palette-groups::-webkit-scrollbar {
+	width: 6px;
+}
+
+.ide-editor-frame .palette-groups::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.ide-editor-frame .palette-groups::-webkit-scrollbar-thumb {
+	background: rgba(124, 145, 165, 0.42);
+	border-radius: 999px;
+}
+
+.ide-editor-frame .palette-groups::-webkit-scrollbar-thumb:hover {
+	background: rgba(108, 130, 151, 0.55);
 }
 
 .ide-editor-frame .palette-group + .palette-group {
@@ -762,11 +820,14 @@ button:disabled {
 }
 
 .ide-editor-frame .editor-lane {
-	min-height: 560px;
+	min-height: 0;
+	height: 100%;
 	padding: 0.9rem 0 0.9rem 0.9rem;
 	border: 1px solid #2d2d30;
 	border-radius: 10px;
 	background: #fbfdff;
+	overflow: auto;
+	overflow-x: hidden;
 }
 
 .ide-editor-frame .scratch-editor.function-routine .editor-lane {
@@ -875,11 +936,39 @@ button:disabled {
 }
 
 .palette-group-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
 	font-size: 0.72rem;
 	font-weight: 800;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: #6d8499;
+}
+
+.palette-group-heading::after {
+	content: "▾";
+	font-size: 0.72rem;
+	color: #8aa0b4;
+}
+
+.palette-group-heading[aria-expanded="false"]::after {
+	content: "▸";
+}
+
+.palette-subgroup-heading {
+	margin-top: 0.25rem;
+	font-size: 0.64rem;
+	font-weight: 800;
+	letter-spacing: 0.07em;
+	text-transform: uppercase;
+	color: #8297ab;
 }
 
 .palette-group-list {
@@ -1072,10 +1161,25 @@ button:disabled {
 
 .editor-block.palette {
 	min-height: var(--editor-palette-block-height);
+	height: var(--editor-palette-block-height);
 	flex-direction: row;
 	align-items: center;
 	justify-content: flex-start;
 	border: 0;
+	overflow: hidden;
+}
+
+.editor-block.palette .block-chip {
+	flex: 0 0 auto;
+}
+
+.editor-block.palette strong {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	line-height: 1.1;
 }
 
 .editor-block.sequence {
@@ -1142,6 +1246,15 @@ button:disabled {
 	flex: 0 0 auto;
 }
 
+.editor-block-instance-operator {
+	white-space: nowrap;
+	font-size: 0.88rem;
+	font-weight: 900;
+	line-height: 1;
+	flex: 0 0 auto;
+	color: #355070;
+}
+
 .editor-variable-name {
 	width: fit-content;
 	min-height: 1.75rem;
@@ -1166,6 +1279,41 @@ button:disabled {
 	font-size: 0.78rem;
 	font-weight: 900;
 	white-space: nowrap;
+}
+
+.editor-value-type {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.55rem;
+	min-height: 1.35rem;
+	padding: 0 0.38rem;
+	border-radius: 999px;
+	font-size: 0.62rem;
+	font-weight: 900;
+	text-transform: uppercase;
+	letter-spacing: 0.02em;
+	white-space: nowrap;
+}
+
+.editor-value-type-bool {
+	background: rgba(100, 173, 131, 0.24);
+	color: #2f6e4a;
+}
+
+.editor-value-type-int {
+	background: rgba(236, 181, 90, 0.28);
+	color: #7b4f12;
+}
+
+.editor-value-type-double {
+	background: rgba(168, 145, 235, 0.3);
+	color: #554298;
+}
+
+.editor-value-type-string {
+	background: rgba(122, 171, 224, 0.26);
+	color: #2f5f8f;
 }
 
 .editor-block-instance-cavity {
@@ -1608,6 +1756,12 @@ button:disabled {
 	.play-dual-stage,
 	.editor-middle {
 		grid-template-columns: 1fr;
+	}
+
+	.ide-shell {
+		height: auto;
+		max-height: none;
+		min-height: 720px;
 	}
 
 	.scratch-toolbar,

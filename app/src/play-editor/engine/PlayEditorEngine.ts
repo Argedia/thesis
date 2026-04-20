@@ -67,6 +67,7 @@ import {
 	analyzeDocumentRoutines,
 	blockColorClass,
 	createEditorDocumentFromLegacyBlocks,
+	createVariableBinaryOperationBlock,
 	createVariableDeclarationBlock,
 	createVariableOperationBlock,
 	createConditionalBlock,
@@ -102,6 +103,8 @@ type ControlEditorBlock = EditorBlock & {
 export class PlayEditorEngine {
 	private readonly host: HTMLElement;
 	private props: PlayEditorSurfaceProps;
+	private shell: HTMLDivElement | null = null;
+	private workbench: HTMLDivElement | null = null;
 	private blockRefs = new Map<string, HTMLDivElement>();
 	private lineRowRefs = new Map<string, HTMLDivElement>();
 	private slotRefs = new Map<string, HTMLDivElement>();
@@ -116,7 +119,6 @@ export class PlayEditorEngine {
 	private editorLane: HTMLDivElement | null = null;
 	private dragState: EditorDragState | null = null;
 	private dragBaseLineRects: Array<{ id: string; rect: DOMRect }> | null = null;
-	private dragDropGeometry: DragDropGeometryService | null = null;
 	private blockMutation: BlockMutationService | null = null;
 	private blockTree: BlockTreeService | null = null;
 	private paletteDerivation: PaletteDerivationService | null = null;
@@ -137,11 +139,13 @@ export class PlayEditorEngine {
 	private readonly hostInteraction = new HostInteractionController();
 	private pressState: PendingPress | null = null;
 	private wheelState: WheelState | null = null;
+	private expandedPaletteGroupId: PaletteGroupId | null = "structures";
 	private cleanupFns: Array<() => void> = [];
 
 	public constructor(host: HTMLElement, props: PlayEditorSurfaceProps) {
 		this.host = host;
 		this.props = props;
+		this.ensureLayoutShell();
 		this.render();
 		this.attachGlobalListeners();
 		this.attachHostListeners();
@@ -160,7 +164,6 @@ export class PlayEditorEngine {
 		this.wheelOverlayRenderer = null;
 		this.wheelInteraction = null;
 		this.blockAction = null;
-		this.dragDropGeometry = null;
 		this.blockMutation = null;
 		this.blockTree = null;
 		this.paletteDerivation = null;
@@ -175,6 +178,8 @@ export class PlayEditorEngine {
 		this.ghostRenderer = null;
 		this.cleanupFns.forEach((cleanup) => cleanup());
 		this.cleanupFns = [];
+		this.shell = null;
+		this.workbench = null;
 		this.host.innerHTML = "";
 	}
 
@@ -187,21 +192,18 @@ export class PlayEditorEngine {
 	}
 
 	private getGeometryService(): DragDropGeometryService {
-		if (!this.dragDropGeometry) {
-			this.dragDropGeometry = new DragDropGeometryService(
-				this.editorLane,
-				this.lineRowRefs,
-				this.slotRefs,
-				this.dragState,
-				this.dragBaseLineRects,
-				(key) => this.parseSlotKey(key),
-				(key) => this.canUseSlotTarget(key),
-				(blocks, id) => this.getTreeService().findBlockById(blocks, id),
-				(block) => this.isControlBlock(block),
-				() => this.getBlocks()
-			);
-		}
-		return this.dragDropGeometry;
+		return new DragDropGeometryService(
+			this.editorLane,
+			this.lineRowRefs,
+			this.slotRefs,
+			this.dragState,
+			this.dragBaseLineRects,
+			(key) => this.parseSlotKey(key),
+			(key) => this.canUseSlotTarget(key),
+			(blocks, id) => this.getTreeService().findBlockById(blocks, id),
+			(block) => this.isControlBlock(block),
+			() => this.getBlocks()
+		);
 	}
 
 	private getMutationService(): BlockMutationService {
@@ -313,8 +315,20 @@ export class PlayEditorEngine {
 				getPaletteBlocks: () => this.paletteBlocks,
 				getIsActiveRoutineFunction: () => this.isActiveRoutineFunction(),
 				getIsLocked: () => this.isLocked(),
+				getExpandedPaletteGroupId: () => this.expandedPaletteGroupId,
+				setExpandedPaletteGroupId: (groupId) => {
+					if (this.expandedPaletteGroupId === groupId) {
+						return;
+					}
+					this.expandedPaletteGroupId = groupId;
+					this.render();
+				},
 				getPaletteGroupId: (block) => this.getPaletteGroupId(block),
 				getPaletteGroupLabel: (groupId) => this.getPaletteGroupLabel(groupId),
+				getVariableSubgroupLabel: (kind) =>
+					kind === "declared"
+						? t("editor.groupDeclaredVariables")
+						: t("editor.groupVariableBlocks"),
 				getDefinitionDescriptor: (block) => this.getDefinitionDescriptor(block),
 				getBlocksHeadingText: () => t("editor.blocks"),
 				getDragHintText: () => t("editor.dragHint"),
@@ -697,6 +711,17 @@ export class PlayEditorEngine {
 			);
 		}
 
+		if (block.kind === "var_binary_operation") {
+			return createVariableBinaryOperationBlock(
+				block.color,
+				block.variableOperationMode &&
+					block.variableOperationMode !== "value" &&
+					block.variableOperationMode !== "assign"
+					? block.variableOperationMode
+					: "add"
+			);
+		}
+
 		if (block.kind === "value") {
 			const literalValue = await this.promptForValueText(block.literalValue ?? "item");
 			if (literalValue === null) {
@@ -944,20 +969,36 @@ export class PlayEditorEngine {
 
 	private render(): void {
 		this.paletteBlocks = this.derivePaletteBlocks(this.props.structures);
-		this.host.innerHTML = "";
-
-		const shell = document.createElement("div");
+		const availableGroupIds = new Set<PaletteGroupId>(
+			this.paletteBlocks.map((block) => this.getPaletteGroupId(block))
+		);
+		if (
+			!this.expandedPaletteGroupId ||
+			!availableGroupIds.has(this.expandedPaletteGroupId)
+		) {
+			this.expandedPaletteGroupId =
+				(["structures", "values", "logic", "functions", "variables"] as PaletteGroupId[]).find((id) =>
+					availableGroupIds.has(id)
+				) ?? null;
+		}
+		this.ensureLayoutShell();
+		const shell = this.shell!;
+		const workbench = this.workbench!;
 		shell.className = `scratch-shell${this.isLocked() ? " is-locked" : ""}`;
 
-		const workbench = document.createElement("div");
-		workbench.className = "scratch-workbench";
+		// Keep palette stable while dragging to avoid global flicker.
+		if (!this.dragState) {
+			this.removeChildrenBySelector(workbench, ".scratch-palette");
+			const paletteRenderer = this.getPaletteRenderer();
+			paletteRenderer.render(workbench);
+		}
 
-		const paletteRenderer = this.getPaletteRenderer();
-		paletteRenderer.render(workbench);
+		this.removeChildrenBySelector(workbench, ".scratch-editor");
 		const canvasRenderer = this.getEditorCanvasRenderer();
 		canvasRenderer.render(workbench);
 
-		shell.appendChild(workbench);
+		this.removeChildrenBySelector(shell, ".operation-wheel");
+		this.removeChildrenBySelector(shell, ".drag-ghost");
 		const wheelState = this.wheelState;
 		if (wheelState) {
 			const block = this.getTreeService().findBlockById(this.getBlocks(), wheelState.blockId);
@@ -969,7 +1010,25 @@ export class PlayEditorEngine {
 			}
 		}
 		this.getGhostRenderer().render(shell);
+	}
 
+	private ensureLayoutShell(): void {
+		if (this.shell && this.workbench) {
+			return;
+		}
+
+		this.host.innerHTML = "";
+		const shell = document.createElement("div");
+		shell.className = `scratch-shell${this.isLocked() ? " is-locked" : ""}`;
+		const workbench = document.createElement("div");
+		workbench.className = "scratch-workbench";
+		shell.appendChild(workbench);
 		this.host.appendChild(shell);
+		this.shell = shell;
+		this.workbench = workbench;
+	}
+
+	private removeChildrenBySelector(root: ParentNode, selector: string): void {
+		root.querySelectorAll(selector).forEach((node) => node.remove());
 	}
 }

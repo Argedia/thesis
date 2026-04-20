@@ -110,11 +110,80 @@ const variableModeOutputType = (mode: VariableOperationMode): OutputType =>
           "greater_or_equal",
           "less_than",
           "less_or_equal",
+          "not",
           "and",
           "or"
         ].includes(mode)
       ? "boolean"
       : "value";
+
+const VARIABLE_BINARY_OPERATION_MODES = [
+  "add",
+  "subtract",
+  "multiply",
+  "divide",
+  "modulo",
+  "equals",
+  "not_equals",
+  "greater_than",
+  "greater_or_equal",
+  "less_than",
+  "less_or_equal",
+  "and",
+  "or"
+  ] as const;
+
+const VARIABLE_UNARY_OPERATION_MODES = ["not"] as const;
+
+type VariableBinaryOperationMode = (typeof VARIABLE_BINARY_OPERATION_MODES)[number];
+type VariableUnaryOperationMode = (typeof VARIABLE_UNARY_OPERATION_MODES)[number];
+type VariableOperationBlockMode = VariableBinaryOperationMode | VariableUnaryOperationMode;
+
+const isBinaryVariableOperationMode = (
+  mode: VariableOperationMode
+): mode is VariableBinaryOperationMode =>
+  VARIABLE_BINARY_OPERATION_MODES.includes(mode as VariableBinaryOperationMode);
+
+const isUnaryVariableOperationMode = (
+  mode: VariableOperationMode
+): mode is VariableUnaryOperationMode =>
+  VARIABLE_UNARY_OPERATION_MODES.includes(mode as VariableUnaryOperationMode);
+
+const getVariableOperationSymbol = (
+  mode: VariableBinaryOperationMode
+): string => {
+  switch (mode) {
+    case "add":
+      return "+";
+    case "subtract":
+      return "-";
+    case "multiply":
+      return "*";
+    case "divide":
+      return "/";
+    case "modulo":
+      return "%";
+    case "equals":
+      return "==";
+    case "not_equals":
+      return "!=";
+    case "greater_than":
+      return ">";
+    case "greater_or_equal":
+      return ">=";
+    case "less_than":
+      return "<";
+    case "less_or_equal":
+      return "<=";
+    case "and":
+      return "and";
+    case "or":
+      return "or";
+  }
+};
+
+const getVariableOperationLabel = (mode: VariableOperationBlockMode): string =>
+  mode === "not" ? "not" : getVariableOperationSymbol(mode);
 
 const routineReturnToOutputType = (returnKind: RoutineReturnKind | undefined): OutputType =>
   returnKind === "value" || returnKind === "boolean" ? returnKind : "none";
@@ -132,6 +201,11 @@ export const getOutputType = (block: EditorBlock): OutputType => {
       return "none";
     }
     return variableModeOutputType(block.variableOperationMode ?? "value");
+  }
+
+  if (block.kind === "var_binary_operation") {
+    const mode = block.variableOperationMode ?? "add";
+    return variableModeOutputType(isBinaryVariableOperationMode(mode) ? mode : "add");
   }
 
   if (block.kind === "routine_call") {
@@ -191,15 +265,48 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
   }
 
   if (block.kind === "var_operation" && (block.variableOperationMode ?? "value") !== "value") {
+    const mode = block.variableOperationMode ?? "value";
     return [
       {
         id: "input",
-        expectedType: "value",
+        expectedType: mode === "not" ? "boolean" : "value",
         allowDirectTextEntry: true,
         title:
-          (block.variableOperationMode ?? "value") === "assign"
+          mode === "assign"
             ? "Insert a value block or type a value"
+            : mode === "not"
+              ? "Insert a boolean block or type true / false"
             : "Insert an operand block or type a value"
+      }
+    ];
+  }
+
+  if (block.kind === "var_binary_operation") {
+    const mode = block.variableOperationMode ?? "add";
+    if (isUnaryVariableOperationMode(mode)) {
+      return [
+        {
+          id: "operand",
+          expectedType: "boolean",
+          allowDirectTextEntry: true,
+          title: "Insert the operand"
+        }
+      ];
+    }
+
+    const expectedType = mode === "and" || mode === "or" ? "boolean" : "value";
+    return [
+      {
+        id: "left",
+        expectedType,
+        allowDirectTextEntry: true,
+        title: "Insert the left operand"
+      },
+      {
+        id: "right",
+        expectedType,
+        allowDirectTextEntry: true,
+        title: "Insert the right operand"
       }
     ];
   }
@@ -247,6 +354,18 @@ export const getBlockSlotBlock = (block: EditorBlock, slotId: string): EditorBlo
     return block.inputBlock ?? null;
   }
 
+  if (slotId === "left") {
+    return block.inputBlocks?.[0] ?? null;
+  }
+
+  if (slotId === "operand") {
+    return block.inputBlocks?.[0] ?? null;
+  }
+
+  if (slotId === "right") {
+    return block.inputBlocks?.[1] ?? null;
+  }
+
   const slotIndex = slotId.startsWith("arg-") ? Number(slotId.slice(4)) : -1;
   return slotIndex >= 0 ? block.inputBlocks?.[slotIndex] ?? null : null;
 };
@@ -260,6 +379,15 @@ export const setBlockSlotBlock = (
     return {
       ...block,
       inputBlock: nextBlock
+    };
+  }
+
+  if (slotId === "left" || slotId === "right" || slotId === "operand") {
+    const nextInputBlocks = [...(block.inputBlocks ?? [null, null])];
+    nextInputBlocks[slotId === "right" ? 1 : 0] = nextBlock;
+    return {
+      ...block,
+      inputBlocks: nextInputBlocks
     };
   }
 
@@ -335,38 +463,34 @@ export const describeBlock = (block: EditorBlock): string => {
 
   if (block.kind === "var_operation") {
     const name = block.variableName?.trim() || t("blocks.variable").toLowerCase();
-    switch (block.variableOperationMode ?? "value") {
+    const mode = block.variableOperationMode ?? "value";
+    switch (mode) {
       case "assign":
         return `${name} =`;
       case "add":
-        return `${name} +`;
       case "subtract":
-        return `${name} -`;
       case "multiply":
-        return `${name} *`;
       case "divide":
-        return `${name} /`;
       case "modulo":
-        return `${name} %`;
       case "equals":
-        return `${name} ==`;
       case "not_equals":
-        return `${name} !=`;
       case "greater_than":
-        return `${name} >`;
       case "greater_or_equal":
-        return `${name} >=`;
       case "less_than":
-        return `${name} <`;
       case "less_or_equal":
-        return `${name} <=`;
       case "and":
-        return `${name} and`;
       case "or":
-        return `${name} or`;
+        return `${name} ${getVariableOperationSymbol(mode)}`;
       default:
         return name;
     }
+  }
+
+  if (block.kind === "var_binary_operation") {
+    const mode = block.variableOperationMode ?? "add";
+    return isBinaryVariableOperationMode(mode) || isUnaryVariableOperationMode(mode)
+      ? `${t("blocks.operation")} ${getVariableOperationLabel(mode)}`
+      : t("blocks.operation");
   }
 
   if (block.kind === "value") {
@@ -608,6 +732,22 @@ export const createVariableOperationBlock = (
   variableOperationMode
 });
 
+export const createVariableBinaryOperationBlock = (
+  color = "#d8f3dc",
+  variableOperationMode: VariableOperationBlockMode = "add"
+): EditorBlock => ({
+  id: `var-binary-operation-${crypto.randomUUID()}`,
+  kind: "var_binary_operation",
+  color,
+  operation: null,
+  outputType: variableModeOutputType(variableOperationMode),
+  valueType: null,
+  literalValue: null,
+  inputBlock: null,
+  inputBlocks: [null, null],
+  variableOperationMode
+});
+
 export const buildWheelOptions = (
   allowedOperations: string[],
   structureId: string,
@@ -726,6 +866,31 @@ export const buildVariableOperationWheelOptions = (
   }
 ];
 
+export const buildVariableBinaryOperationWheelOptions = (
+  currentMode: VariableOperationMode
+): VariableOperationWheelOption[] =>
+  [...VARIABLE_BINARY_OPERATION_MODES, ...VARIABLE_UNARY_OPERATION_MODES].map((mode) => ({
+    mode,
+    label: getVariableOperationLabel(mode),
+    className:
+      mode === "and" || mode === "or" || mode === "not"
+        ? currentMode === mode
+          ? "rose selected"
+          : "rose"
+        : mode === "equals" ||
+            mode === "not_equals" ||
+            mode === "greater_than" ||
+            mode === "greater_or_equal" ||
+            mode === "less_than" ||
+            mode === "less_or_equal"
+          ? currentMode === mode
+            ? "sky selected"
+            : "sky"
+          : currentMode === mode
+            ? "peach selected"
+            : "peach"
+  }));
+
 export const buildDeclarationBindingWheelOptions = (
   currentBindingKind: RoutineBindingKind
 ): DeclarationBindingWheelOption[] => [
@@ -835,6 +1000,56 @@ const variableBlockToExpression = (block: EditorBlock): VariableExpression => ({
   visual: cloneVisual(block.color)
 });
 
+const buildMissingExpression = (id: string, color?: string): LiteralExpression => ({
+  id,
+  kind: "literal",
+  valueType: "text",
+  value: "<missing>",
+  outputType: "value",
+  visual: cloneVisual(color)
+});
+
+const isMissingPlaceholderExpression = (expression: ExpressionNode | null | undefined): boolean =>
+  !!expression &&
+  expression.kind === "literal" &&
+  expression.value === "<missing>" &&
+  expression.id.endsWith("-left-missing");
+
+const variableBinaryBlockToExpression = (block: EditorBlock): ExpressionNode => {
+  const mode = block.variableOperationMode ?? "add";
+  const operandBlock = block.inputBlocks?.[0] ?? null;
+  if (isUnaryVariableOperationMode(mode)) {
+    return {
+      id: block.id,
+      kind: "unary",
+      operator: "not",
+      operand: operandBlock ? legacyBlockToExpression(operandBlock) : null,
+      outputType: "boolean",
+      visual: cloneVisual(block.color)
+    };
+  }
+
+  const normalizedMode: VariableBinaryOperationMode =
+    isBinaryVariableOperationMode(mode) ? mode : "add";
+  const leftBlock = operandBlock;
+  const rightBlock = block.inputBlocks?.[1] ?? null;
+
+  return {
+    id: block.id,
+    kind: "binary",
+    operator: normalizedMode,
+    left: leftBlock
+      ? legacyBlockToExpression(leftBlock)
+      : buildMissingExpression(`${block.id}-left-missing`, block.color),
+    right:
+      leftBlock && rightBlock
+        ? legacyBlockToExpression(rightBlock)
+        : null,
+    outputType: variableModeOutputType(normalizedMode) === "boolean" ? "boolean" : "value",
+    visual: cloneVisual(block.color)
+  };
+};
+
 const structureBlockToExpression = (block: EditorBlock): StructureValueExpression => ({
   id: block.id,
   kind: "structure",
@@ -853,6 +1068,10 @@ export const legacyBlockToExpression = (block: EditorBlock): ExpressionNode => {
 
   if (block.kind === "var_operation") {
     return variableBlockToExpression(block);
+  }
+
+  if (block.kind === "var_binary_operation") {
+    return variableBinaryBlockToExpression(block);
   }
 
   if (block.kind === "structure") {
@@ -1066,7 +1285,11 @@ export const legacyBlockToStatement = (block: EditorBlock): StatementNode => {
     };
   }
 
-  if (block.kind === "var_operation" || block.kind === "value") {
+  if (
+    block.kind === "var_operation" ||
+    block.kind === "var_binary_operation" ||
+    block.kind === "value"
+  ) {
     return {
       id: block.id,
       kind: "expression",
@@ -1265,25 +1488,48 @@ const expressionToLegacyBlock = (
   }
 
   if (expression.kind === "binary") {
-    const left = expressionToLegacyBlock(expression.left, declarations, signatures);
-    const right = expression.right ? expressionToLegacyBlock(expression.right, declarations, signatures) : null;
+    const operator = isBinaryVariableOperationMode(expression.operator)
+      ? expression.operator
+      : "add";
+    const leftBlock = isMissingPlaceholderExpression(expression.left)
+      ? null
+      : expressionToLegacyBlock(expression.left, declarations, signatures);
     return {
-      ...left,
       id: expression.id,
-      inputBlock: right
+      kind: "var_binary_operation",
+      color: expression.visual?.color,
+      operation: null,
+      outputType: expression.outputType,
+      valueType: null,
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks: [
+        leftBlock,
+        expression.right ? expressionToLegacyBlock(expression.right, declarations, signatures) : null
+      ],
+      variableOperationMode: operator
     };
   }
 
-  return {
-    id: expression.id,
-    kind: "value",
-    color: expression.visual?.color,
-    operation: null,
-    outputType: "boolean",
-    valueType: "boolean",
-    literalValue: true,
-    inputBlock: null
-  };
+  if (expression.kind === "unary") {
+    return {
+      id: expression.id,
+      kind: "var_binary_operation",
+      color: expression.visual?.color,
+      operation: null,
+      outputType: "boolean",
+      valueType: null,
+      literalValue: null,
+      inputBlock: null,
+      inputBlocks: [
+        expression.operand ? expressionToLegacyBlock(expression.operand, declarations, signatures) : null,
+        null
+      ],
+      variableOperationMode: "not"
+    };
+  }
+
+  throw new Error("Unsupported expression kind");
 };
 
 const statementToLegacyBlock = (

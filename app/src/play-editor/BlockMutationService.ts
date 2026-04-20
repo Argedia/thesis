@@ -1,10 +1,16 @@
-import { produce, type Draft } from "immer";
+import { current, produce, type Draft } from "immer";
 import type { EditorBlock } from "./model";
 
 /**
  * Service for performing immutable mutations on block trees using Immer
  */
 export class BlockMutationService {
+	private cloneFromDraft(block: Draft<EditorBlock>): EditorBlock {
+		// Immer drafts are Proxy objects; structuredClone on a draft can throw DataCloneError.
+		// Convert to a plain snapshot first, then clone.
+		return structuredClone(current(block));
+	}
+
 	private updateBlocks(
 		blocks: EditorBlock[],
 		recipe: (draft: Draft<EditorBlock[]>) => void
@@ -150,7 +156,7 @@ export class BlockMutationService {
 		for (let index = 0; index < blocks.length; index += 1) {
 			const block = blocks[index];
 			if (allowDirectRemoval && block.id === blockId) {
-				const extractedBlock = structuredClone(block as EditorBlock);
+				const extractedBlock = this.cloneFromDraft(block as Draft<EditorBlock>);
 				blocks.splice(index, 1);
 				return extractedBlock;
 			}
@@ -167,7 +173,7 @@ export class BlockMutationService {
 	private extractBlockFromDraftNode(block: Draft<EditorBlock>, blockId: string): EditorBlock | null {
 		if (block.inputBlock) {
 			if (block.inputBlock.id === blockId) {
-				const extractedBlock = structuredClone(block.inputBlock as EditorBlock);
+				const extractedBlock = this.cloneFromDraft(block.inputBlock as Draft<EditorBlock>);
 				block.inputBlock = null;
 				return extractedBlock;
 			}
@@ -186,7 +192,7 @@ export class BlockMutationService {
 			}
 
 			if (nestedBlock.id === blockId) {
-				const extractedBlock = structuredClone(nestedBlock as EditorBlock);
+				const extractedBlock = this.cloneFromDraft(nestedBlock as Draft<EditorBlock>);
 				inputBlocks[index] = null;
 				return extractedBlock;
 			}

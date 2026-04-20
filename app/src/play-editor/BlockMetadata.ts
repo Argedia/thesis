@@ -42,6 +42,11 @@ export const BLOCK_METADATA: Record<EditorBlock["kind"], BlockMetadata> = {
 		paletteGroup: "variables",
 		labelI18nKey: "blocks.variable"
 	},
+	var_binary_operation: {
+		staticChip: "OP",
+		paletteGroup: "variables",
+		labelI18nKey: "blocks.operation"
+	},
 	return: {
 		staticChip: "RET",
 		paletteGroup: "functions",

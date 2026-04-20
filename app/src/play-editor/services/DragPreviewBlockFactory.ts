@@ -9,6 +9,7 @@ import {
   createRoutineMemberBlock,
   createRoutineValueBlock,
   createValueBlock,
+  createVariableBinaryOperationBlock,
   createVariableDeclarationBlock,
   createVariableOperationBlock
 } from "../operations";
@@ -31,13 +32,25 @@ export class DragPreviewBlockFactory {
               ? "value"
               : routineReturnKind
             : dragState.blockKind === "routine_value"
-              ? "value"
-              : dragState.blockKind === "routine_member"
-                ? dragState.routineMemberKind === "function"
-                  ? dragState.routineCallMode === "reference"
-                    ? "value"
+                ? "value"
+                : dragState.blockKind === "routine_member"
+                  ? dragState.routineMemberKind === "function"
+                    ? dragState.routineCallMode === "reference"
+                      ? "value"
                     : routineReturnKind
                   : "value"
+                : dragState.blockKind === "var_binary_operation"
+                  ? dragState.variableOperationMode === "equals" ||
+                    dragState.variableOperationMode === "not_equals" ||
+                    dragState.variableOperationMode === "greater_than" ||
+                    dragState.variableOperationMode === "greater_or_equal" ||
+                    dragState.variableOperationMode === "less_than" ||
+                    dragState.variableOperationMode === "less_or_equal" ||
+                    dragState.variableOperationMode === "not" ||
+                    dragState.variableOperationMode === "and" ||
+                    dragState.variableOperationMode === "or"
+                    ? "boolean"
+                    : "value"
                 : "none",
       valueType:
         dragState.blockKind === "value"
@@ -107,6 +120,16 @@ export class DragPreviewBlockFactory {
                 dragState.variableOperationMode ?? "value"
               )
               : null;
+          break;
+        case "var_binary_operation":
+          previewBlock = createVariableBinaryOperationBlock(
+            dragState.color,
+            dragState.variableOperationMode &&
+              dragState.variableOperationMode !== "value" &&
+              dragState.variableOperationMode !== "assign"
+              ? dragState.variableOperationMode
+              : "add"
+          );
           break;
         case "value":
           previewBlock =

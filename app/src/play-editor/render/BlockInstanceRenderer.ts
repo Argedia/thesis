@@ -38,6 +38,72 @@ export interface BlockInstanceRendererContext {
 export class BlockInstanceRenderer {
   public constructor(private readonly ctx: BlockInstanceRendererContext) {}
 
+  private getVariableOperationToken(mode: EditorBlock["variableOperationMode"]): string {
+    switch (mode) {
+      case "add":
+        return "+";
+      case "subtract":
+        return "-";
+      case "multiply":
+        return "*";
+      case "divide":
+        return "/";
+      case "modulo":
+        return "%";
+      case "equals":
+        return "==";
+      case "not_equals":
+        return "!=";
+      case "greater_than":
+        return ">";
+      case "greater_or_equal":
+        return ">=";
+      case "less_than":
+        return "<";
+      case "less_or_equal":
+        return "<=";
+      case "and":
+        return "and";
+      case "or":
+        return "or";
+      case "not":
+        return "not";
+      default:
+        return "?";
+    }
+  }
+
+  private getLiteralKind(value: EditorBlock["literalValue"]): "bool" | "int" | "double" | "string" {
+    if (typeof value === "boolean") {
+      return "bool";
+    }
+    if (typeof value === "number") {
+      return Number.isInteger(value) ? "int" : "double";
+    }
+    return "string";
+  }
+
+  private formatLiteralValue(value: EditorBlock["literalValue"]): string {
+    if (typeof value === "string") {
+      return value;
+    }
+    if (typeof value === "boolean") {
+      return value ? "true" : "false";
+    }
+    if (typeof value === "number") {
+      return String(value);
+    }
+    return "item";
+  }
+
+  private createValueTypeBadge(value: EditorBlock["literalValue"]): HTMLSpanElement {
+    const kind = this.getLiteralKind(value);
+    const badge = document.createElement("span");
+    badge.className = `editor-value-type editor-value-type-${kind}`;
+    badge.textContent = kind;
+    return badge;
+  }
+
   public createBlockInstanceElement(
     block: EditorBlock,
     options: {
@@ -53,7 +119,7 @@ export class BlockInstanceRenderer {
     const element = document.createElement("div");
     element.className = `editor-block sequence editor-block-instance ${nested ? "editor-block-instance-nested " : ""
       }${blockColorClass(block.operation)}${isPendingStructure ? " pending" : ""}${getBlockInputSlots(block).length > 0 ? " has-input-slot" : ""
-      }${this.ctx.isControlBlock(block) ? " conditional-block" : ""}${block.kind === "var_declaration" || block.kind === "var_operation" ? " variable-block" : ""
+      }${this.ctx.isControlBlock(block) ? " conditional-block" : ""}${block.kind === "var_declaration" || block.kind === "var_operation" || block.kind === "var_binary_operation" ? " variable-block" : ""
       }${nested && getOutputType(block) !== "value" ? " invalid" : ""}${preview ? " editor-block-preview" : ""}${ghost ? " drag-ghost-block-instance" : ""
       }`.trim();
     this.ctx.applyBlockColor(element, block.color);
@@ -67,6 +133,7 @@ export class BlockInstanceRenderer {
       block.kind === "structure" ||
       block.kind === "conditional" ||
       block.kind === "var_operation" ||
+      block.kind === "var_binary_operation" ||
       block.kind === "routine_call" ||
       (block.kind === "routine_member" && block.routineMemberKind === "function") ||
       this.ctx.canShowDeclarationBindingWheel(block)
@@ -138,6 +205,40 @@ export class BlockInstanceRenderer {
       ghost?: boolean;
     } = {}
   ): void {
+    if (block.kind === "var_binary_operation") {
+      const slots = getBlockInputSlots(block);
+      if (slots.length === 1) {
+        const operator = document.createElement("strong");
+        operator.className = "editor-block-instance-operator";
+        operator.textContent = this.getVariableOperationToken(block.variableOperationMode);
+        main.appendChild(operator);
+        main.appendChild(
+          options.ghost
+            ? this.renderGhostInputSlot(block, slots[0]!)
+            : this.renderInlineInputSlot(block, slots[0]!)
+        );
+        return;
+      }
+
+      if (slots.length === 2) {
+        main.appendChild(
+          options.ghost
+            ? this.renderGhostInputSlot(block, slots[0]!)
+            : this.renderInlineInputSlot(block, slots[0]!)
+        );
+        const operator = document.createElement("strong");
+        operator.className = "editor-block-instance-operator";
+        operator.textContent = this.getVariableOperationToken(block.variableOperationMode);
+        main.appendChild(operator);
+        main.appendChild(
+          options.ghost
+            ? this.renderGhostInputSlot(block, slots[1]!)
+            : this.renderInlineInputSlot(block, slots[1]!)
+        );
+        return;
+      }
+    }
+
     const label = document.createElement("strong");
     label.className = "editor-block-instance-label";
     label.textContent = this.ctx.isControlBlock(block)
@@ -149,16 +250,18 @@ export class BlockInstanceRenderer {
         : describeBlock(block);
 
     if (block.kind === "value") {
+      const valueTypeBadge = this.createValueTypeBadge(block.literalValue);
+      main.appendChild(valueTypeBadge);
       if (options.ghost) {
         const valuePill = document.createElement("span");
         valuePill.className = "editor-value-pill";
-        valuePill.textContent = String(block.literalValue ?? "item");
+        valuePill.textContent = this.formatLiteralValue(block.literalValue);
         main.appendChild(valuePill);
       } else {
         const valueButton = document.createElement("button");
         valueButton.type = "button";
         valueButton.className = "editor-value-pill";
-        valueButton.textContent = String(block.literalValue ?? "item");
+        valueButton.textContent = this.formatLiteralValue(block.literalValue);
         valueButton.addEventListener("pointerdown", (event) => {
           event.stopPropagation();
         });
@@ -299,6 +402,7 @@ export class BlockInstanceRenderer {
       block.kind !== "structure" &&
       block.kind !== "conditional" &&
       block.kind !== "var_operation" &&
+      block.kind !== "var_binary_operation" &&
       block.kind !== "var_declaration" &&
       block.kind !== "routine_call" &&
       block.kind !== "routine_member"

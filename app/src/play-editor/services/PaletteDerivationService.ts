@@ -157,6 +157,16 @@ export class PaletteDerivationService {
         variableName: "variable",
         label: "Variable"
       },
+      {
+        id: "palette-var-binary-operation",
+        kind: "var_binary_operation" as const,
+        color: "#d8f3dc",
+        outputType: "value" as const,
+        valueType: null,
+        literalValue: null,
+        variableOperationMode: "add" as const,
+        label: "Operation"
+      },
       ...variableDeclarations.map((variable) => ({
         id: `palette-var-operation-${variable.id}`,
         kind: "var_operation" as const,

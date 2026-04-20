@@ -236,14 +236,16 @@ export class DragDropGeometryService {
 
 		const previousSlotId = this.dragState?.slotTargetKey ?? null;
 		const originSlotOwnerId = this.dragState?.originSlotOwnerId ?? null;
+		let preservedPreviousSlotId: string | null = null;
 		if (previousSlotId) {
 			const previousSlot = slotRects.find((slot) => slot.slotKey === previousSlotId);
 			if (
 				previousSlot &&
+				this.canUseSlotTarget(previousSlot.slotKey) &&
 				this.parseSlotKey(previousSlot.slotKey).ownerId !== originSlotOwnerId &&
 				overlapRatio(previousSlot.rect) >= leaveThreshold
 			) {
-				// Keep previous slot
+				preservedPreviousSlotId = previousSlotId;
 			}
 		}
 
@@ -263,7 +265,7 @@ export class DragDropGeometryService {
 			}
 		});
 
-		return bestSlotId;
+		return bestSlotId ?? preservedPreviousSlotId;
 	}
 
 	currentBranchTarget(

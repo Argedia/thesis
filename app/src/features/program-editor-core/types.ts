@@ -20,6 +20,7 @@ export type EditorBlockKind =
   | "while"
   | "var_declaration"
   | "var_operation"
+  | "var_binary_operation"
   | "return"
   | "routine_call"
   | "routine_value"
@@ -40,6 +41,7 @@ export type VariableOperationMode =
   | "greater_or_equal"
   | "less_than"
   | "less_or_equal"
+  | "not"
   | "and"
   | "or";
 

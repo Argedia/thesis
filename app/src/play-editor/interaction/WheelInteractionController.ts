@@ -5,6 +5,7 @@ import type {
   RoutineBindingKind
 } from "../model";
 import {
+  buildVariableBinaryOperationWheelOptions,
   buildConditionalWheelOptions,
   buildDeclarationBindingWheelOptions,
   buildVariableOperationWheelOptions,
@@ -37,6 +38,9 @@ export class WheelInteractionController {
     }
     if (block.kind === "var_operation") {
       return this.getVarOperationWheelOptions(block);
+    }
+    if (block.kind === "var_binary_operation") {
+      return this.getVarBinaryOperationWheelOptions(block);
     }
     if (this.ctx.canShowDeclarationBindingWheel(block)) {
       return this.getDeclarationBindingWheelOptions(block);
@@ -75,6 +79,19 @@ export class WheelInteractionController {
         this.ctx.closeWheel();
         this.ctx.rerender();
         this.ctx.emitStatus("Variable block updated.");
+      }
+    }));
+  }
+
+  private getVarBinaryOperationWheelOptions(block: EditorBlock): WheelOption[] {
+    return buildVariableBinaryOperationWheelOptions(block.variableOperationMode ?? "add").map((option) => ({
+      label: option.label,
+      className: option.className,
+      onSelect: () => {
+        this.ctx.updateVariableOperationMode(block.id, option.mode);
+        this.ctx.closeWheel();
+        this.ctx.rerender();
+        this.ctx.emitStatus("Operation block updated.");
       }
     }));
   }

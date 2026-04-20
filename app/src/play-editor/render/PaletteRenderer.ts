@@ -5,8 +5,11 @@ export interface PaletteRendererContext {
   getPaletteBlocks(): PaletteBlock[];
   getIsActiveRoutineFunction(): boolean;
   getIsLocked(): boolean;
+  getExpandedPaletteGroupId(): PaletteGroupId | null;
+  setExpandedPaletteGroupId(groupId: PaletteGroupId): void;
   getPaletteGroupId(block: PaletteBlock): PaletteGroupId;
   getPaletteGroupLabel(groupId: PaletteGroupId): string;
+  getVariableSubgroupLabel(kind: "declared" | "tools"): string;
   getDefinitionDescriptor(block: PaletteBlock): { chip?: string; label: string };
   getBlocksHeadingText(): string;
   getDragHintText(): string;
@@ -16,6 +19,36 @@ export interface PaletteRendererContext {
 
 export class PaletteRenderer {
   public constructor(private readonly ctx: PaletteRendererContext) {}
+
+  private appendPaletteButton(list: HTMLElement, block: PaletteBlock): void {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "editor-block palette sky";
+    if (block.kind === "var_declaration" && this.ctx.getIsActiveRoutineFunction()) {
+      button.classList.add("palette-declaration-function-ready");
+    }
+    this.ctx.applyBlockColor(button, block.color);
+
+    const descriptor = this.ctx.getDefinitionDescriptor(block);
+    if (descriptor.chip) {
+      const chip = document.createElement("span");
+      chip.className = "block-chip";
+      chip.textContent = descriptor.chip;
+      button.appendChild(chip);
+    }
+    const title = document.createElement("strong");
+    title.textContent = descriptor.label;
+    button.appendChild(title);
+
+    if (this.ctx.getIsLocked()) {
+      button.disabled = true;
+    }
+    button.addEventListener("pointerdown", (event) => {
+      const rect = button.getBoundingClientRect();
+      this.ctx.onStartPaletteDrag(event, block, rect);
+    });
+    list.appendChild(button);
+  }
 
   public render(container: HTMLElement): void {
     const palette = document.createElement("aside");
@@ -51,43 +84,46 @@ export class PaletteRenderer {
       const section = document.createElement("section");
       section.className = "palette-group";
 
-      const sectionHeading = document.createElement("div");
+      const sectionHeading = document.createElement("button");
+      sectionHeading.type = "button";
       sectionHeading.className = "palette-group-heading";
       sectionHeading.textContent = this.ctx.getPaletteGroupLabel(groupId);
+      const isExpanded = this.ctx.getExpandedPaletteGroupId() === groupId;
+      sectionHeading.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+      sectionHeading.addEventListener("click", () => {
+        this.ctx.setExpandedPaletteGroupId(groupId);
+      });
       section.appendChild(sectionHeading);
 
       const list = document.createElement("div");
       list.className = "palette-list palette-group-list";
+      list.hidden = !isExpanded;
+      if (!isExpanded) {
+        section.classList.add("collapsed");
+      }
 
-      groupBlocks.forEach((block) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "editor-block palette sky";
-        if (block.kind === "var_declaration" && this.ctx.getIsActiveRoutineFunction()) {
-          button.classList.add("palette-declaration-function-ready");
-        }
-        this.ctx.applyBlockColor(button, block.color);
+      if (groupId === "variables") {
+        const declaredVariableBlocks = groupBlocks.filter((block) => block.kind === "var_operation");
+        const variableToolBlocks = groupBlocks.filter((block) => block.kind !== "var_operation");
 
-        const descriptor = this.ctx.getDefinitionDescriptor(block);
-        if (descriptor.chip) {
-          const chip = document.createElement("span");
-          chip.className = "block-chip";
-          chip.textContent = descriptor.chip;
-          button.appendChild(chip);
+        if (variableToolBlocks.length > 0) {
+          const toolHeading = document.createElement("div");
+          toolHeading.className = "palette-subgroup-heading";
+          toolHeading.textContent = this.ctx.getVariableSubgroupLabel("tools");
+          list.appendChild(toolHeading);
+          variableToolBlocks.forEach((block) => this.appendPaletteButton(list, block));
         }
-        const title = document.createElement("strong");
-        title.textContent = descriptor.label;
-        button.appendChild(title);
 
-        if (this.ctx.getIsLocked()) {
-          button.disabled = true;
+        if (declaredVariableBlocks.length > 0) {
+          const declaredHeading = document.createElement("div");
+          declaredHeading.className = "palette-subgroup-heading";
+          declaredHeading.textContent = this.ctx.getVariableSubgroupLabel("declared");
+          list.appendChild(declaredHeading);
+          declaredVariableBlocks.forEach((block) => this.appendPaletteButton(list, block));
         }
-        button.addEventListener("pointerdown", (event) => {
-          const rect = button.getBoundingClientRect();
-          this.ctx.onStartPaletteDrag(event, block, rect);
-        });
-        list.appendChild(button);
-      });
+      } else {
+        groupBlocks.forEach((block) => this.appendPaletteButton(list, block));
+      }
 
       section.appendChild(list);
       groups.appendChild(section);

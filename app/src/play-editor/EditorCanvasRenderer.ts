@@ -77,10 +77,14 @@ export class EditorCanvasRenderer {
     this.ctx.resetRenderRefs();
     this.editorLineNumber = 0;
 
-    const previewBlocks = this.ctx.getInlinePreviewBlocks() ?? this.ctx.getBlocks();
     const dragState = this.ctx.getDragState();
     const canUseInlineSequencePreview =
-      !!dragState && !dragState.slotTargetKey && dragState.isOverEditor;
+      !!dragState &&
+      !dragState.slotTargetKey &&
+      dragState.isOverEditor;
+    const previewBlocks = canUseInlineSequencePreview
+      ? (this.ctx.getInlinePreviewBlocks() ?? this.ctx.getBlocks())
+      : this.ctx.getBlocks();
     const lineLayouts = buildEditorLineLayout(previewBlocks);
 
     const lineIndicatorIndex =
@@ -188,7 +192,9 @@ export class EditorCanvasRenderer {
     const previewIndent =
       isActive && dragState ? dragState.chosenIndent : lineLayout.indentPotential[0] ?? 0;
     line.style.paddingLeft = `${previewIndent * 28}px`;
-    if (isActive) {
+    const shouldRenderInlineDropPreview =
+      isActive && !!dragState && !dragState.slotTargetKey;
+    if (shouldRenderInlineDropPreview) {
       const previewDescriptor = this.ctx.buildPreviewDescriptor();
       if (previewDescriptor) {
         const preview = this.ctx.renderPreviewBlock(previewDescriptor);
@@ -197,7 +203,7 @@ export class EditorCanvasRenderer {
       }
     } else {
       const indicator = document.createElement("div");
-      indicator.className = "editor-drop-indicator";
+      indicator.className = `editor-drop-indicator${isActive ? " active" : ""}`;
       line.appendChild(indicator);
     }
     this.ctx.setLineRowRef(lineLayout.id, line);
