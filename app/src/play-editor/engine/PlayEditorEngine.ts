@@ -139,7 +139,7 @@ export class PlayEditorEngine {
 	private readonly hostInteraction = new HostInteractionController();
 	private pressState: PendingPress | null = null;
 	private wheelState: WheelState | null = null;
-	private expandedPaletteGroupId: PaletteGroupId | null = "structures";
+	private expandedPaletteGroupIds = new Set<PaletteGroupId>();
 	private cleanupFns: Array<() => void> = [];
 
 	public constructor(host: HTMLElement, props: PlayEditorSurfaceProps) {
@@ -315,12 +315,13 @@ export class PlayEditorEngine {
 				getPaletteBlocks: () => this.paletteBlocks,
 				getIsActiveRoutineFunction: () => this.isActiveRoutineFunction(),
 				getIsLocked: () => this.isLocked(),
-				getExpandedPaletteGroupId: () => this.expandedPaletteGroupId,
-				setExpandedPaletteGroupId: (groupId) => {
-					if (this.expandedPaletteGroupId === groupId) {
-						return;
+				isPaletteGroupExpanded: (groupId) => this.expandedPaletteGroupIds.has(groupId),
+				togglePaletteGroupExpanded: (groupId) => {
+					if (this.expandedPaletteGroupIds.has(groupId)) {
+						this.expandedPaletteGroupIds.delete(groupId);
+					} else {
+						this.expandedPaletteGroupIds.add(groupId);
 					}
-					this.expandedPaletteGroupId = groupId;
 					this.render();
 				},
 				getPaletteGroupId: (block) => this.getPaletteGroupId(block),
@@ -972,22 +973,21 @@ export class PlayEditorEngine {
 		const availableGroupIds = new Set<PaletteGroupId>(
 			this.paletteBlocks.map((block) => this.getPaletteGroupId(block))
 		);
-		if (
-			!this.expandedPaletteGroupId ||
-			!availableGroupIds.has(this.expandedPaletteGroupId)
-		) {
-			this.expandedPaletteGroupId =
-				(["structures", "values", "logic", "functions", "variables"] as PaletteGroupId[]).find((id) =>
-					availableGroupIds.has(id)
-				) ?? null;
-		}
+		this.expandedPaletteGroupIds.forEach((groupId) => {
+			if (!availableGroupIds.has(groupId)) {
+				this.expandedPaletteGroupIds.delete(groupId);
+			}
+		});
 		this.ensureLayoutShell();
 		const shell = this.shell!;
 		const workbench = this.workbench!;
 		shell.className = `scratch-shell${this.isLocked() ? " is-locked" : ""}`;
 
 		// Keep palette stable while dragging to avoid global flicker.
-		if (!this.dragState) {
+		// Hide it only while the editor is locked (running/debugging).
+		if (this.isLocked()) {
+			this.removeChildrenBySelector(workbench, ".scratch-palette");
+		} else if (!this.dragState) {
 			this.removeChildrenBySelector(workbench, ".scratch-palette");
 			const paletteRenderer = this.getPaletteRenderer();
 			paletteRenderer.render(workbench);

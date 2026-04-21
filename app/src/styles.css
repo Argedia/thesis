@@ -10,12 +10,13 @@
 }
 
 html {
-	min-height: 100%;
+	height: 100%;
 }
 
 body,
 #root {
-	min-height: 100vh;
+	height: 100%;
+	overflow: hidden;
 }
 
 body {
@@ -45,7 +46,8 @@ button:disabled {
 
 .app-shell {
 	position: relative;
-	min-height: 100vh;
+	height: 100dvh;
+	overflow: hidden;
 }
 
 .app-language-dock {
@@ -151,6 +153,18 @@ button:disabled {
 	font-weight: 800;
 }
 
+.app-tooltip {
+	padding: 0.35rem 0.55rem;
+	border: 1px solid #c9d6e3;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.98);
+	color: #355070;
+	font-size: 0.75rem;
+	font-weight: 800;
+	box-shadow: 0 8px 20px rgba(53, 80, 112, 0.14);
+	z-index: 120;
+}
+
 .app-text-dialog-field {
 	display: grid;
 	gap: 0.45rem;
@@ -184,10 +198,12 @@ button:disabled {
 .player-shell,
 .editor-shell,
 .settings-shell {
-	min-height: 100vh;
+	height: 100%;
+	min-height: 0;
 	display: flex;
 	flex-direction: column;
 	padding: 1.5rem;
+	overflow: hidden;
 }
 
 .play-shell {
@@ -338,10 +354,40 @@ button:disabled {
 
 .play-dual-stage {
 	display: grid;
-	grid-template-columns: minmax(520px, 0.92fr) minmax(0, 1.08fr);
-	gap: 1rem;
+	grid-template-columns: minmax(0, 0.92fr) 8px minmax(0, 1.08fr);
+	gap: 0;
 	align-items: stretch;
+	width: 100%;
+	flex: 1 1 auto;
+	height: 100%;
 	min-height: 0;
+	min-width: 0;
+}
+
+.play-stage-divider {
+	position: relative;
+	width: 8px;
+	min-height: 0;
+	align-self: stretch;
+	cursor: col-resize;
+	touch-action: none;
+	background: transparent;
+}
+
+.play-stage-divider::before {
+	content: none;
+}
+
+.play-stage-divider::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
+.play-dual-stage.is-resizing,
+.play-dual-stage.is-resizing * {
+	cursor: col-resize !important;
+	user-select: none;
 }
 
 .level-info-dock {
@@ -502,11 +548,14 @@ button:disabled {
 }
 
 .device-shell {
-	display: grid;
+	display: flex;
+	flex-direction: column;
 	gap: 0;
 	border: 2px solid #aebdd2;
 	border-radius: 30px;
 	overflow: hidden;
+	min-width: 0;
+	min-height: 0;
 }
 
 .device-header {
@@ -544,7 +593,9 @@ button:disabled {
 .terminal-panel {
 	display: grid;
 	grid-template-rows: minmax(0, 1fr);
+	flex: 1 1 auto;
 	min-height: 0;
+	min-width: 0;
 	padding: 0.85rem;
 	background: #f3f6fa;
 }
@@ -562,6 +613,7 @@ button:disabled {
 
 .scratch-shell.is-locked .scratch-workbench {
 	opacity: 0.72;
+	grid-template-columns: minmax(0, 1fr);
 }
 
 .scratch-toolbar {
@@ -606,15 +658,19 @@ button:disabled {
 
 .ide-shell {
 	display: grid;
-	grid-template-rows: auto minmax(0, 1fr) 164px;
-	height: clamp(620px, calc(100vh - 5.5rem), 760px);
-	max-height: calc(100vh - 5.5rem);
+	grid-template-rows: auto minmax(0, 1fr);
+	height: 100%;
+	max-height: none;
 	min-height: 0;
 	border: 1px solid #cfd9e5;
 	border-radius: 18px;
 	overflow: hidden;
 	background: #f8fbff;
 	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+}
+
+.ide-shell.has-output {
+	grid-template-rows: auto minmax(0, 1fr) 164px;
 }
 
 .ide-topbar {
@@ -694,6 +750,17 @@ button:disabled {
 	color: #355070;
 	font-size: 0.82rem;
 	font-weight: 800;
+}
+
+.ide-run-actions .ide-run-icon-button {
+	min-width: 36px;
+	min-height: 36px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1rem;
+	line-height: 1;
 }
 
 .ide-run-actions button:hover:not(:disabled) {
@@ -784,8 +851,8 @@ button:disabled {
 	padding-right: 0.2rem;
 	padding-bottom: 0.7rem;
 	scroll-padding-bottom: 0.7rem;
-	scrollbar-width: thin;
-	scrollbar-color: rgba(124, 145, 165, 0.42) transparent;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
 }
 
 .ide-editor-frame .palette-groups > * {
@@ -793,7 +860,9 @@ button:disabled {
 }
 
 .ide-editor-frame .palette-groups::-webkit-scrollbar {
-	width: 6px;
+	width: 0;
+	height: 0;
+	background: transparent;
 }
 
 .ide-editor-frame .palette-groups::-webkit-scrollbar-track {
@@ -923,6 +992,14 @@ button:disabled {
 	display: grid;
 	gap: 0.85rem;
 	align-content: start;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+.palette-groups::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+	background: transparent;
 }
 
 .palette-group {
@@ -973,6 +1050,10 @@ button:disabled {
 
 .palette-group-list {
 	gap: 0.55rem;
+}
+
+.palette-group-list[hidden] {
+	display: none !important;
 }
 
 .palette-declaration-function-ready {
@@ -1513,7 +1594,9 @@ button:disabled {
 
 .board-surface {
 	position: relative;
+	flex: 1 1 auto;
 	min-height: 100%;
+	min-width: 0;
 	padding: 1rem;
 	overflow: hidden;
 	background: #2a4676;
@@ -1756,6 +1839,10 @@ button:disabled {
 	.play-dual-stage,
 	.editor-middle {
 		grid-template-columns: 1fr;
+	}
+
+	.play-stage-divider {
+		display: none;
 	}
 
 	.ide-shell {

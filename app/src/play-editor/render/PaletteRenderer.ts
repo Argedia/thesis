@@ -5,8 +5,8 @@ export interface PaletteRendererContext {
   getPaletteBlocks(): PaletteBlock[];
   getIsActiveRoutineFunction(): boolean;
   getIsLocked(): boolean;
-  getExpandedPaletteGroupId(): PaletteGroupId | null;
-  setExpandedPaletteGroupId(groupId: PaletteGroupId): void;
+  isPaletteGroupExpanded(groupId: PaletteGroupId): boolean;
+  togglePaletteGroupExpanded(groupId: PaletteGroupId): void;
   getPaletteGroupId(block: PaletteBlock): PaletteGroupId;
   getPaletteGroupLabel(groupId: PaletteGroupId): string;
   getVariableSubgroupLabel(kind: "declared" | "tools"): string;
@@ -88,10 +88,10 @@ export class PaletteRenderer {
       sectionHeading.type = "button";
       sectionHeading.className = "palette-group-heading";
       sectionHeading.textContent = this.ctx.getPaletteGroupLabel(groupId);
-      const isExpanded = this.ctx.getExpandedPaletteGroupId() === groupId;
+      const isExpanded = this.ctx.isPaletteGroupExpanded(groupId);
       sectionHeading.setAttribute("aria-expanded", isExpanded ? "true" : "false");
       sectionHeading.addEventListener("click", () => {
-        this.ctx.setExpandedPaletteGroupId(groupId);
+        this.ctx.togglePaletteGroupExpanded(groupId);
       });
       section.appendChild(sectionHeading);
 

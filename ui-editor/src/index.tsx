@@ -438,8 +438,10 @@ export type LayoutMode = "player" | "editor";
 
 const screenStyle: CSSProperties = {
   width: "100%",
-  minHeight: "100vh",
-  padding: "1rem"
+  height: "100dvh",
+  minHeight: 0,
+  padding: "1rem",
+  overflow: "hidden"
 };
 
 export interface ScreenProps {

@@ -237,8 +237,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
         if (
           currentPoint.instruction.breakpointable &&
-          this.state.breakpointNodeIds.includes(currentPoint.instruction.nodeId) &&
-          !(this.runtimeFrames.length === 1 && currentPoint.frame.ip === 0)
+          this.state.breakpointNodeIds.includes(currentPoint.instruction.nodeId)
         ) {
           this.patchState({
             runState: "paused",

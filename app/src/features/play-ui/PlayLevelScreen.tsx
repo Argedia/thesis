@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, DialogTrigger, Input, Label, TextField } from "react-aria-components";
+import { Button, DialogTrigger, Input, Label, TextField, Tooltip, TooltipTrigger } from "react-aria-components";
 import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import { Panel, PuzzleBoard, Screen } from "@thesis/ui-editor";
 import { compileEditorDocument, createEditorDocument } from "../program-editor-core";
@@ -41,6 +41,12 @@ export function PlayLevelScreen() {
   const [isLevelInfoOpen, setIsLevelInfoOpen] = useState(false);
   const [dialogValue, setDialogValue] = useState("");
   const [dialogError, setDialogError] = useState("");
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1280
+  );
+  const [leftPaneWidth, setLeftPaneWidth] = useState<number | null>(null);
+  const [isResizingPanels, setIsResizingPanels] = useState(false);
+  const dualStageRef = useRef<HTMLElement | null>(null);
   const controllerRef = useRef<PlaySessionController | null>(null);
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
 
@@ -81,6 +87,17 @@ export function PlayLevelScreen() {
   }, [controller]);
 
   useEffect(() => {
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!levelId) {
       return;
     }
@@ -109,6 +126,35 @@ export function PlayLevelScreen() {
     };
   }, [sessionState.document.routines.length]);
 
+  const isCompactLayout = viewportWidth <= 640;
+
+  const clampLeftPaneWidth = (requestedWidth: number, containerWidth: number): number => {
+    const splitterWidth = 8;
+    const minPaneWidth = 360;
+    const maxPaneWidth = Math.max(
+      minPaneWidth,
+      containerWidth - minPaneWidth - splitterWidth
+    );
+    return Math.min(Math.max(requestedWidth, minPaneWidth), maxPaneWidth);
+  };
+
+  useEffect(() => {
+    if (isCompactLayout) {
+      return;
+    }
+
+    const host = dualStageRef.current;
+    if (!host) {
+      return;
+    }
+
+    const containerWidth = host.getBoundingClientRect().width;
+    const ideal = Math.round(containerWidth * 0.46);
+    setLeftPaneWidth((current) =>
+      clampLeftPaneWidth(current ?? ideal, containerWidth)
+    );
+  }, [isCompactLayout, viewportWidth]);
+
   if (!sessionState.level) {
     return (
       <Screen mode="player">
@@ -128,6 +174,46 @@ export function PlayLevelScreen() {
   }
 
   const { level, compiledProgram } = sessionState;
+
+  const startPanelResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isCompactLayout || !dualStageRef.current) {
+      return;
+    }
+
+    const host = dualStageRef.current;
+    const hostRect = host.getBoundingClientRect();
+    const terminalPanel = host.querySelector(".terminal-device") as HTMLElement | null;
+    const initialWidth =
+      leftPaneWidth ?? terminalPanel?.getBoundingClientRect().width ?? hostRect.width * 0.46;
+    const startX = event.clientX;
+
+    setIsResizingPanels(true);
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      setLeftPaneWidth(
+        clampLeftPaneWidth(initialWidth + delta, hostRect.width)
+      );
+    };
+
+    const stopResize = () => {
+      setIsResizingPanels(false);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResize);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResize);
+  };
+  const isOutputVisible =
+    sessionState.runState === "running" ||
+    sessionState.runState === "paused" ||
+    sessionState.events.length > 0;
+  const dualStageStyle =
+    !isCompactLayout && leftPaneWidth
+      ? { gridTemplateColumns: `${leftPaneWidth}px 8px minmax(0, 1fr)` }
+      : undefined;
+
   const visibleRoutine =
     sessionState.document.routines.find((routine) => routine.id === sessionState.document.activeRoutineId) ??
     sessionState.document.routines[0];
@@ -226,6 +312,23 @@ export function PlayLevelScreen() {
     controller.renameRoutine(routineId, nextName.trim() || currentName);
   };
 
+  const renderRunActionButton = (
+    icon: string,
+    label: string,
+    onClick: () => void
+  ) => (
+    <TooltipTrigger delay={200} closeDelay={80}>
+      <Button
+        className="ide-run-icon-button"
+        aria-label={label}
+        onPress={onClick}
+      >
+        {icon}
+      </Button>
+      <Tooltip className="app-tooltip">{label}</Tooltip>
+    </TooltipTrigger>
+  );
+
   return (
     <Screen mode="player">
       <div className="play-shell">
@@ -284,7 +387,11 @@ export function PlayLevelScreen() {
           </DialogTrigger>
         </div>
 
-        <section className="play-dual-stage">
+        <section
+          ref={dualStageRef}
+          className={`play-dual-stage${isResizingPanels ? " is-resizing" : ""}`}
+          style={dualStageStyle}
+        >
           <aside className="device-shell terminal-device">
             <div className="device-header terminal-header">
               <span className="device-label">{t("board.programConsole")}</span>
@@ -294,7 +401,7 @@ export function PlayLevelScreen() {
             </div>
 
             <div className="terminal-panel">
-              <div className="ide-shell">
+              <div className={`ide-shell${isOutputVisible ? " has-output" : ""}`}>
                 <div className="ide-topbar">
                   <div ref={routineTabsRef} className="routine-strip ide-tabs">
                     {sessionState.document.routines.map((routine) => (
@@ -322,21 +429,21 @@ export function PlayLevelScreen() {
                   </div>
 
                   <div className="ide-run-actions">
-                    <button type="button" onClick={() => void controller.run()}>
-                      {t("actions.play")}
-                    </button>
-                    <button type="button" onClick={() => void controller.step()}>
-                      {t("actions.step")}
-                    </button>
-                    <button type="button" onClick={() => controller.pause()}>
-                      {t("actions.pause")}
-                    </button>
-                    <button type="button" onClick={() => controller.reset()}>
-                      {t("actions.reset")}
-                    </button>
-                    <button type="button" onClick={() => controller.clearDocument()}>
-                      {t("actions.clear")}
-                    </button>
+                    {renderRunActionButton("▶", t("actions.play"), () => {
+                      void controller.run();
+                    })}
+                    {renderRunActionButton("⏭", t("actions.step"), () => {
+                      void controller.step();
+                    })}
+                    {renderRunActionButton("⏸", t("actions.pause"), () => {
+                      controller.pause();
+                    })}
+                    {renderRunActionButton("↺", t("actions.reset"), () => {
+                      controller.reset();
+                    })}
+                    {renderRunActionButton("🗑", t("actions.clear"), () => {
+                      controller.clearDocument();
+                    })}
                   </div>
                 </div>
 
@@ -357,38 +464,49 @@ export function PlayLevelScreen() {
                   />
                 </div>
 
-                <div className="ide-output-panel">
-                  <div className="ide-output-tabs">
-                    <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
-                    <span className="ide-output-meta">
-                      {t("board.blocksCount", {
-                        count: visibleRoutineOperations,
-                        max: level.constraints.maxSteps
-                      })}
-                    </span>
-                  </div>
-                  <div className="ide-output-body">
-                    <div className="ide-output-line primary">{sessionState.status}</div>
-                    {sessionState.events.length === 0 ? (
-                      <div className="ide-output-line muted">
-                        {t("board.runHint")}
-                      </div>
-                    ) : (
-                      sessionState.events.slice(-6).map((event, index) => (
-                        <div
-                          key={`${event.stepId}-${event.type}-${index}`}
-                          className="ide-output-line"
-                        >
-                          {event.type} · {event.structureId}
-                          {event.value !== undefined ? ` · ${event.value}` : ""}
+                {isOutputVisible ? (
+                  <div className="ide-output-panel">
+                    <div className="ide-output-tabs">
+                      <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
+                      <span className="ide-output-meta">
+                        {t("board.blocksCount", {
+                          count: visibleRoutineOperations,
+                          max: level.constraints.maxSteps
+                        })}
+                      </span>
+                    </div>
+                    <div className="ide-output-body">
+                      <div className="ide-output-line primary">{sessionState.status}</div>
+                      {sessionState.events.length === 0 ? (
+                        <div className="ide-output-line muted">
+                          {t("board.runHint")}
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        sessionState.events.slice(-6).map((event, index) => (
+                          <div
+                            key={`${event.stepId}-${event.type}-${index}`}
+                            className="ide-output-line"
+                          >
+                            {event.type} · {event.structureId}
+                            {event.value !== undefined ? ` · ${event.value}` : ""}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
             </div>
           </aside>
+
+          {!isCompactLayout ? (
+            <div
+              className="play-stage-divider"
+              role="separator"
+              aria-orientation="vertical"
+              onPointerDown={startPanelResize}
+            />
+          ) : null}
 
           <section className="device-shell board-device">
             <div className="device-header board-header">
