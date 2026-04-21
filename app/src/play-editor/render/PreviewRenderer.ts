@@ -1,10 +1,14 @@
 import type { EditorBlock, EditorDragState, RoutineBindingKind } from "../model";
-import { blockColorClass, describeBlock } from "../operations";
+import {
+  blockColorClass,
+  describeBlock
+} from "../operations";
 import { getStaticChip } from "../BlockMetadata";
 import type { PreviewDescriptor } from "../contracts/types";
+import { getBlockAccentClass } from "./blockAccent";
 
 type ControlEditorBlock = EditorBlock & {
-  kind: "conditional" | "while";
+  kind: "conditional" | "while" | "for_each";
 };
 
 export interface PreviewRendererContext {
@@ -63,6 +67,8 @@ export class PreviewRenderer {
           bindingKind: draggingBlock.bindingKind
         }),
         color: draggingBlock.color,
+        expressionFamily: draggingBlock.expressionFamily,
+        accentClass: getBlockAccentClass(draggingBlock) ?? undefined,
         operation: draggingBlock.operation,
         pending:
           (draggingBlock.kind === "structure" && !draggingBlock.operation) ||
@@ -77,10 +83,12 @@ export class PreviewRenderer {
 
     return {
       label:
-        dragState.blockKind === "conditional" || dragState.blockKind === "while"
+        dragState.blockKind === "conditional" || dragState.blockKind === "while" || dragState.blockKind === "for_each"
           ? this.ctx.getControlLabel({ kind: dragState.blockKind } as Pick<EditorBlock, "kind">)
           : dragState.blockKind === "var_declaration"
             ? getDeclarationLabel(dragState.bindingKind)
+            : dragState.blockKind === "function_definition"
+              ? `define ${dragState.routineName ?? "function"}`
             : dragState.blockKind === "return"
               ? "return"
               : dragState.blockKind === "routine_call"
@@ -107,12 +115,25 @@ export class PreviewRenderer {
         bindingKind: dragState.bindingKind
       }),
       color: dragState.color,
+      expressionFamily: dragState.expressionFamily,
+      accentClass:
+        getBlockAccentClass({
+          kind: dragState.blockKind,
+          structureKind: dragState.structureKind,
+          bindingKind: dragState.bindingKind,
+          variableOperationMode: dragState.variableOperationMode,
+          expressionFamily: dragState.expressionFamily
+        }) ?? undefined,
       operation: null,
       pending:
         dragState.blockKind === "conditional" ||
         dragState.blockKind === "while" ||
+        dragState.blockKind === "for_each" ||
         dragState.blockKind === "structure",
-      control: dragState.blockKind === "conditional" || dragState.blockKind === "while",
+      control:
+        dragState.blockKind === "conditional" ||
+        dragState.blockKind === "while" ||
+        dragState.blockKind === "for_each",
       variable:
         dragState.blockKind === "var_declaration" ||
         dragState.blockKind === "var_operation" ||
@@ -123,7 +144,7 @@ export class PreviewRenderer {
   public renderPreviewBlock(descriptor: PreviewDescriptor): HTMLElement {
     const element = document.createElement("div");
     element.className = `editor-block sequence editor-block-preview ${blockColorClass(descriptor.operation)}${descriptor.pending ? " pending" : ""
-      }${descriptor.control ? " conditional-block" : ""}${descriptor.variable ? " variable-block" : ""}`;
+      }${descriptor.control ? " conditional-block" : ""}${descriptor.variable ? " variable-block" : ""}${descriptor.accentClass ? ` ${descriptor.accentClass}` : ""}`;
     this.ctx.applyBlockColor(element, descriptor.color);
 
     if (descriptor.chip) {

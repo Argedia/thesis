@@ -43,6 +43,7 @@ export interface DragInteractionControllerContext {
     }
   ): { nextBlocks: EditorBlock[]; status: string };
   setBlocks(nextBlocks: EditorBlock[]): void;
+  onPaletteBlockInserted?(block: EditorBlock): void | Promise<void>;
 }
 
 export class DragInteractionController {
@@ -87,12 +88,17 @@ export class DragInteractionController {
       structureId: block.structureId,
       structureKind: block.structureKind,
       literalValue: block.literalValue,
+      declaredTypeRef: block.declaredTypeRef,
       variableName: block.variableName,
       variableSourceId: block.variableSourceId,
       variableOperationMode: block.variableOperationMode,
+      expressionFamily: block.expressionFamily,
       bindingKind: block.bindingKind,
       routineId: block.routineId,
       routineName: block.routineName,
+      typeRoutineId: block.typeRoutineId,
+      typeName: block.typeName,
+      typeFieldName: block.typeFieldName,
       routineReturnKind: block.routineReturnKind,
       routineParamNames: block.routineParamNames,
       routineCallMode: block.routineCallMode,
@@ -101,6 +107,12 @@ export class DragInteractionController {
       routineMemberKind: block.routineMemberKind,
       routineMemberRoutineId: block.routineMemberRoutineId,
       routineMemberRoutineName: block.routineMemberRoutineName,
+      forEachItemDeclarationId: block.forEachItemDeclarationId,
+      forEachItemName: block.forEachItemName,
+      forEachSourceStructureId: block.forEachSourceStructureId,
+      forEachSourceStructureKind: block.forEachSourceStructureKind,
+      referenceTargetKind: block.referenceTargetKind,
+      referenceTargetId: block.referenceTargetId,
       x: rect.left,
       y: rect.top,
       width: rect.width,
@@ -135,12 +147,17 @@ export class DragInteractionController {
       structureId: block.structureId,
       structureKind: block.structureKind,
       literalValue: block.literalValue,
+      declaredTypeRef: block.declaredTypeRef,
       variableName: block.variableName,
       variableSourceId: block.variableSourceId,
       variableOperationMode: block.variableOperationMode,
+      expressionFamily: block.expressionFamily,
       bindingKind: block.bindingKind,
       routineId: block.routineId,
       routineName: block.routineName,
+      typeRoutineId: block.typeRoutineId,
+      typeName: block.typeName,
+      typeFieldName: block.typeFieldName,
       routineReturnKind: block.routineReturnKind,
       routineParamNames: block.routineParamNames,
       routineCallMode: block.routineCallMode,
@@ -149,6 +166,12 @@ export class DragInteractionController {
       routineMemberKind: block.routineMemberKind,
       routineMemberRoutineId: block.routineMemberRoutineId,
       routineMemberRoutineName: block.routineMemberRoutineName,
+      forEachItemDeclarationId: block.forEachItemDeclarationId,
+      forEachItemName: block.forEachItemName,
+      forEachSourceStructureId: block.forEachSourceStructureId,
+      forEachSourceStructureKind: block.forEachSourceStructureKind,
+      referenceTargetKind: block.referenceTargetKind,
+      referenceTargetId: block.referenceTargetId,
       startX: event.clientX,
       startY: event.clientY,
       originX: rect.left,
@@ -208,12 +231,17 @@ export class DragInteractionController {
           structureId: pendingPress.structureId,
           structureKind: pendingPress.structureKind,
           literalValue: pendingPress.literalValue,
+          declaredTypeRef: pendingPress.declaredTypeRef,
           variableName: pendingPress.variableName,
           variableSourceId: pendingPress.variableSourceId,
           variableOperationMode: pendingPress.variableOperationMode,
+          expressionFamily: pendingPress.expressionFamily,
           bindingKind: pendingPress.bindingKind,
           routineId: pendingPress.routineId,
           routineName: pendingPress.routineName,
+          typeRoutineId: pendingPress.typeRoutineId,
+          typeName: pendingPress.typeName,
+          typeFieldName: pendingPress.typeFieldName,
           routineReturnKind: pendingPress.routineReturnKind,
           routineParamNames: pendingPress.routineParamNames,
           routineCallMode: pendingPress.routineCallMode,
@@ -222,6 +250,12 @@ export class DragInteractionController {
           routineMemberKind: pendingPress.routineMemberKind,
           routineMemberRoutineId: pendingPress.routineMemberRoutineId,
           routineMemberRoutineName: pendingPress.routineMemberRoutineName,
+          forEachItemDeclarationId: pendingPress.forEachItemDeclarationId,
+          forEachItemName: pendingPress.forEachItemName,
+          forEachSourceStructureId: pendingPress.forEachSourceStructureId,
+          forEachSourceStructureKind: pendingPress.forEachSourceStructureKind,
+          referenceTargetKind: pendingPress.referenceTargetKind,
+          referenceTargetId: pendingPress.referenceTargetId,
           x: pendingPress.originX,
           y: pendingPress.originY,
           width: pendingPress.width,
@@ -297,17 +331,80 @@ export class DragInteractionController {
       return;
     }
 
+    // Freeze drag visuals before any async prompt (e.g., variable name dialog).
+    // Otherwise pointermove can keep updating the ghost while the dialog is open.
+    this.ctx.setDragState(null);
+    this.ctx.setDragBaseLineRects(null);
+    this.ctx.render();
+
     const slotTargetId = dragState.slotTargetKey ?? null;
     const matchesPaletteBlock = (block: PaletteBlock): boolean => {
       switch (dragState.blockKind) {
+        case "structure":
+          return (
+            block.kind === "structure" &&
+            block.structureId === dragState.structureId &&
+            block.structureKind === dragState.structureKind
+          );
         case "value":
           return block.kind === "value" && block.literalValue === dragState.literalValue;
         case "conditional":
           return block.kind === "conditional";
+        case "function_definition":
+          return (
+            block.kind === "function_definition" &&
+            (block.routineId === dragState.routineId || dragState.routineId == null)
+          );
+        case "type_definition":
+          return (
+            block.kind === "type_definition" &&
+            (block.routineId === dragState.routineId || dragState.routineId == null)
+          );
+        case "type_instance_new":
+          return block.kind === "type_instance_new" && block.typeRoutineId === dragState.typeRoutineId;
+        case "type_field_read":
+          return (
+            block.kind === "type_field_read" &&
+            block.variableSourceId === dragState.variableSourceId &&
+            block.typeFieldName === dragState.typeFieldName
+          );
+        case "type_field_assign":
+          return (
+            block.kind === "type_field_assign" &&
+            block.variableSourceId === dragState.variableSourceId &&
+            block.typeFieldName === dragState.typeFieldName
+          );
         case "while":
           return block.kind === "while";
+        case "for_each":
+          return (
+            block.kind === "for_each" &&
+            block.forEachSourceStructureId === dragState.forEachSourceStructureId
+          );
+        case "break":
+          return block.kind === "break";
         case "var_declaration":
           return block.kind === "var_declaration";
+        case "var_assign":
+          return (
+            block.kind === "var_assign" &&
+            (block.variableSourceId === dragState.variableSourceId ||
+              dragState.variableSourceId == null)
+          );
+        case "var_read":
+          return (
+            block.kind === "var_read" &&
+            (block.variableSourceId === dragState.variableSourceId ||
+              dragState.variableSourceId == null)
+          );
+        case "var_reference":
+          return (
+            block.kind === "var_reference" &&
+            (block.referenceTargetKind === dragState.referenceTargetKind ||
+              dragState.referenceTargetKind == null) &&
+            (block.referenceTargetId === dragState.referenceTargetId ||
+              dragState.referenceTargetId == null)
+          );
         case "return":
           return block.kind === "return";
         case "routine_call":
@@ -331,9 +428,14 @@ export class DragInteractionController {
             block.variableSourceId === dragState.variableSourceId
           );
         case "var_binary_operation":
-          return block.kind === "var_binary_operation";
+          return (
+            block.kind === "var_binary_operation" &&
+            (block.expressionFamily === dragState.expressionFamily ||
+              (dragState.expressionFamily == null &&
+                block.variableOperationMode === dragState.variableOperationMode))
+          );
         default:
-          return block.kind === "structure" && block.structureId === dragState.structureId;
+          return false;
       }
     };
 
@@ -372,12 +474,13 @@ export class DragInteractionController {
                 ? "Block added to the editor."
                 : result.status
           );
+          if (dragState.source === "palette") {
+            await this.ctx.onPaletteBlockInserted?.(insertedBlock);
+          }
         }
       }
     }
 
-    this.ctx.setDragState(null);
-    this.ctx.setDragBaseLineRects(null);
     this.ctx.render();
   };
 }

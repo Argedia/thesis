@@ -2,7 +2,14 @@ import type { EditorBlock, EditorDragState, PaletteBlock } from "../model";
 import {
   createBooleanValueBlock,
   createConditionalBlock,
+  createForEachBlock,
+  createBreakBlock,
   createEditorBlock,
+  createFunctionDefinitionBlock,
+  createTypeDefinitionBlock,
+  createTypeFieldAssignBlock,
+  createTypeFieldReadBlock,
+  createTypeInstanceBlock,
   createReturnBlock,
   createWhileBlock,
   createRoutineCallBlock,
@@ -10,6 +17,9 @@ import {
   createRoutineValueBlock,
   createValueBlock,
   createVariableBinaryOperationBlock,
+  createVariableAssignBlock,
+  createVariableReadBlock,
+  createVariableReferenceBlock,
   createVariableDeclarationBlock,
   createVariableOperationBlock
 } from "../operations";
@@ -27,6 +37,14 @@ export class DragPreviewBlockFactory {
       outputType:
         dragState.blockKind === "value"
           ? "value"
+          : dragState.blockKind === "function_definition"
+            ? "none"
+          : dragState.blockKind === "type_definition"
+            ? "none"
+          : dragState.blockKind === "type_instance_new" || dragState.blockKind === "type_field_read"
+            ? "value"
+          : dragState.blockKind === "type_field_assign"
+            ? "none"
           : dragState.blockKind === "routine_call"
             ? dragState.routineCallMode === "reference"
               ? "value"
@@ -51,10 +69,14 @@ export class DragPreviewBlockFactory {
                     dragState.variableOperationMode === "or"
                     ? "boolean"
                     : "value"
+                : dragState.blockKind === "var_read" || dragState.blockKind === "var_reference"
+                  ? "value"
                 : "none",
       valueType:
         dragState.blockKind === "value"
           ? "text"
+          : dragState.blockKind === "type_instance_new" || dragState.blockKind === "type_field_read"
+            ? "text"
           : dragState.blockKind === "routine_call" && routineReturnKind === "boolean"
             ? "boolean"
             : dragState.blockKind === "routine_call" && routineReturnKind === "value"
@@ -63,13 +85,18 @@ export class DragPreviewBlockFactory {
                 ? "text"
                 : null,
       literalValue: dragState.literalValue ?? null,
+      declaredTypeRef: dragState.declaredTypeRef,
       conditionalMode: "if",
       variableName: dragState.variableName,
       variableSourceId: dragState.variableSourceId,
       variableOperationMode: dragState.variableOperationMode,
+      expressionFamily: dragState.expressionFamily,
       bindingKind: dragState.bindingKind,
       routineId: dragState.routineId,
       routineName: dragState.routineName,
+      typeRoutineId: dragState.typeRoutineId,
+      typeName: dragState.typeName,
+      typeFieldName: dragState.typeFieldName,
       routineReturnKind,
       routineParamNames: dragState.routineParamNames,
       routineCallMode: dragState.routineCallMode,
@@ -78,6 +105,12 @@ export class DragPreviewBlockFactory {
       routineMemberKind: dragState.routineMemberKind,
       routineMemberRoutineId: dragState.routineMemberRoutineId,
       routineMemberRoutineName: dragState.routineMemberRoutineName,
+      forEachItemDeclarationId: dragState.forEachItemDeclarationId,
+      forEachItemName: dragState.forEachItemName,
+      forEachSourceStructureId: dragState.forEachSourceStructureId,
+      forEachSourceStructureKind: dragState.forEachSourceStructureKind,
+      referenceTargetKind: dragState.referenceTargetKind,
+      referenceTargetId: dragState.referenceTargetId,
       label: dragState.routineName ?? dragState.structureId ?? "Block"
     };
   }
@@ -100,8 +133,74 @@ export class DragPreviewBlockFactory {
         case "conditional":
           previewBlock = createConditionalBlock(dragState.color, "if");
           break;
+        case "function_definition":
+          previewBlock =
+            dragState.routineId && dragState.routineName
+              ? createFunctionDefinitionBlock(
+                dragState.routineId,
+                dragState.routineName,
+                dragState.color
+              )
+              : null;
+          break;
+        case "type_definition":
+          previewBlock =
+            dragState.routineId && dragState.routineName
+              ? createTypeDefinitionBlock(
+                dragState.routineId,
+                dragState.routineName,
+                dragState.color
+              )
+              : null;
+          break;
+        case "type_instance_new":
+          previewBlock =
+            dragState.typeRoutineId && dragState.typeName
+              ? createTypeInstanceBlock(
+                dragState.typeRoutineId,
+                dragState.typeName,
+                dragState.color
+              )
+              : null;
+          break;
+        case "type_field_read":
+          previewBlock =
+            dragState.variableSourceId && dragState.variableName && dragState.typeFieldName
+              ? createTypeFieldReadBlock(
+                dragState.variableSourceId,
+                dragState.variableName,
+                dragState.typeFieldName,
+                dragState.color
+              )
+              : null;
+          break;
+        case "type_field_assign":
+          previewBlock =
+            dragState.variableSourceId && dragState.variableName && dragState.typeFieldName
+              ? createTypeFieldAssignBlock(
+                dragState.variableSourceId,
+                dragState.variableName,
+                dragState.typeFieldName,
+                dragState.color
+              )
+              : null;
+          break;
         case "while":
           previewBlock = createWhileBlock(dragState.color);
+          break;
+        case "for_each":
+          previewBlock =
+            dragState.forEachSourceStructureId && dragState.forEachSourceStructureKind
+              ? createForEachBlock(
+                dragState.forEachSourceStructureId,
+                dragState.forEachSourceStructureKind,
+                dragState.forEachItemName?.trim() || "item",
+                dragState.color
+              )
+              : null;
+          break;
+        case "break":
+          previewBlock = createBreakBlock(dragState.color);
           break;
         case "var_declaration":
           previewBlock = createVariableDeclarationBlock(
@@ -121,6 +220,28 @@ export class DragPreviewBlockFactory {
               )
               : null;
           break;
+        case "var_assign":
+          previewBlock = createVariableAssignBlock(
+            dragState.variableSourceId,
+            dragState.variableName?.trim() || "variable",
+            dragState.color
+          );
+          break;
+        case "var_read":
+          previewBlock = createVariableReadBlock(
+            dragState.variableSourceId,
+            dragState.variableName?.trim() || "variable",
+            dragState.color
+          );
+          break;
+        case "var_reference":
+          previewBlock = createVariableReferenceBlock(
+            dragState.variableName?.trim() || "target",
+            dragState.referenceTargetKind ?? "variable",
+            dragState.referenceTargetId,
+            dragState.color
+          );
+          break;
         case "var_binary_operation":
           previewBlock = createVariableBinaryOperationBlock(
             dragState.color,
@@ -128,7 +249,8 @@ export class DragPreviewBlockFactory {
               dragState.variableOperationMode !== "value" &&
               dragState.variableOperationMode !== "assign"
               ? dragState.variableOperationMode
-              : "add"
+              : "add",
+            dragState.expressionFamily
           );
           break;
         case "value":

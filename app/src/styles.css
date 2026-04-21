@@ -841,6 +841,11 @@ button:disabled {
 	gap: 0.55rem;
 }
 
+.ide-editor-frame .palette-lanes-shell {
+	min-height: 0;
+	max-height: 100%;
+}
+
 .ide-editor-frame .palette-groups {
 	min-height: 0;
 	max-height: 100%;
@@ -855,7 +860,7 @@ button:disabled {
 	-ms-overflow-style: none;
 }
 
-.ide-editor-frame .palette-groups > * {
+.ide-editor-frame .palette-groups>* {
 	direction: ltr;
 }
 
@@ -878,7 +883,7 @@ button:disabled {
 	background: rgba(108, 130, 151, 0.55);
 }
 
-.ide-editor-frame .palette-group + .palette-group {
+.ide-editor-frame .palette-group+.palette-group {
 	padding-top: 0.7rem;
 	border-top: 1px solid #d8e2ee;
 }
@@ -988,10 +993,60 @@ button:disabled {
 	align-content: start;
 }
 
+.palette-lanes-shell {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.5rem;
+	min-height: 0;
+}
+
+.palette-lane-rail {
+	display: grid;
+	align-content: start;
+	gap: 0.45rem;
+}
+
+.palette-lane-pill {
+	width: 100%;
+	min-height: 2.4rem;
+	padding: 0.35rem 0.45rem;
+	border: 1px solid #bfd1e3;
+	border-right: 0;
+	border-radius: 10px 0 0 10px;
+	background: #e8f0f8;
+	color: #6f879d;
+	font-size: 0.64rem;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+	box-shadow: inset -2px 0 0 rgba(255, 255, 255, 0.45);
+}
+
+.palette-lane-pill.active {
+	background: #f8fbff;
+	color: #2f5f8f;
+	border-color: #9ec5e5;
+	box-shadow: inset -2px 0 0 #f8fbff;
+}
+
+.palette-empty-state {
+	padding: 0.65rem 0.6rem;
+	border: 1px dashed #c3d3e2;
+	border-radius: 10px;
+	background: #f4f8fc;
+	color: #6f879d;
+	font-size: 0.78rem;
+	font-weight: 700;
+	line-height: 1.35;
+}
+
 .palette-groups {
 	display: grid;
 	gap: 0.85rem;
 	align-content: start;
+	min-height: 0;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
 }
@@ -1007,7 +1062,7 @@ button:disabled {
 	gap: 0.55rem;
 }
 
-.palette-group + .palette-group {
+.palette-group+.palette-group {
 	padding-top: 0.8rem;
 	border-top: 1px solid #d6e2ee;
 }
@@ -1242,12 +1297,12 @@ button:disabled {
 
 .editor-block.palette {
 	min-height: var(--editor-palette-block-height);
-	height: var(--editor-palette-block-height);
+	height: auto;
 	flex-direction: row;
 	align-items: center;
 	justify-content: flex-start;
 	border: 0;
-	overflow: hidden;
+	overflow: visible;
 }
 
 .editor-block.palette .block-chip {
@@ -1257,9 +1312,9 @@ button:disabled {
 .editor-block.palette strong {
 	flex: 1 1 auto;
 	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	overflow: visible;
+	white-space: normal;
+	word-break: break-word;
 	line-height: 1.1;
 }
 
@@ -1302,6 +1357,111 @@ button:disabled {
 .editor-block.variable-block {
 	min-height: var(--editor-block-height);
 	height: var(--editor-block-height);
+}
+
+.editor-block[class*="accent-"] {
+	--block-accent: #5f7c95;
+}
+
+.editor-block.accent-structure,
+.editor-block.accent-structure-stack {
+	--block-accent: #b67827;
+}
+
+.editor-block.accent-structure-queue {
+	--block-accent: #2f8d7f;
+}
+
+.editor-block.accent-structure-list {
+	--block-accent: #7d5ea5;
+}
+
+.editor-block.accent-literal {
+	--block-accent: #5b7f9c;
+}
+
+.editor-block.accent-expression-arithmetic {
+	--block-accent: #4f8d5e;
+}
+
+.editor-block.accent-expression-logical {
+	--block-accent: #7d5ea5;
+}
+
+.editor-block.accent-expression-comparison {
+	--block-accent: #4f7199;
+}
+
+.editor-block.accent-flow-conditional {
+	--block-accent: #b0628d;
+}
+
+.editor-block.accent-flow-while {
+	--block-accent: #9b4f7c;
+}
+
+.editor-block.accent-flow-foreach {
+	--block-accent: #7f5aa0;
+}
+
+.editor-block.accent-flow-break {
+	--block-accent: #8f4d75;
+}
+
+.editor-block.accent-function,
+.editor-block.accent-function-return,
+.editor-block.accent-function-definition {
+	--block-accent: #4e73a6;
+}
+
+.editor-block.accent-type-definition {
+	--block-accent: #b07a3f;
+}
+
+.editor-block.accent-type-instance {
+	--block-accent: #9f6b31;
+}
+
+.editor-block.accent-type-field-read {
+	--block-accent: #875a28;
+}
+
+.editor-block.accent-type-field-assign {
+	--block-accent: #744a21;
+}
+
+.editor-block.accent-variable-declaration,
+.editor-block.accent-variable-assign,
+.editor-block.accent-variable-read,
+.editor-block.accent-variable-reference,
+.editor-block.accent-variable-operation {
+	--block-accent: #4f8d6f;
+}
+
+.editor-block.accent-variable-parameter {
+	--block-accent: #4f7199;
+}
+
+.editor-block.sequence.editor-block-instance[class*="accent-"],
+.editor-block.sequence.editor-block-preview[class*="accent-"] {
+	border-color: var(--block-accent) !important;
+}
+
+.editor-block[class*="accent-"] .block-chip {
+	border-color: var(--block-accent);
+	color: var(--block-accent);
+}
+
+.editor-block.palette[class*="accent-"] strong,
+.editor-block[class*="accent-"] .editor-block-instance-operator,
+.editor-block[class*="accent-"] .editor-block-handle-arrow,
+.editor-block[class*="accent-"] .editor-block-instance-label {
+	color: var(--block-accent);
+}
+
+.editor-block[class*="accent-"] .editor-block-instance-handle,
+.editor-block[class*="accent-"] .editor-block-instance-handle-compact {
+	border-color: var(--block-accent);
 }
 
 .editor-block-instance-main {
@@ -1397,9 +1557,30 @@ button:disabled {
 	color: #2f5f8f;
 }
 
+.editor-value-type-user {
+	background: rgba(255, 184, 120, 0.3);
+	color: #9f6122;
+}
+
+.editor-block.declaration-type-int {
+	--block-accent: #7b4f12;
+}
+
+.editor-block.declaration-type-double {
+	--block-accent: #554298;
+}
+
+.editor-block.declaration-type-string {
+	--block-accent: #2f5f8f;
+}
+
+.editor-block.declaration-type-user {
+	--block-accent: #b8692e;
+}
+
 .editor-block-instance-cavity {
 	width: auto;
-	min-width: 4.4rem;
+	min-width: 3.1rem;
 	height: calc(var(--editor-block-height) - 4px);
 	padding: 0 0.14rem;
 	border: 0;
@@ -1453,7 +1634,7 @@ button:disabled {
 	box-shadow: inset 0 0 0 3px #db7f7f;
 }
 
-.editor-block-instance-cavity.filled > .editor-block-instance {
+.editor-block-instance-cavity.filled>.editor-block-instance {
 	width: 100%;
 	height: 100%;
 }
@@ -1564,6 +1745,21 @@ button:disabled {
 .wheel-option.selected {
 	border-color: #355070;
 	color: #213a5a;
+}
+
+.wheel-option.accent-expression-arithmetic.selected {
+	border-color: #4f8d5e;
+	color: #315e3d;
+}
+
+.wheel-option.accent-expression-logical.selected {
+	border-color: #7d5ea5;
+	color: #563f76;
+}
+
+.wheel-option.accent-expression-comparison.selected {
+	border-color: #4f7199;
+	color: #365170;
 }
 
 .drag-ghost {

@@ -40,6 +40,7 @@ export function PlayLevelScreen() {
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
   const [isLevelInfoOpen, setIsLevelInfoOpen] = useState(false);
   const [dialogValue, setDialogValue] = useState("");
+  const [dialogSecondaryValue, setDialogSecondaryValue] = useState("");
   const [dialogError, setDialogError] = useState("");
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1280
@@ -64,6 +65,23 @@ export function PlayLevelScreen() {
         title: string;
         message: string;
         resolve: () => void;
+      }
+    | {
+        kind: "select";
+        title: string;
+        options: Array<{ value: string; label: string }>;
+        initialValue?: string;
+        resolve: (value: string | null) => void;
+      }
+    | {
+        kind: "declaration";
+        title: string;
+        nameTitle: string;
+        typeTitle: string;
+        options: Array<{ value: string; label: string }>;
+        initialName?: string;
+        initialTypeValue?: string;
+        resolve: (value: { name: string; typeValue: string } | null) => void;
       }
   >(null);
 
@@ -224,6 +242,7 @@ export function PlayLevelScreen() {
   const closeDialog = () => {
     setDialogState(null);
     setDialogValue("");
+    setDialogSecondaryValue("");
     setDialogError("");
   };
 
@@ -232,10 +251,10 @@ export function PlayLevelScreen() {
       return;
     }
 
-    if (dialogState.kind === "text") {
-      dialogState.resolve(null);
-    } else {
+    if (dialogState.kind === "alert") {
       dialogState.resolve();
+    } else {
+      dialogState.resolve(null);
     }
     closeDialog();
   };
@@ -250,6 +269,41 @@ export function PlayLevelScreen() {
       setDialogError("");
       setDialogState({
         kind: "text",
+        ...options,
+        resolve
+      });
+    });
+
+  const requestSelectInput = (options: {
+    title: string;
+    initialValue?: string;
+    options: Array<{ value: string; label: string }>;
+  }) =>
+    new Promise<string | null>((resolve) => {
+      setDialogValue(options.initialValue ?? options.options[0]?.value ?? "");
+      setDialogSecondaryValue("");
+      setDialogError("");
+      setDialogState({
+        kind: "select",
+        ...options,
+        resolve
+      });
+    });
+
+  const requestDeclarationInput = (options: {
+    title: string;
+    nameTitle: string;
+    typeTitle: string;
+    initialName?: string;
+    initialTypeValue?: string;
+    options: Array<{ value: string; label: string }>;
+  }) =>
+    new Promise<{ name: string; typeValue: string } | null>((resolve) => {
+      setDialogValue(options.initialName ?? "");
+      setDialogSecondaryValue(options.initialTypeValue ?? options.options[0]?.value ?? "");
+      setDialogError("");
+      setDialogState({
+        kind: "declaration",
         ...options,
         resolve
       });
@@ -274,6 +328,33 @@ export function PlayLevelScreen() {
 
     if (dialogState.kind === "alert") {
       dialogState.resolve();
+      closeDialog();
+      return;
+    }
+
+    if (dialogState.kind === "select") {
+      if (!dialogValue) {
+        setDialogError(t("messages.valueEmpty"));
+        return;
+      }
+      dialogState.resolve(dialogValue);
+      closeDialog();
+      return;
+    }
+
+    if (dialogState.kind === "declaration") {
+      if (!dialogValue.trim()) {
+        setDialogError(t("messages.variableNameEmpty"));
+        return;
+      }
+      if (!dialogSecondaryValue) {
+        setDialogError(t("messages.valueEmpty"));
+        return;
+      }
+      dialogState.resolve({
+        name: dialogValue.trim(),
+        typeValue: dialogSecondaryValue
+      });
       closeDialog();
       return;
     }
@@ -460,6 +541,8 @@ export function PlayLevelScreen() {
                     onChange={(document) => controller.setDocument(document)}
                     onStatus={(message) => controller.setStatus(message)}
                     onRequestTextInput={requestTextInput}
+                    onRequestSelectInput={requestSelectInput}
+                    onRequestDeclarationInput={requestDeclarationInput}
                     onShowAlert={showAlert}
                   />
                 </div>
@@ -582,6 +665,79 @@ export function PlayLevelScreen() {
               <div className="app-dialog-actions">
                 <Button className="app-dialog-button" onPress={handleDialogSubmit}>
                   {t("common.ok")}
+                </Button>
+              </div>
+            </AppDialog>
+          ) : null}
+
+          {dialogState?.kind === "select" ? (
+            <AppDialog title={dialogState.title}>
+              <label className="app-text-dialog-label" htmlFor="app-select-dialog-input">
+                {dialogState.title}
+              </label>
+              <select
+                id="app-select-dialog-input"
+                className="app-text-dialog-input"
+                value={dialogValue}
+                onChange={(event) => setDialogValue(event.target.value)}
+                autoFocus
+              >
+                {dialogState.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              {dialogError ? <p className="app-dialog-error">{dialogError}</p> : null}
+
+              <div className="app-dialog-actions">
+                <Button className="app-dialog-button secondary" onPress={dismissDialog}>
+                  {t("common.cancel")}
+                </Button>
+                <Button className="app-dialog-button" onPress={handleDialogSubmit}>
+                  {t("common.save")}
+                </Button>
+              </div>
+            </AppDialog>
+          ) : null}
+
+          {dialogState?.kind === "declaration" ? (
+            <AppDialog title={dialogState.title}>
+              <label className="app-text-dialog-label" htmlFor="app-declaration-type-input">
+                {dialogState.typeTitle}
+              </label>
+              <select
+                id="app-declaration-type-input"
+                className="app-text-dialog-input"
+                value={dialogSecondaryValue}
+                onChange={(event) => setDialogSecondaryValue(event.target.value)}
+              >
+                {dialogState.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <TextField
+                autoFocus
+                className="app-text-dialog-field"
+                value={dialogValue}
+                onChange={setDialogValue}
+              >
+                <Label className="app-text-dialog-label">{dialogState.nameTitle}</Label>
+                <Input className="app-text-dialog-input" />
+              </TextField>
+
+              {dialogError ? <p className="app-dialog-error">{dialogError}</p> : null}
+
+              <div className="app-dialog-actions">
+                <Button className="app-dialog-button secondary" onPress={dismissDialog}>
+                  {t("common.cancel")}
+                </Button>
+                <Button className="app-dialog-button" onPress={handleDialogSubmit}>
+                  {t("common.save")}
                 </Button>
               </div>
             </AppDialog>

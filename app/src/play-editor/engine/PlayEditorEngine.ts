@@ -33,7 +33,11 @@ import {
 	DragInteractionController,
 	type DragInteractionControllerContext
 } from "../interaction/DragInteractionController";
-import { PaletteRenderer, type PaletteRendererContext } from "../render/PaletteRenderer";
+import {
+	PaletteRenderer,
+	type PaletteLaneId,
+	type PaletteRendererContext
+} from "../render/PaletteRenderer";
 import {
 	EditorCanvasRenderer,
 	type EditorCanvasRendererContext
@@ -68,10 +72,19 @@ import {
 	blockColorClass,
 	createEditorDocumentFromLegacyBlocks,
 	createVariableBinaryOperationBlock,
+	createVariableAssignBlock,
 	createVariableDeclarationBlock,
-	createVariableOperationBlock,
+	createVariableReadBlock,
+	createVariableReferenceBlock,
 	createConditionalBlock,
 	createWhileBlock,
+	createFunctionDefinitionBlock,
+	createTypeDefinitionBlock,
+	createTypeFieldAssignBlock,
+	createTypeFieldReadBlock,
+	createTypeInstanceBlock,
+	createForEachBlock,
+	createBreakBlock,
 	createReturnBlock,
 	createRoutineCallBlock,
 	createRoutineMemberBlock,
@@ -79,6 +92,8 @@ import {
 	createBooleanValueBlock,
 	createEditorBlock,
 	createValueBlock,
+	collectVariableDeclarations,
+	listTypeSignatures,
 	getBlockInputSlots,
 	getBlockSlotBlock,
 	getOutputType,
@@ -87,7 +102,7 @@ import {
 	describeBlock,
 	projectDocumentToLegacyBlocks
 } from "../operations";
-import { buildEditorLineLayout } from "../model";
+import { buildEditorLineLayout, renameRoutine } from "../model";
 import { BLOCK_METADATA, type PaletteGroupId } from "../BlockMetadata";
 import type {
 	PendingPress,
@@ -97,7 +112,7 @@ import type {
 import { FUNCTION_BLUE, PREVIEW_BLOCK_ID } from "../contracts/constants";
 
 type ControlEditorBlock = EditorBlock & {
-	kind: "conditional" | "while";
+	kind: "conditional" | "while" | "for_each";
 };
 
 export class PlayEditorEngine {
@@ -139,6 +154,7 @@ export class PlayEditorEngine {
 	private readonly hostInteraction = new HostInteractionController();
 	private pressState: PendingPress | null = null;
 	private wheelState: WheelState | null = null;
+	private selectedPaletteLane: PaletteLaneId = "base";
 	private expandedPaletteGroupIds = new Set<PaletteGroupId>();
 	private cleanupFns: Array<() => void> = [];
 
@@ -302,7 +318,10 @@ export class PlayEditorEngine {
 				canUseSlotTarget: (targetSlotKey) => this.canUseSlotTarget(targetSlotKey),
 				applyDropDestination: (blocks, insertedBlock, placement) =>
 					this.applyDropDestination(blocks, insertedBlock, placement),
-				setBlocks: (nextBlocks) => this.setBlocks(nextBlocks)
+				setBlocks: (nextBlocks) => this.setBlocks(nextBlocks),
+				onPaletteBlockInserted: async (block) => {
+					await this.handlePaletteBlockInserted(block);
+				}
 			};
 			this.dragInteraction = new DragInteractionController(context);
 		}
@@ -314,7 +333,31 @@ export class PlayEditorEngine {
 			const context: PaletteRendererContext = {
 				getPaletteBlocks: () => this.paletteBlocks,
 				getIsActiveRoutineFunction: () => this.isActiveRoutineFunction(),
+				getHasFunctionDefinition: () =>
+					this.getBlocks().some((block) => block.kind === "function_definition"),
+				getHasTypeDefinition: () =>
+					this.getBlocks().some((block) => block.kind === "type_definition"),
 				getIsLocked: () => this.isLocked(),
+				getSelectedPaletteLane: () => this.selectedPaletteLane,
+				setSelectedPaletteLane: (lane) => {
+					if (this.selectedPaletteLane === lane) {
+						return;
+					}
+					this.selectedPaletteLane = lane;
+					this.render();
+				},
+				getPaletteLaneLabel: (lane) => {
+					switch (lane) {
+						case "scope":
+							return t("editor.paletteLaneScope");
+						case "created":
+							return t("editor.paletteLaneCreated");
+						case "base":
+						default:
+							return t("editor.paletteLaneBase");
+					}
+				},
+				getEmptyPaletteLaneText: () => t("editor.paletteLaneEmpty"),
 				isPaletteGroupExpanded: (groupId) => this.expandedPaletteGroupIds.has(groupId),
 				togglePaletteGroupExpanded: (groupId) => {
 					if (this.expandedPaletteGroupIds.has(groupId)) {
@@ -326,6 +369,7 @@ export class PlayEditorEngine {
 				},
 				getPaletteGroupId: (block) => this.getPaletteGroupId(block),
 				getPaletteGroupLabel: (groupId) => this.getPaletteGroupLabel(groupId),
+				getFunctionTypeExclusiveHintText: () => t("editor.functionTypeExclusiveHint"),
 				getVariableSubgroupLabel: (kind) =>
 					kind === "declared"
 						? t("editor.groupDeclaredVariables")
@@ -432,7 +476,16 @@ export class PlayEditorEngine {
 				parseLiteralInput: (rawValue) => this.parseLiteralInput(rawValue),
 				promptForVariableName: (currentName, excludeDeclarationId) =>
 					this.promptForVariableName(currentName, excludeDeclarationId),
+				promptForScopeVariableTarget: (currentTargetId) =>
+					this.promptForScopeVariableTarget(currentTargetId),
+				promptForTypedFieldTarget: (currentVariableId, currentFieldName) =>
+					this.promptForTypedFieldTarget({
+						currentVariableId,
+						currentFieldName
+					}),
 				promptForValueText: (currentValue) => this.promptForValueText(currentValue),
+				promptForRoutineName: (currentName) => this.promptForRoutineName(currentName),
+				renameRoutine: (routineId, name) => this.renameRoutineById(routineId, name),
 				emitStatus: (message) => this.emitStatus(message)
 			};
 			this.blockAction = new BlockActionController(context);
@@ -477,7 +530,7 @@ export class PlayEditorEngine {
 				onStartProgramPress: (event, block, rect) =>
 					this.startProgramPress(event, block, rect),
 				onRemoveBlock: (blockId) => {
-					this.setBlocks(this.removeBlockById(this.getBlocks(), blockId));
+					this.setBlocks(this.removeBlockWithSideEffects(blockId));
 					this.closeWheel();
 					this.emitStatus("Block removed.");
 				},
@@ -494,7 +547,11 @@ export class PlayEditorEngine {
 					this.openWheel(blockId);
 				},
 				registerSlotRef: (slotKey, element) => this.slotRefs.set(slotKey, element),
-				registerBlockRef: (blockId, element) => this.blockRefs.set(blockId, element)
+				registerBlockRef: (blockId, element) => this.blockRefs.set(blockId, element),
+				resolveTypeName: (typeRoutineId) =>
+					listTypeSignatures(this.props.value).find(
+						(signature) => signature.typeRoutineId === typeRoutineId
+					)?.typeName ?? null
 			};
 			this.blockInstanceRenderer = new BlockInstanceRenderer(context);
 		}
@@ -530,6 +587,13 @@ export class PlayEditorEngine {
 
 	private getActiveRoutineSignature(): RoutineSignature | null {
 		return this.getRoutineSignatures()[this.props.value.activeRoutineId] ?? null;
+	}
+
+	private getActiveRoutineName(): string {
+		return (
+			this.props.value.routines.find((routine) => routine.id === this.props.value.activeRoutineId)
+				?.name ?? t("editor.functionDefault")
+		);
 	}
 
 	private isActiveRoutineFunction(): boolean {
@@ -579,6 +643,71 @@ export class PlayEditorEngine {
 		return this.getMutationService().removeBlockById(blocks, blockId);
 	}
 
+	private removeReturnsInBlocks(blocks: EditorBlock[]): EditorBlock[] {
+		return blocks
+			.filter((block) => block.kind !== "return")
+			.map((block) => ({
+				...block,
+				inputBlock: block.inputBlock ? this.removeReturnsInBlocks([block.inputBlock])[0] ?? null : null,
+				inputBlocks: block.inputBlocks?.map((inputBlock) =>
+					inputBlock ? this.removeReturnsInBlocks([inputBlock])[0] ?? null : null
+				),
+				bodyBlocks: block.bodyBlocks ? this.removeReturnsInBlocks(block.bodyBlocks) : block.bodyBlocks,
+				alternateBodyBlocks: block.alternateBodyBlocks
+					? this.removeReturnsInBlocks(block.alternateBodyBlocks)
+					: block.alternateBodyBlocks
+			}));
+	}
+
+	private removeTypeDependentBlocks(blocks: EditorBlock[], typeRoutineId: string): EditorBlock[] {
+		return blocks
+			.filter((block) => {
+				if (block.kind === "type_instance_new" && block.typeRoutineId === typeRoutineId) {
+					return false;
+				}
+				if (
+					(block.kind === "var_declaration" && block.declaredTypeRef?.kind === "user" && block.declaredTypeRef.typeRoutineId === typeRoutineId) ||
+					(block.kind === "type_field_read" && block.typeRoutineId === typeRoutineId) ||
+					(block.kind === "type_field_assign" && block.typeRoutineId === typeRoutineId)
+				) {
+					return false;
+				}
+				return true;
+			})
+			.map((block) => ({
+				...block,
+				inputBlock: block.inputBlock ? this.removeTypeDependentBlocks([block.inputBlock], typeRoutineId)[0] ?? null : null,
+				inputBlocks: block.inputBlocks?.map((inputBlock) =>
+					inputBlock ? this.removeTypeDependentBlocks([inputBlock], typeRoutineId)[0] ?? null : null
+				),
+				bodyBlocks: block.bodyBlocks ? this.removeTypeDependentBlocks(block.bodyBlocks, typeRoutineId) : block.bodyBlocks,
+				alternateBodyBlocks: block.alternateBodyBlocks
+					? this.removeTypeDependentBlocks(block.alternateBodyBlocks, typeRoutineId)
+					: block.alternateBodyBlocks
+			}));
+	}
+
+	private removeBlockWithSideEffects(blockId: string): EditorBlock[] {
+		const blocks = this.getBlocks();
+		const blockToRemove = this.getTreeService().findBlockById(blocks, blockId);
+		if (!blockToRemove) {
+			return blocks;
+		}
+
+		let nextBlocks = this.removeBlockById(blocks, blockId);
+		if (blockToRemove.kind === "function_definition") {
+			nextBlocks = this.removeReturnsInBlocks(nextBlocks);
+		}
+		if (blockToRemove.kind === "type_definition") {
+			nextBlocks = this.removeTypeDependentBlocks(
+				nextBlocks,
+				blockToRemove.routineId ?? this.props.value.activeRoutineId
+			);
+		}
+
+		return nextBlocks;
+	}
+
 	private extractBlockFromTree(
 		blocks: EditorBlock[],
 		blockId: string
@@ -587,9 +716,109 @@ export class PlayEditorEngine {
 	}
 
 	private setBlocks(nextBlocks: EditorBlock[]): void {
+		const syncedBlocks = this.synchronizeVariableLabels(nextBlocks);
 		this.props.onChange(
-			createEditorDocumentFromLegacyBlocks(nextBlocks, this.props.value)
+			createEditorDocumentFromLegacyBlocks(syncedBlocks, this.props.value)
 		);
+	}
+
+	private synchronizeVariableLabels(blocks: EditorBlock[]): EditorBlock[] {
+		const declarations = collectVariableDeclarations(blocks);
+		const activeRoutineId = this.props.value.activeRoutineId;
+		const activeRoutineName = this.getActiveRoutineName();
+		const nameById = new Map<string, string>(
+			declarations.map((declaration) => [declaration.id, declaration.name])
+		);
+
+		const syncBlock = (block: EditorBlock): EditorBlock => {
+			let nextBlock = block;
+			if (
+				(block.kind === "var_read" ||
+					block.kind === "var_assign" ||
+					block.kind === "var_operation" ||
+					block.kind === "type_field_read" ||
+					block.kind === "type_field_assign") &&
+				block.variableSourceId
+			) {
+				const syncedName = nameById.get(block.variableSourceId);
+				if (syncedName && syncedName !== block.variableName) {
+					nextBlock = {
+						...nextBlock,
+						variableName: syncedName
+					};
+				}
+			}
+
+			if (
+				block.kind === "var_reference" &&
+				block.referenceTargetKind === "variable" &&
+				block.referenceTargetId
+			) {
+				const syncedTargetName = nameById.get(block.referenceTargetId);
+				if (syncedTargetName && syncedTargetName !== block.variableName) {
+					nextBlock = {
+						...nextBlock,
+						variableName: syncedTargetName
+					};
+				}
+			}
+
+			if (block.kind === "function_definition") {
+				if (
+					nextBlock.routineId !== activeRoutineId ||
+					nextBlock.routineName !== activeRoutineName
+				) {
+					nextBlock = {
+						...nextBlock,
+						routineId: activeRoutineId,
+						routineName: activeRoutineName
+					};
+				}
+			}
+			if (block.kind === "type_definition") {
+				if (
+					nextBlock.routineId !== activeRoutineId ||
+					nextBlock.routineName !== activeRoutineName ||
+					nextBlock.typeName !== activeRoutineName
+				) {
+					nextBlock = {
+						...nextBlock,
+						routineId: activeRoutineId,
+						routineName: activeRoutineName,
+						typeRoutineId: activeRoutineId,
+						typeName: activeRoutineName
+					};
+				}
+			}
+
+			const syncedInputBlock = nextBlock.inputBlock
+				? syncBlock(nextBlock.inputBlock)
+				: nextBlock.inputBlock;
+			const syncedInputBlocks = nextBlock.inputBlocks?.map((inputBlock) =>
+				inputBlock ? syncBlock(inputBlock) : inputBlock
+			);
+			const syncedBodyBlocks = nextBlock.bodyBlocks?.map(syncBlock);
+			const syncedAlternateBodyBlocks = nextBlock.alternateBodyBlocks?.map(syncBlock);
+
+			if (
+				syncedInputBlock !== nextBlock.inputBlock ||
+				syncedInputBlocks !== nextBlock.inputBlocks ||
+				syncedBodyBlocks !== nextBlock.bodyBlocks ||
+				syncedAlternateBodyBlocks !== nextBlock.alternateBodyBlocks
+			) {
+				nextBlock = {
+					...nextBlock,
+					inputBlock: syncedInputBlock,
+					inputBlocks: syncedInputBlocks,
+					bodyBlocks: syncedBodyBlocks,
+					alternateBodyBlocks: syncedAlternateBodyBlocks
+				};
+			}
+
+			return nextBlock;
+		};
+
+		return blocks.map(syncBlock);
 	}
 
 	private isVariableNameTaken(name: string, excludeDeclarationId?: string): boolean {
@@ -610,6 +839,40 @@ export class PlayEditorEngine {
 		}
 
 		return window.prompt(options.title, options.initialValue ?? "") ?? null;
+	}
+
+	private async requestSelectInput(options: {
+		title: string;
+		initialValue?: string;
+		options: Array<{ value: string; label: string }>;
+	}): Promise<string | null> {
+		if (this.props.onRequestSelectInput) {
+			return this.props.onRequestSelectInput(options);
+		}
+
+		const optionsText = options.options
+			.map((option, index) => `${index + 1}. ${option.label}`)
+			.join("\n");
+		const response = window.prompt(
+			`${options.title}\n${optionsText}`,
+			options.initialValue ?? options.options[0]?.value ?? ""
+		);
+		if (response === null) {
+			return null;
+		}
+		const trimmed = response.trim();
+		if (!trimmed) {
+			return null;
+		}
+		const byValue = options.options.find((option) => option.value === trimmed);
+		if (byValue) {
+			return byValue.value;
+		}
+		const numericIndex = Number(trimmed);
+		if (Number.isInteger(numericIndex)) {
+			return options.options[numericIndex - 1]?.value ?? null;
+		}
+		return null;
 	}
 
 	private async showAlert(options: { title?: string; message: string }): Promise<void> {
@@ -652,6 +915,33 @@ export class PlayEditorEngine {
 		}
 	}
 
+	private async promptForRoutineName(currentName?: string): Promise<string | null> {
+		const nextName = await this.requestTextInput({
+			title: t("editor.routineName"),
+			initialValue: currentName?.trim() || this.getActiveRoutineName()
+		});
+		if (nextName === null) {
+			return null;
+		}
+		const normalizedName = nextName.trim();
+		if (!normalizedName) {
+			await this.showAlert({
+				title: t("common.notice"),
+				message: t("messages.routineNameEmpty")
+			});
+			return this.promptForRoutineName(currentName);
+		}
+		return normalizedName;
+	}
+
+	private renameRoutineById(routineId: string, name: string): void {
+		const normalizedName = name.trim();
+		if (!normalizedName) {
+			return;
+		}
+		this.props.onChange(renameRoutine(this.props.value, routineId, normalizedName));
+	}
+
 	private async promptForValueText(currentValue?: DataValue | null): Promise<string | null> {
 		const nextValue = await this.requestTextInput({
 			title: t("editor.valuePrompt"),
@@ -673,19 +963,308 @@ export class PlayEditorEngine {
 		return normalizedValue;
 	}
 
+	private async promptForScopeVariableTarget(currentTargetId?: string): Promise<{ id: string; name: string } | null> {
+		const declarations = collectVariableDeclarations(this.getBlocks());
+		if (declarations.length === 0) {
+			await this.showAlert({
+				title: t("common.notice"),
+				message: t("common.noVariables")
+			});
+			return null;
+		}
+
+		const selectedId = await this.requestSelectInput({
+			title: t("editor.scopeVariablePrompt"),
+			initialValue: currentTargetId ?? declarations[0]?.id,
+			options: declarations.map((declaration) => ({
+				value: declaration.id,
+				label: declaration.name
+			}))
+		});
+		if (!selectedId) {
+			return null;
+		}
+
+		const selected = declarations.find((declaration) => declaration.id === selectedId) ?? null;
+		return selected ? { id: selected.id, name: selected.name } : null;
+	}
+
+	private async promptForDeclaredTypeRef(
+		currentTypeRef?: EditorBlock["declaredTypeRef"]
+	): Promise<EditorBlock["declaredTypeRef"] | null> {
+		const primitiveOptions: Array<{
+			value: string;
+			label: string;
+			typeRef: EditorBlock["declaredTypeRef"];
+		}> = [
+			{
+				value: "primitive:value",
+				label: t("blocks.value"),
+				typeRef: { kind: "primitive", primitive: "value" }
+			},
+			{
+				value: "primitive:text",
+				label: t("blocks.text"),
+				typeRef: { kind: "primitive", primitive: "text" }
+			},
+			{
+				value: "primitive:boolean",
+				label: t("blocks.boolean"),
+				typeRef: { kind: "primitive", primitive: "boolean" }
+			}
+		];
+		const userTypeOptions = listTypeSignatures(this.props.value).map((signature) => ({
+			value: `user:${signature.typeRoutineId}`,
+			label: signature.typeName,
+			typeRef: {
+				kind: "user" as const,
+				typeRoutineId: signature.typeRoutineId
+			}
+		}));
+		const allOptions = [...primitiveOptions, ...userTypeOptions];
+		if (allOptions.length === 0) {
+			return { kind: "primitive", primitive: "value" };
+		}
+
+		const initialValue =
+			currentTypeRef?.kind === "primitive"
+				? `primitive:${currentTypeRef.primitive}`
+				: currentTypeRef?.kind === "user"
+					? `user:${currentTypeRef.typeRoutineId}`
+					: "primitive:value";
+
+		const selectedValue = await this.requestSelectInput({
+			title: t("editor.variableTypePrompt"),
+			initialValue,
+			options: allOptions.map((option) => ({
+				value: option.value,
+				label: option.label
+			}))
+		});
+		if (!selectedValue) {
+			return null;
+		}
+		const selected = allOptions.find((option) => option.value === selectedValue) ?? null;
+		return selected?.typeRef ?? { kind: "primitive", primitive: "value" };
+	}
+
+	private async promptForVariableDeclarationSpec(options?: {
+		currentName?: string;
+		currentTypeRef?: EditorBlock["declaredTypeRef"];
+		excludeDeclarationId?: string;
+	}): Promise<{ name: string; declaredTypeRef: EditorBlock["declaredTypeRef"] } | null> {
+		const primitiveOptions: Array<{
+			value: string;
+			label: string;
+			typeRef: EditorBlock["declaredTypeRef"];
+		}> = [
+			{
+				value: "primitive:value",
+				label: t("blocks.value"),
+				typeRef: { kind: "primitive", primitive: "value" }
+			},
+			{
+				value: "primitive:text",
+				label: t("blocks.text"),
+				typeRef: { kind: "primitive", primitive: "text" }
+			},
+			{
+				value: "primitive:boolean",
+				label: t("blocks.boolean"),
+				typeRef: { kind: "primitive", primitive: "boolean" }
+			}
+		];
+		const userTypeOptions = listTypeSignatures(this.props.value).map((signature) => ({
+			value: `user:${signature.typeRoutineId}`,
+			label: signature.typeName,
+			typeRef: {
+				kind: "user" as const,
+				typeRoutineId: signature.typeRoutineId
+			}
+		}));
+		const allOptions = [...primitiveOptions, ...userTypeOptions];
+		const initialTypeValue =
+			options?.currentTypeRef?.kind === "primitive"
+				? `primitive:${options.currentTypeRef.primitive}`
+				: options?.currentTypeRef?.kind === "user"
+					? `user:${options.currentTypeRef.typeRoutineId}`
+					: "primitive:value";
+
+		if (this.props.onRequestDeclarationInput) {
+			const response = await this.props.onRequestDeclarationInput({
+				title: t("blocks.declaration"),
+				nameTitle: t("editor.variableNamePrompt"),
+				typeTitle: t("editor.variableTypePrompt"),
+				initialName: options?.currentName?.trim() || "variable",
+				initialTypeValue,
+				options: allOptions.map((option) => ({
+					value: option.value,
+					label: option.label
+				}))
+			});
+			if (!response) {
+				return null;
+			}
+			const normalizedName = response.name.trim();
+			if (!normalizedName) {
+				await this.showAlert({
+					title: t("common.notice"),
+					message: t("messages.variableNameEmpty")
+				});
+				return null;
+			}
+			if (this.isVariableNameTaken(normalizedName, options?.excludeDeclarationId)) {
+				await this.showAlert({
+					title: t("common.notice"),
+					message: t("messages.variableNameExists", { name: normalizedName })
+				});
+				return null;
+			}
+			const selected = allOptions.find((option) => option.value === response.typeValue) ?? null;
+			return {
+				name: normalizedName,
+				declaredTypeRef: selected?.typeRef ?? { kind: "primitive", primitive: "value" }
+			};
+		}
+
+		const name = await this.promptForVariableName(
+			options?.currentName,
+			options?.excludeDeclarationId
+		);
+		if (!name) {
+			return null;
+		}
+		const declaredTypeRef = await this.promptForDeclaredTypeRef(options?.currentTypeRef);
+		if (!declaredTypeRef) {
+			return null;
+		}
+		return { name, declaredTypeRef };
+	}
+
+	private async promptForTypedFieldTarget(options?: {
+		currentVariableId?: string;
+		currentFieldName?: string;
+	}): Promise<{ variableId: string; variableName: string; fieldName: string } | null> {
+		const declarations = collectVariableDeclarations(this.getBlocks()).filter(
+			(declaration) => declaration.declaredTypeRef?.kind === "user"
+		);
+		if (declarations.length === 0) {
+			await this.showAlert({
+				title: t("common.notice"),
+				message: t("messages.unknownType")
+			});
+			return null;
+		}
+
+		const variableId = await this.requestSelectInput({
+			title: t("editor.scopeVariablePrompt"),
+			initialValue: options?.currentVariableId ?? declarations[0]?.id,
+			options: declarations.map((declaration) => ({
+				value: declaration.id,
+				label: declaration.name
+			}))
+		});
+		if (!variableId) {
+			return null;
+		}
+		const selectedVariable = declarations.find((declaration) => declaration.id === variableId) ?? null;
+		if (!selectedVariable || selectedVariable.declaredTypeRef?.kind !== "user") {
+			return null;
+		}
+		const selectedTypeRef = selectedVariable.declaredTypeRef;
+
+		const typeSignature =
+			listTypeSignatures(this.props.value).find(
+				(signature) => signature.typeRoutineId === selectedTypeRef.typeRoutineId
+			) ?? null;
+		const fieldOptions = (typeSignature?.fieldDeclarations ?? [])
+			.map((field) => field.name.trim())
+			.filter((fieldName) => fieldName.length > 0)
+			.map((fieldName) => ({
+				value: fieldName,
+				label: fieldName
+			}));
+		if (fieldOptions.length === 0) {
+			await this.showAlert({
+				title: t("common.notice"),
+				message: t("messages.unknownTypeField")
+			});
+			return null;
+		}
+		const fieldName = await this.requestSelectInput({
+			title: t("blocks.field"),
+			initialValue: options?.currentFieldName ?? fieldOptions[0]?.value,
+			options: fieldOptions
+		});
+		if (!fieldName) {
+			return null;
+		}
+		return {
+			variableId: selectedVariable.id,
+			variableName: selectedVariable.name,
+			fieldName
+		};
+	}
+
 	private parseLiteralInput(rawValue: string): DataValue {
 		return this.getLiteralParserService().parseLiteralInput(rawValue);
 	}
 
 	private isControlBlock(block: EditorBlock | null | undefined): block is ControlEditorBlock {
-		return !!block && (block.kind === "conditional" || block.kind === "while");
+		return !!block && (block.kind === "conditional" || block.kind === "while" || block.kind === "for_each");
 	}
 
 	private getControlLabel(block: Pick<EditorBlock, "kind">): string {
-		return block.kind === "while" ? t("blocks.while").toLowerCase() : t("blocks.if").toLowerCase();
+		if (block.kind === "while") {
+			return t("blocks.while").toLowerCase();
+		}
+		if (block.kind === "for_each") {
+			return t("blocks.forEach").toLowerCase();
+		}
+		return t("blocks.if").toLowerCase();
 	}
 
 	private async createBlockFromPalette(block: PaletteBlock): Promise<EditorBlock | null> {
+		if (block.kind === "function_definition") {
+			const hasTypeDefinition = this.getBlocks().some(
+				(currentBlock) => currentBlock.kind === "type_definition"
+			);
+			if (hasTypeDefinition) {
+				this.emitStatus(t("messages.functionTypeConflict"));
+				return null;
+			}
+			const alreadyExists = this.getBlocks().some(
+				(currentBlock) => currentBlock.kind === "function_definition"
+			);
+			if (alreadyExists) {
+				this.emitStatus("Only one definition block is allowed per routine.");
+				return null;
+			}
+			const routineId = block.routineId ?? this.props.value.activeRoutineId;
+			const routineName = block.routineName?.trim() || this.getActiveRoutineName();
+			return createFunctionDefinitionBlock(routineId, routineName, block.color);
+		}
+
+		if (block.kind === "type_definition") {
+			const hasFunctionDefinition = this.getBlocks().some(
+				(currentBlock) => currentBlock.kind === "function_definition"
+			);
+			if (hasFunctionDefinition) {
+				this.emitStatus(t("messages.functionTypeConflict"));
+				return null;
+			}
+			const alreadyExists = this.getBlocks().some(
+				(currentBlock) => currentBlock.kind === "type_definition"
+			);
+			if (alreadyExists) {
+				this.emitStatus("Only one type definition block is allowed per routine.");
+				return null;
+			}
+			const routineId = block.routineId ?? this.props.value.activeRoutineId;
+			const routineName = block.routineName?.trim() || this.getActiveRoutineName();
+			return createTypeDefinitionBlock(routineId, routineName, block.color);
+		}
+
 		if (block.kind === "conditional") {
 			return createConditionalBlock(block.color, block.conditionalMode ?? "if");
 		}
@@ -694,21 +1273,53 @@ export class PlayEditorEngine {
 			return createWhileBlock(block.color);
 		}
 
-		if (block.kind === "var_declaration") {
-			const variableName = await this.promptForVariableName(block.variableName ?? "variable");
-			if (!variableName) {
-				this.emitStatus("Variable declaration cancelled.");
+		if (block.kind === "for_each") {
+			if (!block.forEachSourceStructureId || !block.forEachSourceStructureKind) {
+				this.emitStatus("For-each source structure is missing.");
 				return null;
 			}
-			return createVariableDeclarationBlock(block.color, variableName, block.bindingKind ?? "declare");
+			return createForEachBlock(
+				block.forEachSourceStructureId,
+				block.forEachSourceStructureKind,
+				block.forEachItemName ?? "item",
+				block.color
+			);
 		}
 
-		if (block.kind === "var_operation" && block.variableSourceId && block.variableName) {
-			return createVariableOperationBlock(
-				block.variableSourceId,
-				block.variableName,
+		if (block.kind === "break") {
+			return createBreakBlock(block.color);
+		}
+
+		if (block.kind === "var_declaration") {
+			return createVariableDeclarationBlock(
 				block.color,
-				block.variableOperationMode ?? "value"
+				block.variableName ?? "variable",
+				block.bindingKind ?? "declare"
+			);
+		}
+
+		if (block.kind === "var_assign") {
+			return createVariableAssignBlock(
+				block.variableSourceId,
+				block.variableName ?? "variable",
+				block.color
+			);
+		}
+
+		if (block.kind === "var_read") {
+			return createVariableReadBlock(
+				block.variableSourceId,
+				block.variableName ?? "variable",
+				block.color
+			);
+		}
+
+		if (block.kind === "var_reference") {
+			return createVariableReferenceBlock(
+				block.variableName ?? "target",
+				block.referenceTargetKind ?? "variable",
+				block.referenceTargetId,
+				block.color
 			);
 		}
 
@@ -719,7 +1330,34 @@ export class PlayEditorEngine {
 					block.variableOperationMode !== "value" &&
 					block.variableOperationMode !== "assign"
 					? block.variableOperationMode
-					: "add"
+					: "add",
+				block.expressionFamily
+			);
+		}
+
+		if (block.kind === "type_instance_new") {
+			if (!block.typeRoutineId || !block.typeName) {
+				this.emitStatus(t("messages.unknownType"));
+				return null;
+			}
+			return createTypeInstanceBlock(block.typeRoutineId, block.typeName, block.color);
+		}
+
+		if (block.kind === "type_field_read") {
+			return createTypeFieldReadBlock(
+				block.variableSourceId ?? "",
+				block.variableName ?? "object",
+				block.typeFieldName ?? "field",
+				block.color
+			);
+		}
+
+		if (block.kind === "type_field_assign") {
+			return createTypeFieldAssignBlock(
+				block.variableSourceId ?? "",
+				block.variableName ?? "object",
+				block.typeFieldName ?? "field",
+				block.color
 			);
 		}
 
@@ -733,6 +1371,13 @@ export class PlayEditorEngine {
 		}
 
 		if (block.kind === "return") {
+			const hasDefinition = this.getBlocks().some(
+				(currentBlock) => currentBlock.kind === "function_definition"
+			);
+			if (!hasDefinition) {
+				this.emitStatus("Return requires a definition block in this routine.");
+				return null;
+			}
 			return createReturnBlock(block.color);
 		}
 
@@ -773,7 +1418,11 @@ export class PlayEditorEngine {
 			});
 		}
 
-		return createEditorBlock(block.structureId!, block.structureKind!, block.color);
+		if (block.kind === "structure" && block.structureId && block.structureKind) {
+			return createEditorBlock(block.structureId, block.structureKind, block.color);
+		}
+		this.emitStatus(`Unsupported palette block kind: ${block.kind}`);
+		return null;
 	}
 
 	private createPreviewBlockFromDragState(): EditorBlock | null {
@@ -800,9 +1449,13 @@ export class PlayEditorEngine {
 		matchesPaletteBlock: (block: PaletteBlock) => boolean
 	): Promise<EditorBlock | null> {
 		if (dragState.source === "palette") {
-			return this.createBlockFromPalette(
-				this.paletteBlocks.find(matchesPaletteBlock) ?? this.buildFallbackPaletteBlock(dragState)
-			);
+			const matchedBlock = this.paletteBlocks.find(matchesPaletteBlock) ?? null;
+			const fallbackBlock = this.buildFallbackPaletteBlock(dragState);
+			const sourceBlock =
+				matchedBlock && matchedBlock.kind === dragState.blockKind
+					? matchedBlock
+					: fallbackBlock;
+			return this.createBlockFromPalette(sourceBlock);
 		}
 
 		if (dragState.blockId) {
@@ -818,6 +1471,107 @@ export class PlayEditorEngine {
 			this.getBlocks(),
 			(blocks, blockId) => this.extractBlockFromTree(blocks, blockId)
 		);
+	}
+
+	private async handlePaletteBlockInserted(block: EditorBlock): Promise<void> {
+		if (block.kind === "var_declaration") {
+			const declarationSpec = await this.promptForVariableDeclarationSpec({
+				currentName: block.variableName ?? "variable",
+				currentTypeRef: block.declaredTypeRef,
+				excludeDeclarationId: block.id
+			});
+			if (!declarationSpec) {
+				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
+				this.emitStatus("Variable declaration cancelled.");
+				return;
+			}
+			this.setBlocks(
+				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
+					...currentBlock,
+					variableName: declarationSpec.name,
+					declaredTypeRef: declarationSpec.declaredTypeRef
+				}))
+			);
+			this.emitStatus("Variable created.");
+			return;
+		}
+
+		if (block.kind === "for_each") {
+			const itemName = await this.promptForVariableName(
+				block.forEachItemName ?? "item",
+				block.forEachItemDeclarationId
+			);
+			if (!itemName) {
+				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
+				this.emitStatus("For-each creation cancelled.");
+				return;
+			}
+			this.setBlocks(
+				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
+					...currentBlock,
+					forEachItemName: itemName
+				}))
+			);
+			this.emitStatus("For-each created.");
+			return;
+		}
+
+		if (block.kind === "var_assign") {
+			const target = await this.promptForScopeVariableTarget(block.variableSourceId);
+			if (!target) {
+				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
+				this.emitStatus("Assignment creation cancelled.");
+				return;
+			}
+			this.setBlocks(
+				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
+					...currentBlock,
+					variableName: target.name,
+					variableSourceId: target.id
+				}))
+			);
+			this.emitStatus("Assignment created.");
+			return;
+		}
+
+		if (block.kind === "var_reference") {
+			const target = await this.promptForScopeVariableTarget(block.referenceTargetId);
+			if (!target) {
+				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
+				this.emitStatus("Reference creation cancelled.");
+				return;
+			}
+			this.setBlocks(
+				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
+					...currentBlock,
+					variableName: target.name,
+					referenceTargetKind: "variable",
+					referenceTargetId: target.id
+				}))
+			);
+			this.emitStatus("Reference created.");
+		}
+
+		if (block.kind === "type_field_read" || block.kind === "type_field_assign") {
+			const target = await this.promptForTypedFieldTarget({
+				currentVariableId: block.variableSourceId,
+				currentFieldName: block.typeFieldName
+			});
+			if (!target) {
+				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
+				this.emitStatus("Type field block creation cancelled.");
+				return;
+			}
+			this.setBlocks(
+				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
+					...currentBlock,
+					variableSourceId: target.variableId,
+					variableName: target.variableName,
+					typeFieldName: target.fieldName
+				}))
+			);
+			this.emitStatus("Type field block created.");
+		}
 	}
 
 	private canUseSlotTarget(targetSlotKey: string): boolean {
@@ -970,14 +1724,6 @@ export class PlayEditorEngine {
 
 	private render(): void {
 		this.paletteBlocks = this.derivePaletteBlocks(this.props.structures);
-		const availableGroupIds = new Set<PaletteGroupId>(
-			this.paletteBlocks.map((block) => this.getPaletteGroupId(block))
-		);
-		this.expandedPaletteGroupIds.forEach((groupId) => {
-			if (!availableGroupIds.has(groupId)) {
-				this.expandedPaletteGroupIds.delete(groupId);
-			}
-		});
 		this.ensureLayoutShell();
 		const shell = this.shell!;
 		const workbench = this.workbench!;

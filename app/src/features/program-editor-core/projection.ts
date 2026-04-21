@@ -10,7 +10,7 @@ import type {
 } from "./types";
 import { getActiveRoutine } from "./tree";
 
-const executableRowKinds = new Set(["statement", "if-header", "while-header"]);
+const executableRowKinds = new Set(["statement", "if-header", "while-header", "for-each-header"]);
 
 const pushDropZone = (
   dropZones: DropZone[],
@@ -72,10 +72,16 @@ const visitStatements = (
     pushDropZone(dropZones, container, index, depth, "before-row", `row-${statement.id}`);
 
     const rowKind =
-      statement.kind === "if"
+      statement.kind === "function-definition"
+        ? "function-definition-header"
+        : statement.kind === "type-definition"
+          ? "type-definition-header"
+        : statement.kind === "if"
         ? "if-header"
         : statement.kind === "while"
           ? "while-header"
+          : statement.kind === "for-each"
+            ? "for-each-header"
           : "statement";
     pushRow(rows, nodeRowMap, {
       rowId: `row-${statement.id}`,
@@ -124,6 +130,17 @@ const visitStatements = (
       visitStatements(
         statement.body,
         { kind: "while-body", ownerId: statement.id },
+        depth + 1,
+        rows,
+        dropZones,
+        nodeRowMap
+      );
+    }
+
+    if (statement.kind === "for-each") {
+      visitStatements(
+        statement.body,
+        { kind: "for-each-body", ownerId: statement.id },
         depth + 1,
         rows,
         dropZones,

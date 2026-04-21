@@ -38,6 +38,9 @@ export const cloneStatement = (statement: StatementNode): StatementNode => ({
   ...(statement.kind === "assign"
     ? { value: statement.value ? cloneExpression(statement.value) : null }
     : {}),
+  ...(statement.kind === "type-field-assign"
+    ? { value: statement.value ? cloneExpression(statement.value) : null }
+    : {}),
   ...((statement.kind === "call" ||
       statement.kind === "routine-call" ||
       statement.kind === "routine-member-call")
@@ -59,6 +62,11 @@ export const cloneStatement = (statement: StatementNode): StatementNode => ({
   ...(statement.kind === "while"
     ? {
         condition: statement.condition ? cloneExpression(statement.condition) : null,
+        body: statement.body.map(cloneStatement)
+      }
+    : {}),
+  ...(statement.kind === "for-each"
+    ? {
         body: statement.body.map(cloneStatement)
       }
     : {})
@@ -86,16 +94,40 @@ export const createRoutine = (name = "main", id = `routine-${crypto.randomUUID()
   program: createEmptyProgram(`${id}-program`)
 });
 
-const routineContainsReturn = (routine: RoutineNode): boolean => {
+const routineContainsFunctionDefinition = (routine: RoutineNode): boolean => {
   const visit = (statements: StatementNode[]): boolean =>
     statements.some((statement) => {
-      if (statement.kind === "return") {
+      if (statement.kind === "function-definition") {
         return true;
       }
       if (statement.kind === "if") {
         return visit(statement.thenBody) || visit(statement.elseBody ?? []);
       }
       if (statement.kind === "while") {
+        return visit(statement.body);
+      }
+      if (statement.kind === "for-each") {
+        return visit(statement.body);
+      }
+      return false;
+    });
+
+  return visit(routine.program.statements);
+};
+
+const routineContainsTypeDefinition = (routine: RoutineNode): boolean => {
+  const visit = (statements: StatementNode[]): boolean =>
+    statements.some((statement) => {
+      if (statement.kind === "type-definition") {
+        return true;
+      }
+      if (statement.kind === "if") {
+        return visit(statement.thenBody) || visit(statement.elseBody ?? []);
+      }
+      if (statement.kind === "while") {
+        return visit(statement.body);
+      }
+      if (statement.kind === "for-each") {
         return visit(statement.body);
       }
       return false;
@@ -105,15 +137,32 @@ const routineContainsReturn = (routine: RoutineNode): boolean => {
 };
 
 export const normalizeRoutineBindings = (routine: RoutineNode): RoutineNode => {
-  const isFunction = routineContainsReturn(routine);
+  const isFunction = routineContainsFunctionDefinition(routine);
+  const isType = routineContainsTypeDefinition(routine);
 
   const normalizeStatements = (statements: StatementNode[], depth: number): StatementNode[] =>
     statements.map((statement) => {
+      if (statement.kind === "function-definition") {
+        return {
+          ...statement,
+          routineId: routine.id,
+          name: routine.name
+        };
+      }
+      if (statement.kind === "type-definition") {
+        return {
+          ...statement,
+          routineId: routine.id,
+          name: routine.name
+        };
+      }
       if (statement.kind === "declare") {
         return {
           ...statement,
           bindingKind:
-            isFunction && depth === 0 && statement.bindingKind === "expect" ? "expect" : "declare"
+            isFunction && !isType && depth === 0 && statement.bindingKind === "expect"
+              ? "expect"
+              : "declare"
         };
       }
       if (statement.kind === "if") {
@@ -124,6 +173,12 @@ export const normalizeRoutineBindings = (routine: RoutineNode): RoutineNode => {
         };
       }
       if (statement.kind === "while") {
+        return {
+          ...statement,
+          body: normalizeStatements(statement.body, depth + 1)
+        };
+      }
+      if (statement.kind === "for-each") {
         return {
           ...statement,
           body: normalizeStatements(statement.body, depth + 1)
@@ -209,12 +264,61 @@ export const renameRoutine = (
   routineId: string,
   name: string
 ): EditorDocument =>
-  normalizeEditorDocument({
+{
+  const syncDefinitionName = (statements: StatementNode[]): StatementNode[] =>
+    statements.map((statement) => {
+      if (statement.kind === "function-definition") {
+        return {
+          ...statement,
+          routineId,
+          name
+        };
+      }
+      if (statement.kind === "type-definition") {
+        return {
+          ...statement,
+          routineId,
+          name
+        };
+      }
+      if (statement.kind === "if") {
+        return {
+          ...statement,
+          thenBody: syncDefinitionName(statement.thenBody),
+          elseBody: statement.elseBody ? syncDefinitionName(statement.elseBody) : null
+        };
+      }
+      if (statement.kind === "while") {
+        return {
+          ...statement,
+          body: syncDefinitionName(statement.body)
+        };
+      }
+      if (statement.kind === "for-each") {
+        return {
+          ...statement,
+          body: syncDefinitionName(statement.body)
+        };
+      }
+      return statement;
+    });
+
+  return normalizeEditorDocument({
     ...document,
     routines: document.routines.map((routine) =>
-      routine.id === routineId ? { ...routine, name } : cloneRoutine(routine)
+      routine.id === routineId
+        ? {
+            ...routine,
+            name,
+            program: {
+              ...routine.program,
+              statements: syncDefinitionName(routine.program.statements)
+            }
+          }
+        : cloneRoutine(routine)
     )
   });
+};
 
 export const replaceActiveProgram = (document: EditorDocument, program: ProgramNode): EditorDocument =>
   normalizeEditorDocument({
@@ -242,6 +346,10 @@ const getContainerStatements = (
     return (owner as Extract<StatementNode, { kind: "if" }>).elseBody ?? [];
   }
 
+  if (container.kind === "for-each-body") {
+    return (owner as Extract<StatementNode, { kind: "for-each" }>).body;
+  }
+
   return (owner as Extract<StatementNode, { kind: "while" }>).body;
 };
 
@@ -266,6 +374,13 @@ const findNodeInProgram = (program: ProgramNode, nodeId: string): StatementNode 
       }
 
       if (statement.kind === "while") {
+        const nested = visit(statement.body);
+        if (nested) {
+          return nested;
+        }
+      }
+
+      if (statement.kind === "for-each") {
         const nested = visit(statement.body);
         if (nested) {
           return nested;
@@ -337,6 +452,12 @@ export const findParentContainer = (
           return inBody;
         }
       }
+      if (statement.kind === "for-each") {
+        const inBody = visit(statement.body, { kind: "for-each-body", ownerId: statement.id }, statement.id);
+        if (inBody) {
+          return inBody;
+        }
+      }
     }
 
     return null;
@@ -368,6 +489,16 @@ const updateStatementContainers = (
 
   if (statement.kind === "while") {
     if (container.kind === "while-body" && container.ownerId === statement.id) {
+      return { ...statement, body: nextStatements };
+    }
+    return {
+      ...statement,
+      body: statement.body.map((child) => updateStatementContainers(child, container, nextStatements))
+    };
+  }
+
+  if (statement.kind === "for-each") {
+    if (container.kind === "for-each-body" && container.ownerId === statement.id) {
       return { ...statement, body: nextStatements };
     }
     return {
@@ -412,6 +543,10 @@ const statementContainsNodeId = (statement: StatementNode, nodeId: string): bool
   }
 
   if (statement.kind === "while") {
+    return statement.body.some((child) => statementContainsNodeId(child, nodeId));
+  }
+
+  if (statement.kind === "for-each") {
     return statement.body.some((child) => statementContainsNodeId(child, nodeId));
   }
 
@@ -533,6 +668,9 @@ export const replaceExpression = (
       if (statement.kind === "assign") {
         return { ...statement, value: expression };
       }
+      if (statement.kind === "type-field-assign") {
+        return { ...statement, value: expression };
+      }
       if (
         statement.kind === "call" ||
         statement.kind === "routine-call" ||
@@ -551,6 +689,9 @@ export const replaceExpression = (
       }
       if (statement.kind === "while") {
         return { ...statement, condition: expression };
+      }
+      if (statement.kind === "for-each") {
+        return statement;
       }
       if (statement.kind === "return") {
         return { ...statement, value: expression };
@@ -575,7 +716,21 @@ export const replaceExpression = (
       };
     }
 
+    if (statement.kind === "for-each") {
+      return {
+        ...statement,
+        body: statement.body.map(updateStatement)
+      };
+    }
+
     if (statement.kind === "assign" && statement.value) {
+      return {
+        ...statement,
+        value: updateExpressionNode(statement.value, ownerId, () => expression ?? statement.value!)
+      };
+    }
+
+    if (statement.kind === "type-field-assign" && statement.value) {
       return {
         ...statement,
         value: updateExpressionNode(statement.value, ownerId, () => expression ?? statement.value!)

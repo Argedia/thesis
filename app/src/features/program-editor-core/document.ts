@@ -4,7 +4,8 @@ export const buildEditorLineLayoutFromBlocks = (blocks: EditorBlock[]): EditorLi
   const lines: EditorLineLayout[] = [];
   let dropLineId = 0;
   let codeLineNumber = 0;
-  const isControlBlock = (block: EditorBlock) => block.kind === "conditional" || block.kind === "while";
+  const isControlBlock = (block: EditorBlock) =>
+    block.kind === "conditional" || block.kind === "while" || block.kind === "for_each";
 
   const pushDropLine = (config: {
     depth: number;

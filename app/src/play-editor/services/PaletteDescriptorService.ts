@@ -77,10 +77,58 @@ export class PaletteDescriptorService {
       };
     }
 
+    if (block.kind === "var_read") {
+      return {
+        chip: block.variableName?.slice(0, 3).toUpperCase() ?? "VAR",
+        label: block.variableName ?? translate("blocks.variable")
+      };
+    }
+
     if (block.kind === "var_binary_operation") {
+      const mode = block.variableOperationMode ?? "add";
+      const isLogical = mode === "and" || mode === "or" || mode === "not";
+      const isComparison =
+        mode === "equals" ||
+        mode === "not_equals" ||
+        mode === "greater_than" ||
+        mode === "greater_or_equal" ||
+        mode === "less_than" ||
+        mode === "less_or_equal";
       return {
         chip: "OP",
-        label: translate("blocks.operation")
+        label: isLogical
+          ? translate("blocks.logicalOperator")
+          : isComparison
+            ? translate("blocks.comparisonOperator")
+            : translate("blocks.arithmeticOperator")
+      };
+    }
+
+    if (block.kind === "for_each") {
+      return {
+        chip: "FE",
+        label: `${translate("blocks.forEach")} (${block.forEachSourceStructureId ?? "?"})`
+      };
+    }
+
+    if (block.kind === "type_instance_new") {
+      return {
+        chip: "NEW",
+        label: `new ${block.typeName ?? block.routineName ?? translate("blocks.type")}`
+      };
+    }
+
+    if (block.kind === "type_field_read") {
+      return {
+        chip: "FLD",
+        label: `${block.variableName ?? "obj"}.${block.typeFieldName ?? "field"}`
+      };
+    }
+
+    if (block.kind === "type_field_assign") {
+      return {
+        chip: "SET",
+        label: `${block.variableName ?? "obj"}.${block.typeFieldName ?? "field"} =`
       };
     }
 
@@ -102,12 +150,14 @@ export class PaletteDescriptorService {
     switch (groupId) {
       case "structures":
         return translate("editor.groupStructures");
-      case "values":
-        return translate("editor.groupValues");
+      case "expressions":
+        return translate("editor.groupExpressions");
       case "logic":
         return translate("editor.groupLogic");
       case "functions":
         return translate("editor.groupFunctions");
+      case "types":
+        return translate("editor.groupTypes");
       case "variables":
       default:
         return translate("editor.groupVariables");

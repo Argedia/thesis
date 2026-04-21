@@ -5,7 +5,13 @@ import type {
   VariableOperationMode
 } from "../model";
 import type { DataValue } from "@thesis/core-engine";
-import { createBooleanValueBlock, createValueBlock, setBlockSlotBlock } from "../operations";
+import {
+  createBooleanValueBlock,
+  createValueBlock,
+  inferExpressionFamilyFromOperationMode,
+  normalizeBinaryOperationModeForExpressionFamily,
+  setBlockSlotBlock
+} from "../operations";
 import { FUNCTION_BLUE } from "../contracts/constants";
 
 export interface BlockActionContext {
@@ -23,7 +29,16 @@ export interface BlockActionContext {
     currentName?: string,
     excludeDeclarationId?: string
   ): Promise<string | null>;
+  promptForScopeVariableTarget(
+    currentTargetId?: string
+  ): Promise<{ id: string; name: string } | null>;
+  promptForTypedFieldTarget(
+    currentVariableId?: string,
+    currentFieldName?: string
+  ): Promise<{ variableId: string; variableName: string; fieldName: string } | null>;
   promptForValueText(currentValue?: DataValue | null): Promise<string | null>;
+  promptForRoutineName(currentName?: string): Promise<string | null>;
+  renameRoutine(routineId: string, name: string): void;
   emitStatus(message: string): void;
 }
 
@@ -103,10 +118,16 @@ export class BlockActionController {
     this.ctx.setBlocks(
       this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => {
         if (currentBlock.kind === "var_binary_operation") {
-          const normalizedMode =
-            mode === "value" || mode === "assign" ? "add" : mode;
+          const family =
+            currentBlock.expressionFamily ??
+            inferExpressionFamilyFromOperationMode(currentBlock.variableOperationMode ?? "add");
+          const normalizedMode = normalizeBinaryOperationModeForExpressionFamily(
+            mode === "value" || mode === "assign" ? "add" : mode,
+            family
+          );
           return {
             ...currentBlock,
+            expressionFamily: family,
             variableOperationMode: normalizedMode,
             outputType: this.resolveVariableModeOutputType(normalizedMode),
             inputBlocks: currentBlock.inputBlocks ?? [null, null]
@@ -188,6 +209,65 @@ export class BlockActionController {
 
   public async editVariableName(blockId: string, currentName: string | undefined): Promise<void> {
     if (this.ctx.isLocked()) {
+      return;
+    }
+
+    const block = this.ctx.getBlocks().find((item) => item.id === blockId) ?? null;
+    if (block?.kind === "function_definition" || block?.kind === "type_definition") {
+      const nextName = await this.ctx.promptForRoutineName(block.routineName ?? currentName);
+      if (!nextName) {
+        return;
+      }
+      this.ctx.renameRoutine(block.routineId ?? "routine", nextName);
+      this.ctx.emitStatus(
+        block.kind === "type_definition" ? "Type definition renamed." : "Definition renamed."
+      );
+      return;
+    }
+
+    if (block?.kind === "var_reference" || block?.kind === "var_assign") {
+      const target = await this.ctx.promptForScopeVariableTarget(
+        block.kind === "var_reference" ? block.referenceTargetId : block.variableSourceId
+      );
+      if (!target) {
+        return;
+      }
+      this.ctx.setBlocks(
+        this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
+          ...currentBlock,
+          variableName: target.name,
+          variableSourceId: target.id,
+          referenceTargetKind:
+            currentBlock.kind === "var_reference" ? "variable" : currentBlock.referenceTargetKind,
+          referenceTargetId:
+            currentBlock.kind === "var_reference" ? target.id : currentBlock.referenceTargetId
+        }))
+      );
+      this.ctx.emitStatus(
+        block.kind === "var_reference"
+          ? "Reference target selected."
+          : "Assignment target selected."
+      );
+      return;
+    }
+
+    if (block?.kind === "type_field_read" || block?.kind === "type_field_assign") {
+      const target = await this.ctx.promptForTypedFieldTarget(
+        block.variableSourceId,
+        block.typeFieldName
+      );
+      if (!target) {
+        return;
+      }
+      this.ctx.setBlocks(
+        this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
+          ...currentBlock,
+          variableSourceId: target.variableId,
+          variableName: target.variableName,
+          typeFieldName: target.fieldName
+        }))
+      );
+      this.ctx.emitStatus("Type field target selected.");
       return;
     }
 

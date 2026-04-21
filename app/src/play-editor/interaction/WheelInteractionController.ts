@@ -8,6 +8,7 @@ import {
   buildVariableBinaryOperationWheelOptions,
   buildConditionalWheelOptions,
   buildDeclarationBindingWheelOptions,
+  inferExpressionFamilyFromOperationMode,
   buildVariableOperationWheelOptions,
   buildWheelOptions
 } from "../operations";
@@ -84,9 +85,15 @@ export class WheelInteractionController {
   }
 
   private getVarBinaryOperationWheelOptions(block: EditorBlock): WheelOption[] {
-    return buildVariableBinaryOperationWheelOptions(block.variableOperationMode ?? "add").map((option) => ({
+    const family =
+      block.expressionFamily ??
+      inferExpressionFamilyFromOperationMode(block.variableOperationMode ?? "add");
+    return buildVariableBinaryOperationWheelOptions(
+      block.variableOperationMode ?? "add",
+      family
+    ).map((option) => ({
       label: option.label,
-      className: option.className,
+      className: `${option.className} accent-expression-${family}`,
       onSelect: () => {
         this.ctx.updateVariableOperationMode(block.id, option.mode);
         this.ctx.closeWheel();

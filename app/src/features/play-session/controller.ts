@@ -57,6 +57,15 @@ interface RuntimeFrame {
   routineId: string;
   ip: number;
   locals: Map<string, RuntimeStoredValue>;
+  forEachContexts: Map<
+    string,
+    {
+      values: DataValue[];
+      index: number;
+      itemDeclarationId: string;
+      itemName: string;
+    }
+  >;
 }
 
 interface RuntimeFunctionReferenceValue {
@@ -71,7 +80,26 @@ interface RuntimeObjectValue {
   routineName: string;
 }
 
-type RuntimeStoredValue = DataValue | RuntimeFunctionReferenceValue | RuntimeObjectValue;
+interface RuntimePointerValue {
+  kind: "pointer";
+  targetKind: "variable" | "structure" | "object";
+  targetId: string;
+  targetName: string;
+}
+
+interface RuntimeTypedObjectValue {
+  kind: "typed-object";
+  typeRoutineId: string;
+  typeName: string;
+  fields: Record<string, RuntimeStoredValue>;
+}
+
+type RuntimeStoredValue =
+  | DataValue
+  | RuntimeFunctionReferenceValue
+  | RuntimeObjectValue
+  | RuntimePointerValue
+  | RuntimeTypedObjectValue;
 
 interface RuntimeObjectInstance {
   routineId: string;
@@ -401,6 +429,14 @@ export class DefaultPlaySessionController implements PlaySessionController {
         }
         if (statement.kind === "while") {
           visitStatements(statement.body, routineName);
+          return;
+        }
+        if (statement.kind === "for-each") {
+          lookup.set(statement.itemDeclarationId, {
+            name: statement.itemName,
+            routineName
+          });
+          visitStatements(statement.body, routineName);
         }
       });
     };
@@ -459,6 +495,14 @@ export class DefaultPlaySessionController implements PlaySessionController {
     return typeof value === "object" && value !== null && value.kind === "routine-object";
   }
 
+  private isPointerValue(value: RuntimeStoredValue): value is RuntimePointerValue {
+    return typeof value === "object" && value !== null && value.kind === "pointer";
+  }
+
+  private isTypedObjectValue(value: RuntimeStoredValue): value is RuntimeTypedObjectValue {
+    return typeof value === "object" && value !== null && value.kind === "typed-object";
+  }
+
   private formatRuntimeValue(value: RuntimeStoredValue): string | number | boolean {
     if (this.isPrimitiveValue(value)) {
       return value;
@@ -466,6 +510,14 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     if (this.isRoutineReferenceValue(value)) {
       return `[fn ${value.routineName}]`;
+    }
+
+    if (this.isPointerValue(value)) {
+      return `[ptr ${value.targetKind}:${value.targetName}]`;
+    }
+
+    if (this.isTypedObjectValue(value)) {
+      return `[${value.typeName}]`;
     }
 
     return `[object ${value.routineName}]`;
@@ -510,7 +562,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
         {
           routineId: activeRoutine.id,
           ip: 0,
-          locals: new Map<string, DataValue>()
+          locals: new Map<string, RuntimeStoredValue>(),
+          forEachContexts: new Map()
         }
       ];
       this.updateExecutionFocus(this.state.compiledProgram);
@@ -735,6 +788,29 @@ export class DefaultPlaySessionController implements PlaySessionController {
     );
   }
 
+  private getForEachValuesFromStructure(
+    sourceStructureId: string,
+    expectedKind?: StructureSnapshot["kind"]
+  ): DataValue[] {
+    if (!this.engine) {
+      throw new Error("Execution engine is not available.");
+    }
+
+    const snapshot = this.engine.getState().structures[sourceStructureId];
+    if (!snapshot) {
+      throw new Error(`Structure "${sourceStructureId}" does not exist.`);
+    }
+
+    const normalized = normalizeStructureSnapshot(snapshot);
+    if (expectedKind && normalized.kind !== expectedKind) {
+      throw new Error(`Structure "${sourceStructureId}" does not match the expected loop type.`);
+    }
+
+    return normalized.values.map((value) =>
+      typeof value === "object" && value !== null && "value" in value ? value.value : value
+    );
+  }
+
   private executeInstruction(compiled: CompileResult, point: ExecutionPoint): void {
     const { frame, instruction } = point;
     const statement = findNode(this.state.document, instruction.nodeId);
@@ -754,6 +830,18 @@ export class DefaultPlaySessionController implements PlaySessionController {
           frame.locals,
           statement.targetDeclarationId ?? statement.targetName,
           statement.targetName,
+          this.evaluateExpression(statement.value, compiled).value
+        );
+        frame.ip += 1;
+        return;
+      case "type-field-assign":
+        if (!statement || statement.kind !== "type-field-assign") {
+          throw new Error("Type field assignment target is missing.");
+        }
+        this.assignTypedObjectField(
+          statement.targetDeclarationId,
+          statement.targetName,
+          statement.fieldName,
           this.evaluateExpression(statement.value, compiled).value
         );
         frame.ip += 1;
@@ -823,6 +911,64 @@ export class DefaultPlaySessionController implements PlaySessionController {
       case "jump":
         frame.ip = instruction.jumpTargetIp ?? frame.ip + 1;
         return;
+      case "for-each-init": {
+        const sourceStructureId = instruction.forEachSourceStructureId;
+        if (!sourceStructureId) {
+          throw new Error("For-each source structure is missing.");
+        }
+        const values = this.getForEachValuesFromStructure(
+          sourceStructureId,
+          instruction.forEachSourceStructureKind
+        );
+        frame.forEachContexts.set(instruction.nodeId, {
+          values,
+          index: 0,
+          itemDeclarationId:
+            instruction.forEachItemDeclarationId ?? `${instruction.nodeId}-item`,
+          itemName: instruction.forEachItemName ?? "item"
+        });
+        frame.ip += 1;
+        return;
+      }
+      case "for-each-check": {
+        const context = frame.forEachContexts.get(instruction.nodeId);
+        if (!context) {
+          throw new Error("For-each context is missing.");
+        }
+        if (context.index >= context.values.length) {
+          frame.forEachContexts.delete(instruction.nodeId);
+          frame.ip = instruction.jumpTargetIp ?? frame.ip + 1;
+          return;
+        }
+        frame.ip += 1;
+        return;
+      }
+      case "for-each-assign-item": {
+        const context = frame.forEachContexts.get(instruction.nodeId);
+        if (!context) {
+          throw new Error("For-each context is missing.");
+        }
+        this.setLocalValue(
+          frame.locals,
+          context.itemDeclarationId,
+          context.itemName,
+          context.values[context.index] ?? false
+        );
+        frame.ip += 1;
+        return;
+      }
+      case "for-each-advance": {
+        const context = frame.forEachContexts.get(instruction.nodeId);
+        if (!context) {
+          throw new Error("For-each context is missing.");
+        }
+        context.index += 1;
+        frame.ip = instruction.jumpTargetIp ?? frame.ip + 1;
+        return;
+      }
+      case "break":
+        frame.ip = instruction.jumpTargetIp ?? frame.ip + 1;
+        return;
     }
   }
 
@@ -844,7 +990,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.runtimeFrames.push({
       routineId,
       ip: 0,
-      locals: this.createRoutineLocals(signature, values)
+      locals: this.createRoutineLocals(signature, values),
+      forEachContexts: new Map()
     });
   }
 
@@ -892,9 +1039,15 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     const locals = new Map<string, RuntimeStoredValue>();
     const frames = [locals];
-    const executeStatements = (statements: StatementNode[]): boolean => {
+    const executeStatements = (
+      statements: StatementNode[],
+      inLoop = false
+    ): "return" | "break" | null => {
       for (const statement of statements) {
         switch (statement.kind) {
+          case "function-definition":
+          case "type-definition":
+            break;
           case "declare":
             if (!locals.has(statement.id)) {
               this.setLocalValue(locals, statement.id, statement.variableName, false);
@@ -908,6 +1061,32 @@ export class DefaultPlaySessionController implements PlaySessionController {
               this.evaluateExpressionDirect(statement.value, compiled, frames, depth + 1).value
             );
             break;
+          case "type-field-assign": {
+            const scopedValue = this.readVariableValueFromFrames(
+              frames,
+              statement.targetDeclarationId,
+              statement.targetName
+            );
+            if (!this.isTypedObjectValue(scopedValue)) {
+              throw new Error(`Variable "${statement.targetName}" is not a typed object.`);
+            }
+            if (!(statement.fieldName in scopedValue.fields)) {
+              throw new Error("unknown_type_field");
+            }
+            scopedValue.fields[statement.fieldName] = this.evaluateExpressionDirect(
+              statement.value,
+              compiled,
+              frames,
+              depth + 1
+            ).value;
+            this.assignScopedValue(
+              frames,
+              statement.targetDeclarationId,
+              statement.targetName,
+              scopedValue
+            );
+            break;
+          }
           case "expression":
             this.evaluateExpressionDirect(statement.expression, compiled, frames, depth + 1);
             break;
@@ -939,8 +1118,15 @@ export class DefaultPlaySessionController implements PlaySessionController {
                 this.evaluateExpressionDirect(statement.condition, compiled, frames, depth + 1).value
               )
             );
-            if (executeStatements(branchTaken ? statement.thenBody : statement.elseBody ?? [])) {
-              return true;
+            const signal = executeStatements(branchTaken ? statement.thenBody : statement.elseBody ?? [], inLoop);
+            if (signal === "return") {
+              return "return";
+            }
+            if (signal === "break") {
+              if (inLoop) {
+                return "break";
+              }
+              throw new Error("Break can only be used inside while or for-each.");
             }
             break;
           }
@@ -960,21 +1146,52 @@ export class DefaultPlaySessionController implements PlaySessionController {
                   `A while block can run at most ${MAX_WHILE_ITERATIONS} iterations for now.`
                 );
               }
-              if (executeStatements(statement.body)) {
-                return true;
+              const signal = executeStatements(statement.body, true);
+              if (signal === "return") {
+                return "return";
+              }
+              if (signal === "break") {
+                break;
               }
             }
             break;
           }
+          case "for-each": {
+            const values = this.getForEachValuesFromStructure(
+              statement.sourceStructureId,
+              statement.sourceStructureKind
+            );
+            for (const value of values) {
+              this.setLocalValue(
+                locals,
+                statement.itemDeclarationId,
+                statement.itemName,
+                value
+              );
+              const signal = executeStatements(statement.body, true);
+              if (signal === "return") {
+                return "return";
+              }
+              if (signal === "break") {
+                break;
+              }
+            }
+            break;
+          }
+          case "break":
+            return "break";
           case "return":
-            return true;
+            return "return";
         }
       }
 
-      return false;
+      return null;
     };
 
-    executeStatements(routineNode.program.statements);
+    const signal = executeStatements(routineNode.program.statements);
+    if (signal === "break") {
+      throw new Error("Break can only be used inside while or for-each.");
+    }
     const instance: RuntimeObjectInstance = {
       routineId,
       routineName: routineNode.name,
@@ -1048,6 +1265,57 @@ export class DefaultPlaySessionController implements PlaySessionController {
     }
 
     throw new Error("Only primitive values can be moved into data structures for now.");
+  }
+
+  private createTypedObjectValue(typeRoutineId: string): RuntimeTypedObjectValue {
+    const routine = this.state.document.routines.find((item) => item.id === typeRoutineId);
+    if (!routine) {
+      throw new Error("unknown_type");
+    }
+    const fields: Record<string, RuntimeStoredValue> = {};
+    routine.program.statements.forEach((statement) => {
+      if (statement.kind === "declare" && statement.bindingKind === "declare") {
+        fields[statement.variableName] = false;
+      }
+    });
+    return {
+      kind: "typed-object",
+      typeRoutineId,
+      typeName: routine.name,
+      fields
+    };
+  }
+
+  private readTypedObjectField(
+    declarationId: string,
+    variableName: string,
+    fieldName: string
+  ): RuntimeStoredValue {
+    const value = this.readVariableValue(declarationId, variableName);
+    if (!this.isTypedObjectValue(value)) {
+      throw new Error(`Variable "${variableName}" is not a typed object.`);
+    }
+    if (!(fieldName in value.fields)) {
+      throw new Error("unknown_type_field");
+    }
+    return value.fields[fieldName]!;
+  }
+
+  private assignTypedObjectField(
+    declarationId: string,
+    variableName: string,
+    fieldName: string,
+    value: RuntimeStoredValue
+  ): void {
+    const current = this.readVariableValue(declarationId, variableName);
+    if (!this.isTypedObjectValue(current)) {
+      throw new Error(`Variable "${variableName}" is not a typed object.`);
+    }
+    if (!(fieldName in current.fields)) {
+      throw new Error("unknown_type_field");
+    }
+    current.fields[fieldName] = value;
+    this.setLocalValue(this.runtimeFrames[this.runtimeFrames.length - 1]!.locals, declarationId, variableName, current);
   }
 
   private evaluateExpression(
@@ -1169,6 +1437,30 @@ export class DefaultPlaySessionController implements PlaySessionController {
           value: !this.asBoolean(this.assertPrimitiveValue(operand.value))
         };
       }
+      case "pointer":
+        return {
+          kind: "literal",
+          value: {
+            kind: "pointer",
+            targetKind: expression.targetKind,
+            targetId: expression.targetId,
+            targetName: expression.targetName
+          }
+        };
+      case "type-instance":
+        return {
+          kind: "literal",
+          value: this.createTypedObjectValue(expression.typeRoutineId)
+        };
+      case "type-field-read":
+        return {
+          kind: "literal",
+          value: this.readTypedObjectField(
+            expression.targetDeclarationId,
+            expression.targetName,
+            expression.fieldName
+          )
+        };
     }
   }
 
@@ -1195,9 +1487,17 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const frames = [...outerFrames, locals];
     const loopCounts = new Map<string, number>();
 
-    const executeStatements = (statements: StatementNode[]): RuntimeStoredValue | undefined => {
+    const BREAK_SIGNAL = "__BREAK__" as const;
+
+    const executeStatements = (
+      statements: StatementNode[],
+      inLoop = false
+    ): RuntimeStoredValue | typeof BREAK_SIGNAL | undefined => {
       for (const statement of statements) {
         switch (statement.kind) {
+          case "function-definition":
+          case "type-definition":
+            break;
           case "declare":
             if (!locals.has(statement.id)) {
               this.setLocalValue(locals, statement.id, statement.variableName, false);
@@ -1211,6 +1511,32 @@ export class DefaultPlaySessionController implements PlaySessionController {
               this.evaluateExpressionDirect(statement.value, compiled, frames, depth).value
             );
             break;
+          case "type-field-assign": {
+            const scopedValue = this.readVariableValueFromFrames(
+              frames,
+              statement.targetDeclarationId,
+              statement.targetName
+            );
+            if (!this.isTypedObjectValue(scopedValue)) {
+              throw new Error(`Variable "${statement.targetName}" is not a typed object.`);
+            }
+            if (!(statement.fieldName in scopedValue.fields)) {
+              throw new Error("unknown_type_field");
+            }
+            scopedValue.fields[statement.fieldName] = this.evaluateExpressionDirect(
+              statement.value,
+              compiled,
+              frames,
+              depth
+            ).value;
+            this.assignScopedValue(
+              frames,
+              statement.targetDeclarationId,
+              statement.targetName,
+              scopedValue
+            );
+            break;
+          }
           case "expression":
             this.evaluateExpressionDirect(statement.expression, compiled, frames, depth);
             break;
@@ -1243,6 +1569,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
               )
             );
             const branchResult = executeStatements(branchTaken ? statement.thenBody : statement.elseBody ?? []);
+            if (branchResult === BREAK_SIGNAL) {
+              if (inLoop) {
+                return BREAK_SIGNAL;
+              }
+              throw new Error("Break can only be used inside while or for-each.");
+            }
             if (branchResult !== undefined) {
               return branchResult;
             }
@@ -1264,13 +1596,40 @@ export class DefaultPlaySessionController implements PlaySessionController {
                   `A while block can run at most ${MAX_WHILE_ITERATIONS} iterations for now.`
                 );
               }
-              const loopResult = executeStatements(statement.body);
+              const loopResult = executeStatements(statement.body, true);
+              if (loopResult === BREAK_SIGNAL) {
+                break;
+              }
               if (loopResult !== undefined) {
                 return loopResult;
               }
             }
             break;
           }
+          case "for-each": {
+            const values = this.getForEachValuesFromStructure(
+              statement.sourceStructureId,
+              statement.sourceStructureKind
+            );
+            for (const value of values) {
+              this.setLocalValue(
+                locals,
+                statement.itemDeclarationId,
+                statement.itemName,
+                value
+              );
+              const loopResult = executeStatements(statement.body, true);
+              if (loopResult === BREAK_SIGNAL) {
+                break;
+              }
+              if (loopResult !== undefined) {
+                return loopResult;
+              }
+            }
+            break;
+          }
+          case "break":
+            return BREAK_SIGNAL;
           case "return":
             return statement.value
               ? this.evaluateExpressionDirect(statement.value, compiled, frames, depth).value
@@ -1281,7 +1640,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
       return undefined;
     };
 
-    return executeStatements(routineNode.program.statements);
+    const result = executeStatements(routineNode.program.statements);
+    if (result === BREAK_SIGNAL) {
+      throw new Error("Break can only be used inside while or for-each.");
+    }
+    return result;
   }
 
   private executeCallStatementDirect(
@@ -1444,6 +1807,38 @@ export class DefaultPlaySessionController implements PlaySessionController {
         return {
           kind: "literal",
           value: !this.asBoolean(this.assertPrimitiveValue(operand.value))
+        };
+      }
+      case "pointer":
+        return {
+          kind: "literal",
+          value: {
+            kind: "pointer",
+            targetKind: expression.targetKind,
+            targetId: expression.targetId,
+            targetName: expression.targetName
+          }
+        };
+      case "type-instance":
+        return {
+          kind: "literal",
+          value: this.createTypedObjectValue(expression.typeRoutineId)
+        };
+      case "type-field-read": {
+        const scopedValue = this.readVariableValueFromFrames(
+          frames,
+          expression.targetDeclarationId,
+          expression.targetName
+        );
+        if (!this.isTypedObjectValue(scopedValue)) {
+          throw new Error(`Variable "${expression.targetName}" is not a typed object.`);
+        }
+        if (!(expression.fieldName in scopedValue.fields)) {
+          throw new Error("unknown_type_field");
+        }
+        return {
+          kind: "literal",
+          value: scopedValue.fields[expression.fieldName]!
         };
       }
     }
