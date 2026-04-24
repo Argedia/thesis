@@ -23,9 +23,22 @@ export interface StructuresBoardProps {
 }
 
 export interface BoardVariableSnapshot {
+  id: string;
   name: string;
-  value: DataValue;
-  routineName?: string;
+  scope: string;
+  valueKind: "primitive" | "pointer" | "typed-object" | "routine-reference" | "routine-object";
+  displayValue: string | number | boolean;
+  declaredTypeRef?:
+    | { kind: "primitive"; primitive: "text" | "boolean" | "value" }
+    | { kind: "structure"; structureKind: "stack" | "queue" | "list" }
+    | { kind: "user"; typeRoutineId: string }
+    | null;
+  objectFields?: Array<{
+    name: string;
+    displayValue: string | number | boolean;
+  }>;
+  referenceTargetId?: string;
+  referenceTargetName?: string;
 }
 
 const t = (key: string, options?: Record<string, unknown>) =>
@@ -33,13 +46,19 @@ const t = (key: string, options?: Record<string, unknown>) =>
 
 const boardWrapperStyle: CSSProperties = {
   ...cardStyle,
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  minHeight: 0,
   padding: "0.75rem",
   background: "#f7fbff"
 };
 
 const boardCanvasFrameStyle: CSSProperties = {
+  flex: "1 1 auto",
   width: "100%",
-  minHeight: "360px",
+  height: "100%",
+  minHeight: 0,
   borderRadius: "22px",
   border: "2px solid #d3e4f4",
   background: "#ecf6ff",
@@ -81,8 +100,31 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
     const draw = () => {
       const normalizedStructures = structures.map((structure) => normalizeStructureSnapshot(structure));
       const width = Math.max(host.clientWidth, 320);
-      const cardCount = normalizedStructures.length + (variables.length > 0 ? 1 : 0);
-      const height = Math.max(340, Math.ceil(cardCount / 2) * 250);
+      const availableHeight = Math.max(host.clientHeight, 360);
+      const cardCount = normalizedStructures.length + variables.length;
+      const baseHorizontalPadding = width < 520 ? 10 : width < 900 ? 14 : 22;
+      const baseVerticalPadding = width < 520 ? 10 : width < 900 ? 14 : 20;
+      const baseGutter = width < 520 ? 10 : width < 900 ? 16 : 24;
+      const minCardWidth = width < 520 ? 220 : 300;
+      const columns = Math.max(
+        1,
+        Math.min(2, Math.floor((width - baseHorizontalPadding * 2 + baseGutter) / (minCardWidth + baseGutter)))
+      );
+      const rowCount = Math.max(1, Math.ceil(cardCount / columns));
+      const cellWidth = (width - baseHorizontalPadding * 2 - baseGutter * (columns - 1)) / columns;
+      const naturalCellHeight = Math.max(176, Math.min(220, Math.round(148 + cellWidth * 0.18)));
+      const naturalContentHeight =
+        baseVerticalPadding * 2 + rowCount * naturalCellHeight + baseGutter * (rowCount - 1);
+      const fitScale =
+        naturalContentHeight > availableHeight ? availableHeight / naturalContentHeight : 1;
+      const layoutScale = Math.max(0.58, Math.min(1, cellWidth / 420, fitScale));
+      const horizontalPadding = Math.max(8, Math.round(baseHorizontalPadding * layoutScale));
+      const verticalPadding = Math.max(8, Math.round(baseVerticalPadding * layoutScale));
+      const gutter = Math.max(8, Math.round(baseGutter * layoutScale));
+      const cellHeight = Math.max(132, Math.round(naturalCellHeight * layoutScale));
+      const contentHeight =
+        verticalPadding * 2 + rowCount * cellHeight + gutter * (rowCount - 1);
+      const height = Math.max(Math.min(availableHeight, Math.max(contentHeight, 220)), 220);
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
@@ -102,29 +144,26 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
 
       ctx.strokeStyle = "rgba(74, 109, 145, 0.16)";
       ctx.lineWidth = 1;
-      for (let x = 20; x < width; x += 40) {
+      const gridStep = Math.max(28, Math.round(40 * layoutScale));
+      const gridOffset = Math.max(12, Math.round(20 * layoutScale));
+      for (let x = gridOffset; x < width; x += gridStep) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, height);
         ctx.stroke();
       }
-      for (let y = 20; y < height; y += 40) {
+      for (let y = gridOffset; y < height; y += gridStep) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(width, y);
         ctx.stroke();
       }
 
-      const columns = width > 760 ? 2 : 1;
-      const gutter = 28;
-      const cellWidth = (width - gutter * (columns + 1)) / columns;
-      const cellHeight = 210;
-
       normalizedStructures.forEach((structure, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
-        const frameX = gutter + column * (cellWidth + gutter);
-        const frameY = 28 + row * (cellHeight + 28);
+        const frameX = horizontalPadding + column * (cellWidth + gutter);
+        const frameY = verticalPadding + row * (cellHeight + gutter);
         const frameWidth = cellWidth;
         const frameHeight = cellHeight;
         const structureColor =
@@ -142,227 +181,358 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
               : "#7c52ba";
 
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, 26);
+        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, Math.round(26 * layoutScale));
         ctx.fill();
         ctx.strokeStyle = "#d3e4f4";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.font = "800 13px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+        const labelFont = Math.max(10, Math.round(13 * layoutScale));
+        const titleFont = Math.max(22, Math.round(30 * layoutScale));
+        const metaFont = Math.max(11, Math.round(14 * layoutScale));
+        ctx.font = `800 ${labelFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
         ctx.fillStyle = labelColor;
-        ctx.fillText(t(`structures.${structure.kind}`).toUpperCase(), frameX + 20, frameY + 24);
+        ctx.fillText(
+          t(`structures.${structure.kind}`).toUpperCase(),
+          frameX + Math.round(20 * layoutScale),
+          frameY + Math.round(24 * layoutScale)
+        );
 
-        ctx.font = "900 30px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+        ctx.font = `900 ${titleFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
         ctx.fillStyle = "#355070";
-        ctx.fillText(structure.id, frameX + 18, frameY + 58);
+        ctx.fillText(
+          structure.id,
+          frameX + Math.round(18 * layoutScale),
+          frameY + Math.round(58 * layoutScale)
+        );
 
-        ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+        ctx.font = `700 ${metaFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
         ctx.fillStyle = "#6d8297";
         ctx.textAlign = "right";
         ctx.fillText(
           `${structure.values.length} ${t("common.items")}`,
-          frameX + frameWidth - 18,
-          frameY + 24
+          frameX + frameWidth - Math.round(18 * layoutScale),
+          frameY + Math.round(24 * layoutScale)
         );
         ctx.textAlign = "start";
 
         if (structure.kind === "stack") {
-          const slotWidth = Math.min(120, frameWidth * 0.34);
-          const slotHeight = 34;
+          const slotWidth = Math.min(Math.round(120 * layoutScale), frameWidth * 0.34);
+          const slotHeight = Math.max(24, Math.round(34 * layoutScale));
           const towerX = frameX + frameWidth * 0.5 - slotWidth * 0.5;
-          const baseY = frameY + frameHeight - 26;
-          const topY = frameY + 76;
+          const baseY = frameY + frameHeight - Math.round(22 * layoutScale);
+          const topY = frameY + Math.round(76 * layoutScale);
 
           ctx.strokeStyle = "#7b93ab";
-          ctx.lineWidth = 5;
+          ctx.lineWidth = Math.max(3, Math.round(5 * layoutScale));
           ctx.beginPath();
           ctx.moveTo(towerX, topY);
           ctx.lineTo(towerX, baseY);
           ctx.moveTo(towerX + slotWidth, topY);
           ctx.lineTo(towerX + slotWidth, baseY);
-          ctx.moveTo(towerX - 10, baseY);
-          ctx.lineTo(towerX + slotWidth + 10, baseY);
+          ctx.moveTo(towerX - Math.round(10 * layoutScale), baseY);
+          ctx.lineTo(towerX + slotWidth + Math.round(10 * layoutScale), baseY);
           ctx.stroke();
 
           structure.values.forEach((node, valueIndex) => {
-            const itemY = baseY - slotHeight - valueIndex * (slotHeight + 6);
+            const itemY = baseY - slotHeight - valueIndex * (slotHeight + Math.round(6 * layoutScale));
             const item = node as DataNode;
             ctx.fillStyle = item.color ?? structureColor;
-            drawRoundedRect(ctx, towerX + 8, itemY, slotWidth - 16, slotHeight, 10);
+            drawRoundedRect(
+              ctx,
+              towerX + Math.round(8 * layoutScale),
+              itemY,
+              slotWidth - Math.round(16 * layoutScale),
+              slotHeight,
+              Math.max(8, Math.round(10 * layoutScale))
+            );
             ctx.fill();
             ctx.strokeStyle = "rgba(53, 80, 112, 0.18)";
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = "#355070";
-            ctx.font = "800 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+            ctx.font = `800 ${Math.max(11, Math.round(14 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
             ctx.textAlign = "center";
-            ctx.fillText(String(item.value), towerX + slotWidth / 2, itemY + 22);
+            ctx.fillText(
+              String(item.value),
+              towerX + slotWidth / 2,
+              itemY + Math.round(slotHeight * 0.66)
+            );
             ctx.textAlign = "start";
           });
         } else if (structure.kind === "queue") {
-          const itemWidth = 58;
-          const itemHeight = 58;
-          const laneX = frameX + 20;
-          const laneY = frameY + 122;
-          const startX = frameX + 28;
-          const maxVisible = Math.max(1, Math.floor((frameWidth - 56) / (itemWidth + 8)));
+          const itemWidth = Math.max(36, Math.round(58 * layoutScale));
+          const itemHeight = itemWidth;
+          const laneX = frameX + Math.round(20 * layoutScale);
+          const laneY = frameY + Math.round(122 * layoutScale);
+          const startX = frameX + Math.round(28 * layoutScale);
+          const maxVisible = Math.max(
+            1,
+            Math.floor((frameWidth - Math.round(56 * layoutScale)) / (itemWidth + Math.round(8 * layoutScale)))
+          );
 
           ctx.strokeStyle = "#7b93ab";
-          ctx.lineWidth = 5;
+          ctx.lineWidth = Math.max(3, Math.round(5 * layoutScale));
           ctx.beginPath();
           ctx.moveTo(laneX, laneY);
-          ctx.lineTo(frameX + frameWidth - 20, laneY);
+          ctx.lineTo(frameX + frameWidth - Math.round(20 * layoutScale), laneY);
           ctx.stroke();
 
           structure.values.slice(0, maxVisible).forEach((node, valueIndex) => {
-            const itemX = startX + valueIndex * (itemWidth + 8);
-            const itemY = laneY - itemHeight - 8;
+            const itemX = startX + valueIndex * (itemWidth + Math.round(8 * layoutScale));
+            const itemY = laneY - itemHeight - Math.round(8 * layoutScale);
             const item = node as DataNode;
             ctx.fillStyle = item.color ?? structureColor;
-            drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, 12);
+            drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, Math.max(8, Math.round(12 * layoutScale)));
             ctx.fill();
             ctx.strokeStyle = "rgba(53, 80, 112, 0.18)";
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = "#355070";
-            ctx.font = "800 16px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+            ctx.font = `800 ${Math.max(12, Math.round(16 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
             ctx.textAlign = "center";
-            ctx.fillText(String(item.value), itemX + itemWidth / 2, itemY + 35);
+            ctx.fillText(
+              String(item.value),
+              itemX + itemWidth / 2,
+              itemY + Math.round(itemHeight * 0.62)
+            );
             ctx.textAlign = "start";
           });
 
           if (structure.values.length > maxVisible) {
             ctx.fillStyle = "#6d8297";
-            ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-            ctx.fillText(`+${structure.values.length - maxVisible}`, frameX + frameWidth - 54, frameY + 96);
+            ctx.font = `700 ${Math.max(11, Math.round(14 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+            ctx.fillText(
+              `+${structure.values.length - maxVisible}`,
+              frameX + frameWidth - Math.round(54 * layoutScale),
+              frameY + Math.round(96 * layoutScale)
+            );
           }
         } else {
-          const itemWidth = 58;
-          const itemHeight = 42;
-          const laneX = frameX + 26;
-          const laneY = frameY + 126;
-          const startX = frameX + 30;
-          const maxVisible = Math.max(1, Math.floor((frameWidth - 60) / (itemWidth + 16)));
+          const itemWidth = Math.max(36, Math.round(58 * layoutScale));
+          const itemHeight = Math.max(28, Math.round(42 * layoutScale));
+          const laneX = frameX + Math.round(26 * layoutScale);
+          const laneY = frameY + Math.round(126 * layoutScale);
+          const startX = frameX + Math.round(30 * layoutScale);
+          const maxVisible = Math.max(
+            1,
+            Math.floor((frameWidth - Math.round(60 * layoutScale)) / (itemWidth + Math.round(16 * layoutScale)))
+          );
 
           ctx.strokeStyle = "#8e79c2";
-          ctx.lineWidth = 4;
+          ctx.lineWidth = Math.max(2, Math.round(4 * layoutScale));
           ctx.beginPath();
           ctx.moveTo(laneX, laneY);
-          ctx.lineTo(frameX + frameWidth - 24, laneY);
+          ctx.lineTo(frameX + frameWidth - Math.round(24 * layoutScale), laneY);
           ctx.stroke();
 
           structure.values.slice(0, maxVisible).forEach((node, valueIndex) => {
-            const itemX = startX + valueIndex * (itemWidth + 16);
-            const itemY = laneY - itemHeight - 10;
+            const itemX = startX + valueIndex * (itemWidth + Math.round(16 * layoutScale));
+            const itemY = laneY - itemHeight - Math.round(10 * layoutScale);
             const item = node as DataNode;
 
             if (valueIndex > 0) {
               ctx.strokeStyle = "rgba(124, 82, 186, 0.45)";
-              ctx.lineWidth = 3;
+              ctx.lineWidth = Math.max(2, Math.round(3 * layoutScale));
               ctx.beginPath();
-              ctx.moveTo(itemX - 14, itemY + itemHeight / 2);
-              ctx.lineTo(itemX - 4, itemY + itemHeight / 2);
+              ctx.moveTo(itemX - Math.round(14 * layoutScale), itemY + itemHeight / 2);
+              ctx.lineTo(itemX - Math.round(4 * layoutScale), itemY + itemHeight / 2);
               ctx.stroke();
             }
 
             ctx.fillStyle = item.color ?? structureColor;
-            drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, 12);
+            drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, Math.max(8, Math.round(12 * layoutScale)));
             ctx.fill();
             ctx.strokeStyle = "rgba(53, 80, 112, 0.18)";
             ctx.lineWidth = 2;
             ctx.stroke();
 
             ctx.fillStyle = "#355070";
-            ctx.font = "800 15px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+            ctx.font = `800 ${Math.max(11, Math.round(15 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
             ctx.textAlign = "center";
-            ctx.fillText(String(item.value), itemX + itemWidth / 2, itemY + 27);
+            ctx.fillText(
+              String(item.value),
+              itemX + itemWidth / 2,
+              itemY + Math.round(itemHeight * 0.64)
+            );
             ctx.textAlign = "start";
           });
 
           if (structure.values.length > maxVisible) {
             ctx.fillStyle = "#6d8297";
-            ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-            ctx.fillText(`+${structure.values.length - maxVisible}`, frameX + frameWidth - 54, frameY + 96);
+            ctx.font = `700 ${Math.max(11, Math.round(14 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+            ctx.fillText(
+              `+${structure.values.length - maxVisible}`,
+              frameX + frameWidth - Math.round(54 * layoutScale),
+              frameY + Math.round(96 * layoutScale)
+            );
           }
         }
 
         if (structure.values.length === 0) {
           ctx.fillStyle = "#9eb0bf";
-          ctx.font = "700 15px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
+          ctx.font = `700 ${Math.max(11, Math.round(15 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText(t("common.empty"), frameX + frameWidth / 2, frameY + frameHeight / 2 + 18);
+          ctx.fillText(
+            t("common.empty"),
+            frameX + frameWidth / 2,
+            frameY + frameHeight / 2 + Math.round(18 * layoutScale)
+          );
           ctx.textAlign = "start";
         }
       });
 
-      if (variables.length > 0) {
-        const index = normalizedStructures.length;
+      const variableAnchors = new Map<
+        string,
+        { leftX: number; rightX: number; midY: number }
+      >();
+
+      variables.forEach((variable, variableIndex) => {
+        const index = normalizedStructures.length + variableIndex;
         const column = index % columns;
         const row = Math.floor(index / columns);
-        const frameX = gutter + column * (cellWidth + gutter);
-        const frameY = 28 + row * (cellHeight + 28);
+        const frameX = horizontalPadding + column * (cellWidth + gutter);
+        const frameY = verticalPadding + row * (cellHeight + gutter);
         const frameWidth = cellWidth;
         const frameHeight = cellHeight;
-        const maxVisible = Math.min(variables.length, 6);
+        const accent =
+          variable.valueKind === "pointer"
+            ? "#a58ad5"
+            : variable.valueKind === "typed-object"
+              ? "#ecb76f"
+              : variable.valueKind === "routine-reference"
+                ? "#80a8dd"
+                : "#7fbd98";
 
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, 26);
+        ctx.fillStyle = "rgba(255,255,255,0.95)";
+        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, Math.round(26 * layoutScale));
         ctx.fill();
-        ctx.strokeStyle = "#d3e4f4";
+        ctx.strokeStyle = accent;
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.font = "800 13px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-        ctx.fillStyle = "#4f79b6";
-        ctx.fillText(t("common.variables").toUpperCase(), frameX + 20, frameY + 24);
-
-        ctx.font = "900 30px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-        ctx.fillStyle = "#355070";
-        ctx.fillText(t("structures.variablesShort"), frameX + 18, frameY + 58);
-
-        ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-        ctx.fillStyle = "#6d8297";
-        ctx.textAlign = "right";
+        ctx.font = `800 ${Math.max(10, Math.round(13 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = accent;
         ctx.fillText(
-          `${variables.length} ${t("common.items")}`,
-          frameX + frameWidth - 18,
-          frameY + 24
+          t("common.variables").toUpperCase(),
+          frameX + Math.round(20 * layoutScale),
+          frameY + Math.round(24 * layoutScale)
         );
-        ctx.textAlign = "start";
 
-        variables.slice(0, maxVisible).forEach((variable, variableIndex) => {
-          const itemX = frameX + 22;
-          const itemY = frameY + 74 + variableIndex * 22;
-          const itemWidth = frameWidth - 44;
-          const itemHeight = 18;
+        ctx.font = `900 ${Math.max(18, Math.round(28 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#355070";
+        ctx.fillText(variable.name, frameX + Math.round(18 * layoutScale), frameY + Math.round(58 * layoutScale));
 
-          ctx.fillStyle = "#edf5ff";
-          drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, 9);
-          ctx.fill();
+        const typeLabel =
+          variable.declaredTypeRef?.kind === "primitive"
+            ? variable.declaredTypeRef.primitive.toUpperCase()
+            : variable.declaredTypeRef?.kind === "structure"
+              ? variable.declaredTypeRef.structureKind.toUpperCase()
+              : variable.declaredTypeRef?.kind === "user"
+                ? t("blocks.type").toUpperCase()
+                : t("blocks.value").toUpperCase();
+        ctx.font = `700 ${Math.max(10, Math.round(12 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#6d8297";
+        ctx.fillText(typeLabel, frameX + Math.round(20 * layoutScale), frameY + Math.round(78 * layoutScale));
 
-          ctx.fillStyle = "#355070";
-          ctx.font = "800 12px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-          ctx.textAlign = "start";
-          ctx.fillText(variable.name, itemX + 10, itemY + 12.5);
+        ctx.font = `800 ${Math.max(10, Math.round(13 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#355070";
+        ctx.fillText(`${variable.scope}`, frameX + Math.round(20 * layoutScale), frameY + Math.round(98 * layoutScale));
 
-          ctx.fillStyle = "#4f79b6";
-          ctx.textAlign = "right";
-          ctx.fillText(String(variable.value), frameX + frameWidth - 30, itemY + 12.5);
-          ctx.textAlign = "start";
-        });
+        ctx.fillStyle = "#edf5ff";
+        drawRoundedRect(
+          ctx,
+          frameX + Math.round(20 * layoutScale),
+          frameY + Math.round(108 * layoutScale),
+          frameWidth - Math.round(40 * layoutScale),
+          Math.max(22, Math.round(28 * layoutScale)),
+          Math.max(8, Math.round(12 * layoutScale))
+        );
+        ctx.fill();
+        ctx.fillStyle = "#355070";
+        ctx.font = `800 ${Math.max(10, Math.round(13 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillText(
+          String(variable.displayValue),
+          frameX + Math.round(30 * layoutScale),
+          frameY + Math.round(126 * layoutScale)
+        );
 
-        if (variables.length > maxVisible) {
-          ctx.fillStyle = "#6d8297";
-          ctx.font = "700 14px Trebuchet MS, Arial Rounded MT Bold, sans-serif";
-          ctx.fillText(
-            `+${variables.length - maxVisible} ${t("common.more")}`,
-            frameX + 24,
-            frameY + frameHeight - 22
-          );
+        if (variable.objectFields && variable.objectFields.length > 0) {
+          const maxFields = Math.min(variable.objectFields.length, 3);
+          for (let fieldIndex = 0; fieldIndex < maxFields; fieldIndex += 1) {
+            const field = variable.objectFields[fieldIndex]!;
+            const itemY = frameY + Math.round(144 * layoutScale) + fieldIndex * Math.round(18 * layoutScale);
+            ctx.fillStyle = "#f6f9ff";
+            drawRoundedRect(
+              ctx,
+              frameX + Math.round(20 * layoutScale),
+              itemY,
+              frameWidth - Math.round(40 * layoutScale),
+              Math.max(12, Math.round(16 * layoutScale)),
+              Math.max(6, Math.round(8 * layoutScale))
+            );
+            ctx.fill();
+            ctx.font = `700 ${Math.max(9, Math.round(11 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+            ctx.fillStyle = "#4f79b6";
+            ctx.textAlign = "start";
+            ctx.fillText(field.name, frameX + Math.round(28 * layoutScale), itemY + Math.round(12 * layoutScale));
+            ctx.textAlign = "right";
+            ctx.fillText(
+              String(field.displayValue),
+              frameX + frameWidth - Math.round(30 * layoutScale),
+              itemY + Math.round(12 * layoutScale)
+            );
+            ctx.textAlign = "start";
+          }
         }
-      }
+
+        variableAnchors.set(variable.id, {
+          leftX: frameX + 6,
+          rightX: frameX + frameWidth - 6,
+          midY: frameY + frameHeight * 0.5
+        });
+      });
+
+      variables.forEach((variable) => {
+        if (variable.valueKind !== "pointer" || !variable.referenceTargetId) {
+          return;
+        }
+        const source = variableAnchors.get(variable.id);
+        const target = variableAnchors.get(variable.referenceTargetId);
+        if (!source || !target) {
+          return;
+        }
+        const startX = source.rightX;
+        const endX = target.leftX;
+        const startY = source.midY;
+        const endY = target.midY;
+        const controlOffset = Math.max(26, Math.abs(endX - startX) * 0.32);
+        ctx.strokeStyle = "#8c74c8";
+        ctx.lineWidth = Math.max(1.5, Math.round(2 * layoutScale));
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.bezierCurveTo(
+          startX + controlOffset,
+          startY,
+          endX - controlOffset,
+          endY,
+          endX,
+          endY
+        );
+        ctx.stroke();
+
+        const arrowX = endX;
+        const arrowY = endY;
+        ctx.fillStyle = "#8c74c8";
+        ctx.beginPath();
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX - Math.round(8 * layoutScale), arrowY - Math.round(5 * layoutScale));
+        ctx.lineTo(arrowX - Math.round(8 * layoutScale), arrowY + Math.round(5 * layoutScale));
+        ctx.closePath();
+        ctx.fill();
+      });
     };
 
     draw();
@@ -372,8 +542,18 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
     });
     resizeObserver.observe(host);
 
+    const handleViewportResize = () => {
+      draw();
+    };
+    window.addEventListener("resize", handleViewportResize);
+    window.visualViewport?.addEventListener("resize", handleViewportResize);
+    const animationFrame = window.requestAnimationFrame(draw);
+
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener("resize", handleViewportResize);
+      window.visualViewport?.removeEventListener("resize", handleViewportResize);
+      window.cancelAnimationFrame(animationFrame);
     };
   }, [structures, variables]);
 

@@ -236,6 +236,22 @@ export class DragDropGeometryService {
 
 		const previousSlotId = this.dragState?.slotTargetKey ?? null;
 		const originSlotOwnerId = this.dragState?.originSlotOwnerId ?? null;
+		const centerX = drag.left + drag.width / 2;
+		const centerY = drag.top + drag.height / 2;
+
+		const centerContainedSlot = slotRects.find(
+			(slot) =>
+				this.canUseSlotTarget(slot.slotKey) &&
+				this.parseSlotKey(slot.slotKey).ownerId !== originSlotOwnerId &&
+				centerX >= slot.rect.left &&
+				centerX <= slot.rect.right &&
+				centerY >= slot.rect.top &&
+				centerY <= slot.rect.bottom
+		);
+		if (centerContainedSlot) {
+			return centerContainedSlot.slotKey;
+		}
+
 		let preservedPreviousSlotId: string | null = null;
 		if (previousSlotId) {
 			const previousSlot = slotRects.find((slot) => slot.slotKey === previousSlotId);

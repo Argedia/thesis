@@ -5,14 +5,32 @@ import type {
 } from "@thesis/core-engine";
 import type { LevelDefinition } from "@thesis/game-system";
 import type { ProgressRepository, LevelRepository } from "@thesis/storage";
-import type { CompileResult, EditorDocument } from "../program-editor-core";
+import type { CompileResult, DeclaredTypeRef, EditorDocument } from "../program-editor-core";
 
 export type PlayRunState = "idle" | "running" | "paused";
 
-export interface RuntimeVariableSnapshot {
+export type RuntimeVariableKind =
+  | "primitive"
+  | "pointer"
+  | "typed-object"
+  | "routine-reference"
+  | "routine-object";
+
+export interface RuntimeVariableFieldSnapshot {
   name: string;
-  value: string | number | boolean;
-  routineName?: string;
+  displayValue: string | number | boolean;
+}
+
+export interface RuntimeVariableSnapshot {
+  id: string;
+  name: string;
+  scope: string;
+  declaredTypeRef?: DeclaredTypeRef | null;
+  valueKind: RuntimeVariableKind;
+  displayValue: string | number | boolean;
+  objectFields?: RuntimeVariableFieldSnapshot[];
+  referenceTargetId?: string;
+  referenceTargetName?: string;
 }
 
 export interface PlaySessionState {

@@ -43,9 +43,18 @@ export class BlockInstanceRenderer {
 
 	private getDeclarationTypeTone(
 		block: EditorBlock
-	): "bool" | "int" | "double" | "string" | "user" {
+	): "bool" | "int" | "double" | "string" | "user" | "stack" | "queue" | "list" {
 		if (block.kind !== "var_declaration") {
 			return "double";
+		}
+		if (block.declaredTypeRef?.kind === "structure") {
+			if (block.declaredTypeRef.structureKind === "stack") {
+				return "stack";
+			}
+			if (block.declaredTypeRef.structureKind === "queue") {
+				return "queue";
+			}
+			return "list";
 		}
 		if (block.declaredTypeRef?.kind === "user") {
 			return "user";
@@ -67,6 +76,15 @@ export class BlockInstanceRenderer {
 	): string {
 		if (block.kind !== "var_declaration") {
 			return "double";
+		}
+		if (block.declaredTypeRef?.kind === "structure") {
+			if (block.declaredTypeRef.structureKind === "stack") {
+				return t("structures.stack");
+			}
+			if (block.declaredTypeRef.structureKind === "queue") {
+				return t("structures.queue");
+			}
+			return t("structures.list");
 		}
 		if (block.declaredTypeRef?.kind === "user") {
 			return this.ctx.resolveTypeName(block.declaredTypeRef.typeRoutineId) ?? t("blocks.type");
@@ -185,6 +203,7 @@ export class BlockInstanceRenderer {
 		if (
 			block.kind === "structure" ||
 			block.kind === "conditional" ||
+			block.kind === "var_read" ||
 			block.kind === "var_assign" ||
 			block.kind === "var_reference" ||
 			block.kind === "var_operation" ||
@@ -253,6 +272,7 @@ export class BlockInstanceRenderer {
 				void this.ctx.editVariableName(block.id, block.routineName ?? block.typeName);
 			});
 		} else if (
+			block.kind === "var_read" ||
 			block.kind === "var_assign" ||
 			block.kind === "var_reference" ||
 			block.kind === "type_field_read" ||
@@ -388,6 +408,21 @@ export class BlockInstanceRenderer {
 			label.textContent = t("blocks.referenceTo");
 			main.appendChild(label);
 			main.appendChild(createVariableNameControl());
+			return;
+		}
+
+		if (block.kind === "var_read" && block.declaredTypeRef?.kind === "structure" && block.operation) {
+			const label = document.createElement("strong");
+			label.className = "editor-block-instance-label";
+			label.textContent = describeBlock(block);
+			main.appendChild(label);
+			getBlockInputSlots(block).forEach((slotDefinition) => {
+				main.appendChild(
+					options.ghost
+						? this.renderGhostInputSlot(block, slotDefinition)
+						: this.renderInlineInputSlot(block, slotDefinition)
+				);
+			});
 			return;
 		}
 
@@ -561,6 +596,9 @@ export class BlockInstanceRenderer {
 		if (
 			block.kind !== "structure" &&
 			block.kind !== "conditional" &&
+			block.kind !== "var_read" &&
+			block.kind !== "var_assign" &&
+			block.kind !== "var_reference" &&
 			block.kind !== "var_operation" &&
 			block.kind !== "var_binary_operation" &&
 			block.kind !== "var_declaration" &&

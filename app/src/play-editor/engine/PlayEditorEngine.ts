@@ -21,8 +21,8 @@ import {
 	type DragGeometry
 } from "../layout";
 import { DragDropGeometryService } from "../DragDropGeometry";
-import { BlockMutationService } from "../services/BlockMutationService";
-import { BlockTreeService } from "../services/BlockTreeService";
+import { BlockMutationService } from "../BlockMutationService";
+import { BlockTreeService } from "../BlockTreeService";
 import { PaletteDerivationService } from "../services/PaletteDerivationService";
 import { DropPlacementService } from "../services/DropPlacementService";
 import { PaletteDescriptorService } from "../services/PaletteDescriptorService";
@@ -70,7 +70,7 @@ import { t } from "../../i18n-helpers";
 import {
 	analyzeDocumentRoutines,
 	blockColorClass,
-	createEditorDocumentFromLegacyBlocks,
+	createEditorDocumentFromEditorBlocks,
 	createVariableBinaryOperationBlock,
 	createVariableAssignBlock,
 	createVariableDeclarationBlock,
@@ -100,7 +100,19 @@ import {
 	isSlotCompatible,
 	setBlockSlotBlock,
 	describeBlock,
-	projectDocumentToLegacyBlocks
+	projectDocumentToEditorBlocks,
+	editorBlockToExpression,
+	editorBlockToStatement,
+	getActiveProgram,
+	replaceActiveProgram,
+	findNode,
+	findExpression,
+	replaceStatementNode,
+	replaceExpressionNode,
+	replaceExpression,
+	clearExpression,
+	detachNode,
+	detachExpression
 } from "../operations";
 import { buildEditorLineLayout, renameRoutine } from "../model";
 import { BLOCK_METADATA, type PaletteGroupId } from "../BlockMetadata";
@@ -110,6 +122,20 @@ import type {
 	WheelState
 } from "../contracts/types";
 import { FUNCTION_BLUE, PREVIEW_BLOCK_ID } from "../contracts/constants";
+import { synchronizeVariableLabels as synchronizeVariableLabelsExternal } from "./engine-block-sync";
+import {
+	handlePaletteBlockInserted as handlePaletteBlockInsertedExternal,
+	createBlockFromPalette as createBlockFromPaletteExternal
+} from "./engine-palette";
+import {
+	promptForDeclaredTypeRef as promptForDeclaredTypeRefExternal,
+	promptForRoutineName as promptForRoutineNameExternal,
+	promptForScopeVariableTarget as promptForScopeVariableTargetExternal,
+	promptForTypedFieldTarget as promptForTypedFieldTargetExternal,
+	promptForValueText as promptForValueTextExternal,
+	promptForVariableDeclarationSpec as promptForVariableDeclarationSpecExternal,
+	promptForVariableName as promptForVariableNameExternal
+} from "./engine-prompts";
 
 type ControlEditorBlock = EditorBlock & {
 	kind: "conditional" | "while" | "for_each";
@@ -278,9 +304,7 @@ export class PlayEditorEngine {
 					this.getTreeService().blockContainsId(block, blockId),
 				findBlockById: (blocks, blockId) =>
 					this.getTreeService().findBlockById(blocks, blockId),
-				parseSlotKey: (slotKey) => this.parseSlotKey(slotKey),
-				updateBlockById: (blocks, blockId, updater) =>
-					this.updateBlockById(blocks, blockId, updater)
+				parseSlotKey: (slotKey) => this.parseSlotKey(slotKey)
 			});
 		}
 		return this.dropPlacement;
@@ -313,12 +337,11 @@ export class PlayEditorEngine {
 					this.getTreeService().findInputOwnerId(blocks, blockId),
 				resolveInsertedBlockFromDrag: (dragState, matcher) =>
 					this.resolveInsertedBlockFromDrag(dragState, matcher),
-				extractBlockFromTree: (blocks, blockId) =>
-					this.extractBlockFromTree(blocks, blockId),
+				getDocument: () => this.props.value,
 				canUseSlotTarget: (targetSlotKey) => this.canUseSlotTarget(targetSlotKey),
-				applyDropDestination: (blocks, insertedBlock, placement) =>
-					this.applyDropDestination(blocks, insertedBlock, placement),
-				setBlocks: (nextBlocks) => this.setBlocks(nextBlocks),
+				applyDropDestination: (document, insertedBlock, placement) =>
+					this.applyDropDestination(document, insertedBlock, placement),
+				setDocument: (nextDocument) => this.setDocument(nextDocument),
 				onPaletteBlockInserted: async (block) => {
 					await this.handlePaletteBlockInserted(block);
 				}
@@ -447,6 +470,8 @@ export class PlayEditorEngine {
 					this.getBlockActionController().updateVariableOperationMode(blockId, mode),
 				updateDeclarationBindingKind: (blockId, bindingKind) =>
 					this.getBlockActionController().updateDeclarationBindingKind(blockId, bindingKind),
+				convertVariableBlockKind: (blockId, kind) =>
+					this.getBlockActionController().convertVariableBlockKind(blockId, kind),
 				updateRoutineCallMode: (blockId, mode) =>
 					this.getBlockActionController().updateRoutineCallMode(blockId, mode),
 				updateBlockOperation: (blockId, operation) =>
@@ -469,9 +494,11 @@ export class PlayEditorEngine {
 			const context: BlockActionContext = {
 				isLocked: () => this.isLocked(),
 				getBlocks: () => this.getBlocks(),
-				setBlocks: (nextBlocks) => this.setBlocks(nextBlocks),
-				updateBlockById: (blocks, blockId, updater) =>
-					this.updateBlockById(blocks, blockId, updater),
+				replaceProjectedBlockById: (blockId, updater) =>
+					this.replaceProjectedBlockById(blockId, updater),
+				clearExpressionSlot: (slotKey) => this.clearExpressionSlot(slotKey),
+				assignLiteralExpressionIntoSlot: (slotKey, rawValue, expectedType) =>
+					this.assignLiteralExpressionIntoSlot(slotKey, rawValue, expectedType),
 				parseSlotKey: (slotKey) => this.parseSlotKey(slotKey),
 				parseLiteralInput: (rawValue) => this.parseLiteralInput(rawValue),
 				promptForVariableName: (currentName, excludeDeclarationId) =>
@@ -578,7 +605,7 @@ export class PlayEditorEngine {
 	}
 
 	private getBlocks(): EditorBlock[] {
-		return projectDocumentToLegacyBlocks(this.props.value);
+		return projectDocumentToEditorBlocks(this.props.value);
 	}
 
 	private getRoutineSignatures(): Record<string, RoutineSignature> {
@@ -633,6 +660,86 @@ export class PlayEditorEngine {
 		updater: (block: EditorBlock) => EditorBlock
 	): EditorBlock[] {
 		return this.getMutationService().updateBlockById(blocks, blockId, updater);
+	}
+
+	private setDocument(nextDocument: PlayEditorSurfaceProps["value"]): void {
+		this.props.onChange(nextDocument);
+	}
+
+	private updateActiveProgram(
+		updater: (program: ReturnType<typeof getActiveProgram>) => ReturnType<typeof getActiveProgram>
+	): void {
+		const nextProgram = updater(getActiveProgram(this.props.value));
+		this.setDocument(replaceActiveProgram(this.props.value, nextProgram));
+	}
+
+	private replaceProjectedBlockById(
+		blockId: string,
+		updater: (block: EditorBlock) => EditorBlock
+	): void {
+		const currentBlock = this.getTreeService().findBlockById(this.getBlocks(), blockId);
+		if (!currentBlock) {
+			return;
+		}
+
+		const nextBlock = updater(currentBlock);
+		const activeProgram = getActiveProgram(this.props.value);
+		if (findNode(activeProgram, blockId)) {
+			this.setDocument(
+				replaceActiveProgram(
+					this.props.value,
+					replaceStatementNode(activeProgram, blockId, editorBlockToStatement(nextBlock))
+				)
+			);
+			return;
+		}
+
+		if (findExpression(activeProgram, blockId)) {
+			this.setDocument(
+				replaceActiveProgram(
+					this.props.value,
+					replaceExpressionNode(activeProgram, blockId, editorBlockToExpression(nextBlock))
+				)
+			);
+		}
+	}
+
+	private clearExpressionSlot(slotKey: string): void {
+		const { ownerId, slotId } = this.parseSlotKey(slotKey);
+		this.updateActiveProgram((program) => clearExpression(program, ownerId, slotId));
+	}
+
+	private assignLiteralExpressionIntoSlot(
+		slotKey: string,
+		rawValue: string,
+		expectedType: "value" | "boolean" | "any"
+	): void {
+		const trimmed = rawValue.trim();
+		if (!trimmed) {
+			return;
+		}
+
+		const { ownerId, slotId } = this.parseSlotKey(slotKey);
+		const parsedValue = this.parseLiteralInput(trimmed);
+		const expression =
+			expectedType === "boolean" && typeof parsedValue === "boolean"
+				? editorBlockToExpression(createBooleanValueBlock(parsedValue))
+				: editorBlockToExpression(createValueBlock(parsedValue));
+		this.updateActiveProgram((program) => replaceExpression(program, ownerId, slotId, expression));
+	}
+
+	private removeProjectedBlockById(blockId: string): void {
+		const activeProgram = getActiveProgram(this.props.value);
+		if (findNode(activeProgram, blockId)) {
+			this.setDocument(replaceActiveProgram(this.props.value, detachNode(activeProgram, blockId).program));
+			return;
+		}
+
+		if (findExpression(activeProgram, blockId)) {
+			this.setDocument(
+				replaceActiveProgram(this.props.value, detachExpression(activeProgram, blockId).program)
+			);
+		}
 	}
 
 	private removeNestedBlockById(blocks: EditorBlock[], blockId: string): EditorBlock[] {
@@ -718,220 +825,42 @@ export class PlayEditorEngine {
 	private setBlocks(nextBlocks: EditorBlock[]): void {
 		const syncedBlocks = this.synchronizeVariableLabels(nextBlocks);
 		this.props.onChange(
-			createEditorDocumentFromLegacyBlocks(syncedBlocks, this.props.value)
+			createEditorDocumentFromEditorBlocks(syncedBlocks, this.props.value)
 		);
 	}
 
 	private synchronizeVariableLabels(blocks: EditorBlock[]): EditorBlock[] {
-		const declarations = collectVariableDeclarations(blocks);
-		const activeRoutineId = this.props.value.activeRoutineId;
-		const activeRoutineName = this.getActiveRoutineName();
-		const nameById = new Map<string, string>(
-			declarations.map((declaration) => [declaration.id, declaration.name])
-		);
-
-		const syncBlock = (block: EditorBlock): EditorBlock => {
-			let nextBlock = block;
-			if (
-				(block.kind === "var_read" ||
-					block.kind === "var_assign" ||
-					block.kind === "var_operation" ||
-					block.kind === "type_field_read" ||
-					block.kind === "type_field_assign") &&
-				block.variableSourceId
-			) {
-				const syncedName = nameById.get(block.variableSourceId);
-				if (syncedName && syncedName !== block.variableName) {
-					nextBlock = {
-						...nextBlock,
-						variableName: syncedName
-					};
-				}
-			}
-
-			if (
-				block.kind === "var_reference" &&
-				block.referenceTargetKind === "variable" &&
-				block.referenceTargetId
-			) {
-				const syncedTargetName = nameById.get(block.referenceTargetId);
-				if (syncedTargetName && syncedTargetName !== block.variableName) {
-					nextBlock = {
-						...nextBlock,
-						variableName: syncedTargetName
-					};
-				}
-			}
-
-			if (block.kind === "function_definition") {
-				if (
-					nextBlock.routineId !== activeRoutineId ||
-					nextBlock.routineName !== activeRoutineName
-				) {
-					nextBlock = {
-						...nextBlock,
-						routineId: activeRoutineId,
-						routineName: activeRoutineName
-					};
-				}
-			}
-			if (block.kind === "type_definition") {
-				if (
-					nextBlock.routineId !== activeRoutineId ||
-					nextBlock.routineName !== activeRoutineName ||
-					nextBlock.typeName !== activeRoutineName
-				) {
-					nextBlock = {
-						...nextBlock,
-						routineId: activeRoutineId,
-						routineName: activeRoutineName,
-						typeRoutineId: activeRoutineId,
-						typeName: activeRoutineName
-					};
-				}
-			}
-
-			const syncedInputBlock = nextBlock.inputBlock
-				? syncBlock(nextBlock.inputBlock)
-				: nextBlock.inputBlock;
-			const syncedInputBlocks = nextBlock.inputBlocks?.map((inputBlock) =>
-				inputBlock ? syncBlock(inputBlock) : inputBlock
-			);
-			const syncedBodyBlocks = nextBlock.bodyBlocks?.map(syncBlock);
-			const syncedAlternateBodyBlocks = nextBlock.alternateBodyBlocks?.map(syncBlock);
-
-			if (
-				syncedInputBlock !== nextBlock.inputBlock ||
-				syncedInputBlocks !== nextBlock.inputBlocks ||
-				syncedBodyBlocks !== nextBlock.bodyBlocks ||
-				syncedAlternateBodyBlocks !== nextBlock.alternateBodyBlocks
-			) {
-				nextBlock = {
-					...nextBlock,
-					inputBlock: syncedInputBlock,
-					inputBlocks: syncedInputBlocks,
-					bodyBlocks: syncedBodyBlocks,
-					alternateBodyBlocks: syncedAlternateBodyBlocks
-				};
-			}
-
-			return nextBlock;
-		};
-
-		return blocks.map(syncBlock);
+		return synchronizeVariableLabelsExternal({
+			blocks,
+			document: this.props.value,
+			activeRoutineId: this.props.value.activeRoutineId,
+			activeRoutineName: this.getActiveRoutineName()
+		});
 	}
 
 	private isVariableNameTaken(name: string, excludeDeclarationId?: string): boolean {
 		return this.getVariableValidationService().isVariableNameTaken(
-			this.getBlocks(),
+			this.props.value,
 			name,
 			excludeDeclarationId
 		);
 	}
 
-	private async requestTextInput(options: {
-		title: string;
-		initialValue?: string;
-		validate?: (value: string) => string | null;
-	}): Promise<string | null> {
-		if (this.props.onRequestTextInput) {
-			return this.props.onRequestTextInput(options);
-		}
-
-		return window.prompt(options.title, options.initialValue ?? "") ?? null;
-	}
-
-	private async requestSelectInput(options: {
-		title: string;
-		initialValue?: string;
-		options: Array<{ value: string; label: string }>;
-	}): Promise<string | null> {
-		if (this.props.onRequestSelectInput) {
-			return this.props.onRequestSelectInput(options);
-		}
-
-		const optionsText = options.options
-			.map((option, index) => `${index + 1}. ${option.label}`)
-			.join("\n");
-		const response = window.prompt(
-			`${options.title}\n${optionsText}`,
-			options.initialValue ?? options.options[0]?.value ?? ""
-		);
-		if (response === null) {
-			return null;
-		}
-		const trimmed = response.trim();
-		if (!trimmed) {
-			return null;
-		}
-		const byValue = options.options.find((option) => option.value === trimmed);
-		if (byValue) {
-			return byValue.value;
-		}
-		const numericIndex = Number(trimmed);
-		if (Number.isInteger(numericIndex)) {
-			return options.options[numericIndex - 1]?.value ?? null;
-		}
-		return null;
-	}
-
-	private async showAlert(options: { title?: string; message: string }): Promise<void> {
-		if (this.props.onShowAlert) {
-			await this.props.onShowAlert(options);
-			return;
-		}
-
-		window.alert(options.message);
-	}
-
 	private async promptForVariableName(currentName?: string, excludeDeclarationId?: string): Promise<string | null> {
-		while (true) {
-			const nextName = await this.requestTextInput({
-				title: t("editor.variableNamePrompt"),
-				initialValue: currentName?.trim() || "variable"
-			});
-			if (nextName === null) {
-				return null;
-			}
-
-			const normalizedName = nextName.trim();
-			if (!normalizedName) {
-				await this.showAlert({
-					title: t("common.notice"),
-					message: t("messages.variableNameEmpty")
-				});
-				continue;
-			}
-
-			if (this.isVariableNameTaken(normalizedName, excludeDeclarationId)) {
-				await this.showAlert({
-					title: t("common.notice"),
-					message: t("messages.variableNameExists", { name: normalizedName })
-				});
-				continue;
-			}
-
-			return normalizedName;
-		}
+		return promptForVariableNameExternal({
+			props: this.props,
+			currentName,
+			excludeDeclarationId,
+			isVariableNameTaken: (name, excludedId) => this.isVariableNameTaken(name, excludedId)
+		});
 	}
 
 	private async promptForRoutineName(currentName?: string): Promise<string | null> {
-		const nextName = await this.requestTextInput({
-			title: t("editor.routineName"),
-			initialValue: currentName?.trim() || this.getActiveRoutineName()
+		return promptForRoutineNameExternal({
+			props: this.props,
+			currentName,
+			activeRoutineName: this.getActiveRoutineName()
 		});
-		if (nextName === null) {
-			return null;
-		}
-		const normalizedName = nextName.trim();
-		if (!normalizedName) {
-			await this.showAlert({
-				title: t("common.notice"),
-				message: t("messages.routineNameEmpty")
-			});
-			return this.promptForRoutineName(currentName);
-		}
-		return normalizedName;
 	}
 
 	private renameRoutineById(routineId: string, name: string): void {
@@ -943,109 +872,29 @@ export class PlayEditorEngine {
 	}
 
 	private async promptForValueText(currentValue?: DataValue | null): Promise<string | null> {
-		const nextValue = await this.requestTextInput({
-			title: t("editor.valuePrompt"),
-			initialValue: String(currentValue ?? "item")
+		return promptForValueTextExternal({
+			props: this.props,
+			currentValue
 		});
-		if (nextValue === null) {
-			return null;
-		}
-
-		const normalizedValue = nextValue.trim();
-		if (!normalizedValue) {
-			await this.showAlert({
-				title: t("common.notice"),
-				message: t("messages.valueEmpty")
-			});
-			return this.promptForValueText(currentValue);
-		}
-
-		return normalizedValue;
 	}
 
 	private async promptForScopeVariableTarget(currentTargetId?: string): Promise<{ id: string; name: string } | null> {
-		const declarations = collectVariableDeclarations(this.getBlocks());
-		if (declarations.length === 0) {
-			await this.showAlert({
-				title: t("common.notice"),
-				message: t("common.noVariables")
-			});
-			return null;
-		}
-
-		const selectedId = await this.requestSelectInput({
-			title: t("editor.scopeVariablePrompt"),
-			initialValue: currentTargetId ?? declarations[0]?.id,
-			options: declarations.map((declaration) => ({
-				value: declaration.id,
-				label: declaration.name
-			}))
+		return promptForScopeVariableTargetExternal({
+			props: this.props,
+			document: this.props.value,
+			currentTargetId
 		});
-		if (!selectedId) {
-			return null;
-		}
-
-		const selected = declarations.find((declaration) => declaration.id === selectedId) ?? null;
-		return selected ? { id: selected.id, name: selected.name } : null;
 	}
 
 	private async promptForDeclaredTypeRef(
 		currentTypeRef?: EditorBlock["declaredTypeRef"]
 	): Promise<EditorBlock["declaredTypeRef"] | null> {
-		const primitiveOptions: Array<{
-			value: string;
-			label: string;
-			typeRef: EditorBlock["declaredTypeRef"];
-		}> = [
-			{
-				value: "primitive:value",
-				label: t("blocks.value"),
-				typeRef: { kind: "primitive", primitive: "value" }
-			},
-			{
-				value: "primitive:text",
-				label: t("blocks.text"),
-				typeRef: { kind: "primitive", primitive: "text" }
-			},
-			{
-				value: "primitive:boolean",
-				label: t("blocks.boolean"),
-				typeRef: { kind: "primitive", primitive: "boolean" }
-			}
-		];
-		const userTypeOptions = listTypeSignatures(this.props.value).map((signature) => ({
-			value: `user:${signature.typeRoutineId}`,
-			label: signature.typeName,
-			typeRef: {
-				kind: "user" as const,
-				typeRoutineId: signature.typeRoutineId
-			}
-		}));
-		const allOptions = [...primitiveOptions, ...userTypeOptions];
-		if (allOptions.length === 0) {
-			return { kind: "primitive", primitive: "value" };
-		}
-
-		const initialValue =
-			currentTypeRef?.kind === "primitive"
-				? `primitive:${currentTypeRef.primitive}`
-				: currentTypeRef?.kind === "user"
-					? `user:${currentTypeRef.typeRoutineId}`
-					: "primitive:value";
-
-		const selectedValue = await this.requestSelectInput({
-			title: t("editor.variableTypePrompt"),
-			initialValue,
-			options: allOptions.map((option) => ({
-				value: option.value,
-				label: option.label
-			}))
+		return promptForDeclaredTypeRefExternal({
+			props: this.props,
+			structures: this.props.structures,
+			document: this.props.value,
+			currentTypeRef
 		});
-		if (!selectedValue) {
-			return null;
-		}
-		const selected = allOptions.find((option) => option.value === selectedValue) ?? null;
-		return selected?.typeRef ?? { kind: "primitive", primitive: "value" };
 	}
 
 	private async promptForVariableDeclarationSpec(options?: {
@@ -1053,157 +902,28 @@ export class PlayEditorEngine {
 		currentTypeRef?: EditorBlock["declaredTypeRef"];
 		excludeDeclarationId?: string;
 	}): Promise<{ name: string; declaredTypeRef: EditorBlock["declaredTypeRef"] } | null> {
-		const primitiveOptions: Array<{
-			value: string;
-			label: string;
-			typeRef: EditorBlock["declaredTypeRef"];
-		}> = [
-			{
-				value: "primitive:value",
-				label: t("blocks.value"),
-				typeRef: { kind: "primitive", primitive: "value" }
-			},
-			{
-				value: "primitive:text",
-				label: t("blocks.text"),
-				typeRef: { kind: "primitive", primitive: "text" }
-			},
-			{
-				value: "primitive:boolean",
-				label: t("blocks.boolean"),
-				typeRef: { kind: "primitive", primitive: "boolean" }
-			}
-		];
-		const userTypeOptions = listTypeSignatures(this.props.value).map((signature) => ({
-			value: `user:${signature.typeRoutineId}`,
-			label: signature.typeName,
-			typeRef: {
-				kind: "user" as const,
-				typeRoutineId: signature.typeRoutineId
-			}
-		}));
-		const allOptions = [...primitiveOptions, ...userTypeOptions];
-		const initialTypeValue =
-			options?.currentTypeRef?.kind === "primitive"
-				? `primitive:${options.currentTypeRef.primitive}`
-				: options?.currentTypeRef?.kind === "user"
-					? `user:${options.currentTypeRef.typeRoutineId}`
-					: "primitive:value";
-
-		if (this.props.onRequestDeclarationInput) {
-			const response = await this.props.onRequestDeclarationInput({
-				title: t("blocks.declaration"),
-				nameTitle: t("editor.variableNamePrompt"),
-				typeTitle: t("editor.variableTypePrompt"),
-				initialName: options?.currentName?.trim() || "variable",
-				initialTypeValue,
-				options: allOptions.map((option) => ({
-					value: option.value,
-					label: option.label
-				}))
-			});
-			if (!response) {
-				return null;
-			}
-			const normalizedName = response.name.trim();
-			if (!normalizedName) {
-				await this.showAlert({
-					title: t("common.notice"),
-					message: t("messages.variableNameEmpty")
-				});
-				return null;
-			}
-			if (this.isVariableNameTaken(normalizedName, options?.excludeDeclarationId)) {
-				await this.showAlert({
-					title: t("common.notice"),
-					message: t("messages.variableNameExists", { name: normalizedName })
-				});
-				return null;
-			}
-			const selected = allOptions.find((option) => option.value === response.typeValue) ?? null;
-			return {
-				name: normalizedName,
-				declaredTypeRef: selected?.typeRef ?? { kind: "primitive", primitive: "value" }
-			};
-		}
-
-		const name = await this.promptForVariableName(
-			options?.currentName,
-			options?.excludeDeclarationId
-		);
-		if (!name) {
-			return null;
-		}
-		const declaredTypeRef = await this.promptForDeclaredTypeRef(options?.currentTypeRef);
-		if (!declaredTypeRef) {
-			return null;
-		}
-		return { name, declaredTypeRef };
+		return promptForVariableDeclarationSpecExternal({
+			props: this.props,
+			structures: this.props.structures,
+			document: this.props.value,
+			currentName: options?.currentName,
+			currentTypeRef: options?.currentTypeRef,
+			excludeDeclarationId: options?.excludeDeclarationId,
+			isVariableNameTaken: (name, excludeDeclarationId) =>
+				this.isVariableNameTaken(name, excludeDeclarationId)
+		});
 	}
 
 	private async promptForTypedFieldTarget(options?: {
 		currentVariableId?: string;
 		currentFieldName?: string;
 	}): Promise<{ variableId: string; variableName: string; fieldName: string } | null> {
-		const declarations = collectVariableDeclarations(this.getBlocks()).filter(
-			(declaration) => declaration.declaredTypeRef?.kind === "user"
-		);
-		if (declarations.length === 0) {
-			await this.showAlert({
-				title: t("common.notice"),
-				message: t("messages.unknownType")
-			});
-			return null;
-		}
-
-		const variableId = await this.requestSelectInput({
-			title: t("editor.scopeVariablePrompt"),
-			initialValue: options?.currentVariableId ?? declarations[0]?.id,
-			options: declarations.map((declaration) => ({
-				value: declaration.id,
-				label: declaration.name
-			}))
+		return promptForTypedFieldTargetExternal({
+			props: this.props,
+			document: this.props.value,
+			currentVariableId: options?.currentVariableId,
+			currentFieldName: options?.currentFieldName
 		});
-		if (!variableId) {
-			return null;
-		}
-		const selectedVariable = declarations.find((declaration) => declaration.id === variableId) ?? null;
-		if (!selectedVariable || selectedVariable.declaredTypeRef?.kind !== "user") {
-			return null;
-		}
-		const selectedTypeRef = selectedVariable.declaredTypeRef;
-
-		const typeSignature =
-			listTypeSignatures(this.props.value).find(
-				(signature) => signature.typeRoutineId === selectedTypeRef.typeRoutineId
-			) ?? null;
-		const fieldOptions = (typeSignature?.fieldDeclarations ?? [])
-			.map((field) => field.name.trim())
-			.filter((fieldName) => fieldName.length > 0)
-			.map((fieldName) => ({
-				value: fieldName,
-				label: fieldName
-			}));
-		if (fieldOptions.length === 0) {
-			await this.showAlert({
-				title: t("common.notice"),
-				message: t("messages.unknownTypeField")
-			});
-			return null;
-		}
-		const fieldName = await this.requestSelectInput({
-			title: t("blocks.field"),
-			initialValue: options?.currentFieldName ?? fieldOptions[0]?.value,
-			options: fieldOptions
-		});
-		if (!fieldName) {
-			return null;
-		}
-		return {
-			variableId: selectedVariable.id,
-			variableName: selectedVariable.name,
-			fieldName
-		};
 	}
 
 	private parseLiteralInput(rawValue: string): DataValue {
@@ -1225,204 +945,15 @@ export class PlayEditorEngine {
 	}
 
 	private async createBlockFromPalette(block: PaletteBlock): Promise<EditorBlock | null> {
-		if (block.kind === "function_definition") {
-			const hasTypeDefinition = this.getBlocks().some(
-				(currentBlock) => currentBlock.kind === "type_definition"
-			);
-			if (hasTypeDefinition) {
-				this.emitStatus(t("messages.functionTypeConflict"));
-				return null;
-			}
-			const alreadyExists = this.getBlocks().some(
-				(currentBlock) => currentBlock.kind === "function_definition"
-			);
-			if (alreadyExists) {
-				this.emitStatus("Only one definition block is allowed per routine.");
-				return null;
-			}
-			const routineId = block.routineId ?? this.props.value.activeRoutineId;
-			const routineName = block.routineName?.trim() || this.getActiveRoutineName();
-			return createFunctionDefinitionBlock(routineId, routineName, block.color);
-		}
-
-		if (block.kind === "type_definition") {
-			const hasFunctionDefinition = this.getBlocks().some(
-				(currentBlock) => currentBlock.kind === "function_definition"
-			);
-			if (hasFunctionDefinition) {
-				this.emitStatus(t("messages.functionTypeConflict"));
-				return null;
-			}
-			const alreadyExists = this.getBlocks().some(
-				(currentBlock) => currentBlock.kind === "type_definition"
-			);
-			if (alreadyExists) {
-				this.emitStatus("Only one type definition block is allowed per routine.");
-				return null;
-			}
-			const routineId = block.routineId ?? this.props.value.activeRoutineId;
-			const routineName = block.routineName?.trim() || this.getActiveRoutineName();
-			return createTypeDefinitionBlock(routineId, routineName, block.color);
-		}
-
-		if (block.kind === "conditional") {
-			return createConditionalBlock(block.color, block.conditionalMode ?? "if");
-		}
-
-		if (block.kind === "while") {
-			return createWhileBlock(block.color);
-		}
-
-		if (block.kind === "for_each") {
-			if (!block.forEachSourceStructureId || !block.forEachSourceStructureKind) {
-				this.emitStatus("For-each source structure is missing.");
-				return null;
-			}
-			return createForEachBlock(
-				block.forEachSourceStructureId,
-				block.forEachSourceStructureKind,
-				block.forEachItemName ?? "item",
-				block.color
-			);
-		}
-
-		if (block.kind === "break") {
-			return createBreakBlock(block.color);
-		}
-
-		if (block.kind === "var_declaration") {
-			return createVariableDeclarationBlock(
-				block.color,
-				block.variableName ?? "variable",
-				block.bindingKind ?? "declare"
-			);
-		}
-
-		if (block.kind === "var_assign") {
-			return createVariableAssignBlock(
-				block.variableSourceId,
-				block.variableName ?? "variable",
-				block.color
-			);
-		}
-
-		if (block.kind === "var_read") {
-			return createVariableReadBlock(
-				block.variableSourceId,
-				block.variableName ?? "variable",
-				block.color
-			);
-		}
-
-		if (block.kind === "var_reference") {
-			return createVariableReferenceBlock(
-				block.variableName ?? "target",
-				block.referenceTargetKind ?? "variable",
-				block.referenceTargetId,
-				block.color
-			);
-		}
-
-		if (block.kind === "var_binary_operation") {
-			return createVariableBinaryOperationBlock(
-				block.color,
-				block.variableOperationMode &&
-					block.variableOperationMode !== "value" &&
-					block.variableOperationMode !== "assign"
-					? block.variableOperationMode
-					: "add",
-				block.expressionFamily
-			);
-		}
-
-		if (block.kind === "type_instance_new") {
-			if (!block.typeRoutineId || !block.typeName) {
-				this.emitStatus(t("messages.unknownType"));
-				return null;
-			}
-			return createTypeInstanceBlock(block.typeRoutineId, block.typeName, block.color);
-		}
-
-		if (block.kind === "type_field_read") {
-			return createTypeFieldReadBlock(
-				block.variableSourceId ?? "",
-				block.variableName ?? "object",
-				block.typeFieldName ?? "field",
-				block.color
-			);
-		}
-
-		if (block.kind === "type_field_assign") {
-			return createTypeFieldAssignBlock(
-				block.variableSourceId ?? "",
-				block.variableName ?? "object",
-				block.typeFieldName ?? "field",
-				block.color
-			);
-		}
-
-		if (block.kind === "value") {
-			const literalValue = await this.promptForValueText(block.literalValue ?? "item");
-			if (literalValue === null) {
-				this.emitStatus("Value block cancelled.");
-				return null;
-			}
-			return createValueBlock(this.parseLiteralInput(literalValue));
-		}
-
-		if (block.kind === "return") {
-			const hasDefinition = this.getBlocks().some(
-				(currentBlock) => currentBlock.kind === "function_definition"
-			);
-			if (!hasDefinition) {
-				this.emitStatus("Return requires a definition block in this routine.");
-				return null;
-			}
-			return createReturnBlock(block.color);
-		}
-
-		if (block.kind === "routine_call" && block.routineId && block.routineName) {
-			return createRoutineCallBlock(
-				block.routineId,
-				block.routineName,
-				block.routineReturnKind ?? "none",
-				block.routineParamNames ?? [],
-				block.color,
-				block.routineCallMode ?? "call"
-			);
-		}
-
-		if (block.kind === "routine_value" && block.routineId && block.routineName) {
-			return createRoutineValueBlock(block.routineId, block.routineName, block.color);
-		}
-
-		if (
-			block.kind === "routine_member" &&
-			block.routineId &&
-			block.routineName &&
-			block.routineMemberName &&
-			block.routineMemberKind
-		) {
-			return createRoutineMemberBlock({
-				routineId: block.routineId,
-				routineName: block.routineName,
-				memberName: block.routineMemberName,
-				memberKind: block.routineMemberKind,
-				outputType: block.outputType,
-				color: block.color,
-				memberRoutineId: block.routineMemberRoutineId,
-				memberRoutineName: block.routineMemberRoutineName,
-				routineReturnKind: block.routineReturnKind,
-				routineParamNames: block.routineParamNames,
-				routineCallMode: block.routineCallMode
-			});
-		}
-
-		if (block.kind === "structure" && block.structureId && block.structureKind) {
-			return createEditorBlock(block.structureId, block.structureKind, block.color);
-		}
-		this.emitStatus(`Unsupported palette block kind: ${block.kind}`);
-		return null;
+		return createBlockFromPaletteExternal({
+			block,
+			props: this.props,
+			getBlocks: () => this.getBlocks(),
+			getActiveRoutineName: () => this.getActiveRoutineName(),
+			emitStatus: (message) => this.emitStatus(message),
+			promptForValueText: (currentValue) => this.promptForValueText(currentValue),
+			parseLiteralInput: (rawValue) => this.parseLiteralInput(rawValue)
+		});
 	}
 
 	private createPreviewBlockFromDragState(): EditorBlock | null {
@@ -1433,11 +964,11 @@ export class PlayEditorEngine {
 	}
 
 	private applyResolvedPlacement(
-		blocks: EditorBlock[],
+		document: PlayEditorSurfaceProps["value"],
 		placement: ResolvedDropPlacement,
 		insertedBlock: EditorBlock
-	): EditorBlock[] {
-		return this.getDropPlacementService().applyResolvedPlacement(blocks, placement, insertedBlock);
+	): PlayEditorSurfaceProps["value"] {
+		return this.getDropPlacementService().applyResolvedPlacement(document, placement, insertedBlock);
 	}
 
 	private buildFallbackPaletteBlock(dragState: EditorDragState): PaletteBlock {
@@ -1459,119 +990,33 @@ export class PlayEditorEngine {
 		}
 
 		if (dragState.blockId) {
-			return this.extractBlockFromTree(this.getBlocks(), dragState.blockId).block;
+			return this.getTreeService().findBlockById(this.getBlocks(), dragState.blockId);
 		}
 
 		return null;
 	}
 
-	private resolveBaseBlocksForDrop(): EditorBlock[] {
-		return this.getDropPlacementService().resolveBaseBlocksForDrop(
+	private resolveBaseDocumentForDrop(): PlayEditorSurfaceProps["value"] {
+		return this.getDropPlacementService().resolveBaseDocumentForDrop(
 			this.dragState,
-			this.getBlocks(),
-			(blocks, blockId) => this.extractBlockFromTree(blocks, blockId)
+			this.props.value
 		);
 	}
 
 	private async handlePaletteBlockInserted(block: EditorBlock): Promise<void> {
-		if (block.kind === "var_declaration") {
-			const declarationSpec = await this.promptForVariableDeclarationSpec({
-				currentName: block.variableName ?? "variable",
-				currentTypeRef: block.declaredTypeRef,
-				excludeDeclarationId: block.id
-			});
-			if (!declarationSpec) {
-				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
-				this.emitStatus("Variable declaration cancelled.");
-				return;
-			}
-			this.setBlocks(
-				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
-					...currentBlock,
-					variableName: declarationSpec.name,
-					declaredTypeRef: declarationSpec.declaredTypeRef
-				}))
-			);
-			this.emitStatus("Variable created.");
-			return;
-		}
-
-		if (block.kind === "for_each") {
-			const itemName = await this.promptForVariableName(
-				block.forEachItemName ?? "item",
-				block.forEachItemDeclarationId
-			);
-			if (!itemName) {
-				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
-				this.emitStatus("For-each creation cancelled.");
-				return;
-			}
-			this.setBlocks(
-				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
-					...currentBlock,
-					forEachItemName: itemName
-				}))
-			);
-			this.emitStatus("For-each created.");
-			return;
-		}
-
-		if (block.kind === "var_assign") {
-			const target = await this.promptForScopeVariableTarget(block.variableSourceId);
-			if (!target) {
-				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
-				this.emitStatus("Assignment creation cancelled.");
-				return;
-			}
-			this.setBlocks(
-				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
-					...currentBlock,
-					variableName: target.name,
-					variableSourceId: target.id
-				}))
-			);
-			this.emitStatus("Assignment created.");
-			return;
-		}
-
-		if (block.kind === "var_reference") {
-			const target = await this.promptForScopeVariableTarget(block.referenceTargetId);
-			if (!target) {
-				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
-				this.emitStatus("Reference creation cancelled.");
-				return;
-			}
-			this.setBlocks(
-				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
-					...currentBlock,
-					variableName: target.name,
-					referenceTargetKind: "variable",
-					referenceTargetId: target.id
-				}))
-			);
-			this.emitStatus("Reference created.");
-		}
-
-		if (block.kind === "type_field_read" || block.kind === "type_field_assign") {
-			const target = await this.promptForTypedFieldTarget({
-				currentVariableId: block.variableSourceId,
-				currentFieldName: block.typeFieldName
-			});
-			if (!target) {
-				this.setBlocks(this.removeBlockById(this.getBlocks(), block.id));
-				this.emitStatus("Type field block creation cancelled.");
-				return;
-			}
-			this.setBlocks(
-				this.updateBlockById(this.getBlocks(), block.id, (currentBlock) => ({
-					...currentBlock,
-					variableSourceId: target.variableId,
-					variableName: target.variableName,
-					typeFieldName: target.fieldName
-				}))
-			);
-			this.emitStatus("Type field block created.");
-		}
+		await handlePaletteBlockInsertedExternal({
+			block,
+			getBlocks: () => this.getBlocks(),
+			removeProjectedBlockById: (blockId) => this.removeProjectedBlockById(blockId),
+			replaceProjectedBlockById: (blockId, updater) =>
+				this.replaceProjectedBlockById(blockId, updater),
+			emitStatus: (message) => this.emitStatus(message),
+			promptForVariableDeclarationSpec: (spec) => this.promptForVariableDeclarationSpec(spec),
+			promptForVariableName: (currentName, excludeDeclarationId) =>
+				this.promptForVariableName(currentName, excludeDeclarationId),
+			promptForScopeVariableTarget: (currentTargetId) => this.promptForScopeVariableTarget(currentTargetId),
+			promptForTypedFieldTarget: (spec) => this.promptForTypedFieldTarget(spec)
+		});
 	}
 
 	private canUseSlotTarget(targetSlotKey: string): boolean {
@@ -1583,16 +1028,16 @@ export class PlayEditorEngine {
 	}
 
 	private applyDropDestination(
-		baseBlocks: EditorBlock[],
+		document: PlayEditorSurfaceProps["value"],
 		insertedBlock: EditorBlock,
 		options: {
 			slotTargetId?: string | null;
 			visualLineIndex?: number;
 			chosenIndent?: number;
 		}
-	): { nextBlocks: EditorBlock[]; status: string } {
+	): { nextDocument: PlayEditorSurfaceProps["value"]; status: string } {
 		return this.getDropPlacementService().applyDropDestination(
-			baseBlocks,
+			document,
 			insertedBlock,
 			options,
 			(blocks, lineLayouts, visualLineIndex, chosenIndent) =>
@@ -1615,7 +1060,8 @@ export class PlayEditorEngine {
 			return null;
 		}
 
-		const baseBlocks = this.resolveBaseBlocksForDrop();
+		const baseDocument = this.resolveBaseDocumentForDrop();
+		const baseBlocks = projectDocumentToEditorBlocks(baseDocument);
 		const baseLineLayouts = buildEditorLineLayout(baseBlocks);
 		const placement = this.getGeometryService().resolveDropPlacement(
 			baseBlocks,
@@ -1624,7 +1070,9 @@ export class PlayEditorEngine {
 			this.dragState.chosenIndent
 		);
 
-		return this.applyResolvedPlacement(baseBlocks, placement, previewBlock);
+		return projectDocumentToEditorBlocks(
+			this.applyResolvedPlacement(baseDocument, placement, previewBlock)
+		);
 	}
 
 	private applyBlockColor(element: HTMLElement, color?: string): void {
@@ -1639,7 +1087,6 @@ export class PlayEditorEngine {
 	private derivePaletteBlocks(structures: StructureSnapshot[]): PaletteBlock[] {
 		return this.getPaletteDerivationService().derivePaletteBlocks(
 			structures,
-			this.getBlocks(),
 			this.props.value
 		);
 	}

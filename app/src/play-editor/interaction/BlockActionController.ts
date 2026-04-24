@@ -6,23 +6,30 @@ import type {
 } from "../model";
 import type { DataValue } from "@thesis/core-engine";
 import {
-  createBooleanValueBlock,
-  createValueBlock,
-  inferExpressionFamilyFromOperationMode,
-  normalizeBinaryOperationModeForExpressionFamily,
-  setBlockSlotBlock
-} from "../operations";
-import { FUNCTION_BLUE } from "../contracts/constants";
+  applyConditionalModeToBlock,
+  applyDeclarationBindingKindToBlock,
+  applyLiteralValueToBlock,
+  applyOperationToBlock,
+  applyRoutineCallModeToBlock,
+  applyVariableOperationModeToBlock,
+  convertVariableBlock,
+  retargetTypedFieldBlock,
+  retargetVariableBlock
+} from "./blockActionTransforms";
 
 export interface BlockActionContext {
   isLocked(): boolean;
   getBlocks(): EditorBlock[];
-  setBlocks(nextBlocks: EditorBlock[]): void;
-  updateBlockById(
-    blocks: EditorBlock[],
+  replaceProjectedBlockById(
     blockId: string,
     updater: (block: EditorBlock) => EditorBlock
-  ): EditorBlock[];
+  ): void;
+  clearExpressionSlot(slotKey: string): void;
+  assignLiteralExpressionIntoSlot(
+    slotKey: string,
+    rawValue: string,
+    expectedType: "value" | "boolean" | "any"
+  ): void;
   parseSlotKey(slotKey: string): { ownerId: string; slotId: string };
   parseLiteralInput(rawValue: string): DataValue;
   promptForVariableName(
@@ -45,55 +52,18 @@ export interface BlockActionContext {
 export class BlockActionController {
   public constructor(private readonly ctx: BlockActionContext) {}
 
-  private resolveVariableModeOutputType(mode: VariableOperationMode): EditorBlock["outputType"] {
-    if (mode === "assign") {
-      return "none";
-    }
-    if (
-      mode === "equals" ||
-      mode === "not_equals" ||
-      mode === "greater_than" ||
-      mode === "greater_or_equal" ||
-      mode === "less_than" ||
-      mode === "less_or_equal" ||
-      mode === "not" ||
-      mode === "and" ||
-      mode === "or"
-    ) {
-      return "boolean";
-    }
-    return "value";
+  private applyBlockUpdate(
+    blockId: string,
+    updater: (block: EditorBlock) => EditorBlock
+  ): void {
+    this.ctx.replaceProjectedBlockById(blockId, updater);
   }
 
   public updateBlockOperation(blockId: string, operation: EditorBlock["operation"]): void {
     if (this.ctx.isLocked()) {
       return;
     }
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-        ...currentBlock,
-        operation,
-        outputType:
-          currentBlock.kind === "value"
-            ? "value"
-            : operation === "POP" ||
-              operation === "DEQUEUE" ||
-              operation === "REMOVE_FIRST" ||
-              operation === "REMOVE_LAST" ||
-              operation === "GET_HEAD" ||
-              operation === "GET_TAIL" ||
-              operation === "SIZE"
-              ? "value"
-              : "none",
-        inputBlock:
-          operation === "PUSH" ||
-          operation === "ENQUEUE" ||
-          operation === "APPEND" ||
-          operation === "PREPEND"
-            ? currentBlock.inputBlock ?? null
-            : null
-      }))
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => applyOperationToBlock(currentBlock, operation));
   }
 
   public updateConditionalMode(blockId: string, mode: ConditionalMode): void {
@@ -101,13 +71,7 @@ export class BlockActionController {
       return;
     }
 
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-        ...currentBlock,
-        conditionalMode: mode,
-        alternateBodyBlocks: mode === "if-else" ? currentBlock.alternateBodyBlocks ?? [] : []
-      }))
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => applyConditionalModeToBlock(currentBlock, mode));
   }
 
   public updateVariableOperationMode(blockId: string, mode: VariableOperationMode): void {
@@ -115,33 +79,7 @@ export class BlockActionController {
       return;
     }
 
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => {
-        if (currentBlock.kind === "var_binary_operation") {
-          const family =
-            currentBlock.expressionFamily ??
-            inferExpressionFamilyFromOperationMode(currentBlock.variableOperationMode ?? "add");
-          const normalizedMode = normalizeBinaryOperationModeForExpressionFamily(
-            mode === "value" || mode === "assign" ? "add" : mode,
-            family
-          );
-          return {
-            ...currentBlock,
-            expressionFamily: family,
-            variableOperationMode: normalizedMode,
-            outputType: this.resolveVariableModeOutputType(normalizedMode),
-            inputBlocks: currentBlock.inputBlocks ?? [null, null]
-          };
-        }
-
-        return {
-          ...currentBlock,
-          variableOperationMode: mode,
-          outputType: this.resolveVariableModeOutputType(mode),
-          inputBlock: mode === "value" ? null : currentBlock.inputBlock ?? null
-        };
-      })
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => applyVariableOperationModeToBlock(currentBlock, mode));
   }
 
   public updateDeclarationBindingKind(blockId: string, bindingKind: RoutineBindingKind): void {
@@ -149,13 +87,18 @@ export class BlockActionController {
       return;
     }
 
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-        ...currentBlock,
-        bindingKind,
-        color: bindingKind === "expect" ? FUNCTION_BLUE : "#b7e4c7"
-      }))
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => applyDeclarationBindingKindToBlock(currentBlock, bindingKind));
+  }
+
+  public convertVariableBlockKind(
+    blockId: string,
+    nextKind: "var_read" | "var_assign" | "var_reference"
+  ): void {
+    if (this.ctx.isLocked()) {
+      return;
+    }
+
+    this.applyBlockUpdate(blockId, (currentBlock) => convertVariableBlock(currentBlock, nextKind));
   }
 
   public updateRoutineCallMode(
@@ -166,45 +109,7 @@ export class BlockActionController {
       return;
     }
 
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => {
-        if (currentBlock.kind === "routine_call") {
-          return {
-            ...currentBlock,
-            routineCallMode: mode,
-            outputType: mode === "reference" ? "value" : (currentBlock.routineReturnKind ?? "none"),
-            valueType:
-              mode === "reference"
-                ? "text"
-                : currentBlock.routineReturnKind === "boolean"
-                  ? "boolean"
-                  : currentBlock.routineReturnKind === "value"
-                    ? "text"
-                    : null,
-            inputBlocks: mode === "reference" ? [] : (currentBlock.routineParamNames ?? []).map(() => null)
-          };
-        }
-
-        if (currentBlock.kind === "routine_member" && currentBlock.routineMemberKind === "function") {
-          return {
-            ...currentBlock,
-            routineCallMode: mode,
-            outputType: mode === "reference" ? "value" : (currentBlock.routineReturnKind ?? "none"),
-            valueType:
-              mode === "reference"
-                ? "text"
-                : currentBlock.routineReturnKind === "boolean"
-                  ? "boolean"
-                  : currentBlock.routineReturnKind === "value"
-                    ? "text"
-                    : null,
-            inputBlocks: mode === "reference" ? [] : (currentBlock.routineParamNames ?? []).map(() => null)
-          };
-        }
-
-        return currentBlock;
-      })
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => applyRoutineCallModeToBlock(currentBlock, mode));
   }
 
   public async editVariableName(blockId: string, currentName: string | undefined): Promise<void> {
@@ -225,28 +130,27 @@ export class BlockActionController {
       return;
     }
 
-    if (block?.kind === "var_reference" || block?.kind === "var_assign") {
+    if (
+      block?.kind === "var_reference" ||
+      block?.kind === "var_assign" ||
+      block?.kind === "var_read" ||
+      block?.kind === "var_operation"
+    ) {
       const target = await this.ctx.promptForScopeVariableTarget(
-        block.kind === "var_reference" ? block.referenceTargetId : block.variableSourceId
+        block.kind === "var_reference"
+          ? block.referenceTargetId
+          : block.variableSourceId
       );
       if (!target) {
         return;
       }
-      this.ctx.setBlocks(
-        this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-          ...currentBlock,
-          variableName: target.name,
-          variableSourceId: target.id,
-          referenceTargetKind:
-            currentBlock.kind === "var_reference" ? "variable" : currentBlock.referenceTargetKind,
-          referenceTargetId:
-            currentBlock.kind === "var_reference" ? target.id : currentBlock.referenceTargetId
-        }))
-      );
+      this.applyBlockUpdate(blockId, (currentBlock) => retargetVariableBlock(currentBlock, target));
       this.ctx.emitStatus(
         block.kind === "var_reference"
           ? "Reference target selected."
-          : "Assignment target selected."
+          : block.kind === "var_assign"
+            ? "Assignment target selected."
+            : "Variable target selected."
       );
       return;
     }
@@ -259,14 +163,7 @@ export class BlockActionController {
       if (!target) {
         return;
       }
-      this.ctx.setBlocks(
-        this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-          ...currentBlock,
-          variableSourceId: target.variableId,
-          variableName: target.variableName,
-          typeFieldName: target.fieldName
-        }))
-      );
+      this.applyBlockUpdate(blockId, (currentBlock) => retargetTypedFieldBlock(currentBlock, target));
       this.ctx.emitStatus("Type field target selected.");
       return;
     }
@@ -275,12 +172,10 @@ export class BlockActionController {
     if (!normalizedName) {
       return;
     }
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-        ...currentBlock,
-        variableName: normalizedName
-      }))
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => ({
+      ...currentBlock,
+      variableName: normalizedName
+    }));
     this.ctx.emitStatus("Variable renamed.");
   }
 
@@ -289,11 +184,9 @@ export class BlockActionController {
       return;
     }
     const { ownerId, slotId } = this.ctx.parseSlotKey(slotKey);
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), ownerId, (currentBlock) =>
-        setBlockSlotBlock(currentBlock, slotId, null)
-      )
-    );
+    void ownerId;
+    void slotId;
+    this.ctx.clearExpressionSlot(slotKey);
   }
 
   public assignLiteralIntoSlot(
@@ -310,20 +203,7 @@ export class BlockActionController {
       return;
     }
 
-    const parsedValue = this.ctx.parseLiteralInput(trimmed);
-    const { ownerId, slotId } = this.ctx.parseSlotKey(slotKey);
-
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), ownerId, (currentBlock) =>
-        setBlockSlotBlock(
-          currentBlock,
-          slotId,
-          expectedType === "boolean" && typeof parsedValue === "boolean"
-            ? createBooleanValueBlock(parsedValue)
-            : createValueBlock(parsedValue)
-        )
-      )
-    );
+    this.ctx.assignLiteralExpressionIntoSlot(slotKey, trimmed, expectedType);
     this.ctx.emitStatus("Value inserted.");
   }
 
@@ -340,14 +220,7 @@ export class BlockActionController {
     }
     const normalizedValue = this.ctx.parseLiteralInput(rawValue);
 
-    this.ctx.setBlocks(
-      this.ctx.updateBlockById(this.ctx.getBlocks(), blockId, (currentBlock) => ({
-        ...currentBlock,
-        literalValue: normalizedValue,
-        outputType: typeof normalizedValue === "boolean" ? "boolean" : "value",
-        valueType: typeof normalizedValue === "boolean" ? "boolean" : "text"
-      }))
-    );
+    this.applyBlockUpdate(blockId, (currentBlock) => applyLiteralValueToBlock(currentBlock, normalizedValue));
     this.ctx.emitStatus("Value updated.");
   }
 }

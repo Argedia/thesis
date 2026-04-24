@@ -70,6 +70,7 @@ export type PrimitiveTypeRef = "text" | "boolean" | "value";
 
 export type DeclaredTypeRef =
 	| { kind: "primitive"; primitive: PrimitiveTypeRef }
+	| { kind: "structure"; structureKind: StructureKind }
 	| { kind: "user"; typeRoutineId: string };
 
 export interface NodeVisualStyle {
@@ -112,6 +113,8 @@ export interface StructureCallStatement extends StatementNodeBase {
 	calleeKind: "structure";
 	structureId: string;
 	structureKind: StructureKind;
+	targetDeclarationId?: string | null;
+	targetName?: string | null;
 	operation: BuilderOperation | null;
 	args: ExpressionNode[];
 }
@@ -232,6 +235,8 @@ export interface StructureValueExpression extends ExpressionNodeBase {
 	kind: "structure";
 	structureId: string;
 	structureKind: StructureKind;
+	targetDeclarationId?: string | null;
+	targetName?: string | null;
 	operation: BuilderOperation | null;
 	args: ExpressionNode[];
 }
@@ -317,6 +322,7 @@ export type ExpressionNode =
 export interface RoutineSignatureParam {
 	declarationId: string;
 	name: string;
+	declaredTypeRef?: DeclaredTypeRef | null;
 }
 
 export interface RoutineMemberSignature {
@@ -431,6 +437,7 @@ export interface CompiledInstruction {
 	instructionId: string;
 	ip: number;
 	kind:
+	| "definition"
 	| "declare"
 	| "assign"
 	| "call"
@@ -505,10 +512,6 @@ export interface SerializedEditorDocument {
 export interface SerializedEditorDocumentV2 {
 	version: 2;
 	program: ProgramNode;
-}
-
-export interface LegacySerializedEditorDocument {
-	blocks: EditorBlock[];
 }
 
 export interface EditorBlock {

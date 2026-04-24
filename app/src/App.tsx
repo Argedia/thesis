@@ -4,7 +4,7 @@ import { CampaignScreen } from "./components/CampaignScreen";
 import { CommunityLevelsScreen } from "./components/CommunityLevelsScreen";
 import { EditorShell } from "./components/EditorShell";
 import { MainMenuScreen } from "./components/MainMenuScreen";
-import { PlayLevelScreen } from "./components/PlayLevelScreen";
+import { PlayLevelScreen } from "./features/play-ui/PlayLevelScreen";
 import { APP_ROUTES } from "./types/routes";
 
 export function App() {

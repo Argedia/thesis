@@ -2,6 +2,7 @@ import { ghostGeometry, type DragDropGeometryService } from "./DragDropGeometry"
 import { buildEditorLineLayout } from "./model";
 import type {
   EditorBlock,
+  EditorDocument,
   EditorDragState,
   PaletteBlock
 } from "./model";
@@ -28,21 +29,18 @@ export interface DragInteractionControllerContext {
     dragState: EditorDragState,
     matchesPaletteBlock: (block: PaletteBlock) => boolean
   ): Promise<EditorBlock | null>;
-  extractBlockFromTree(
-    blocks: EditorBlock[],
-    blockId: string
-  ): { nextBlocks: EditorBlock[]; block: EditorBlock | null };
+  getDocument(): EditorDocument;
   canUseSlotTarget(targetSlotKey: string): boolean;
   applyDropDestination(
-    blocks: EditorBlock[],
+    document: EditorDocument,
     insertedBlock: EditorBlock,
     placement: ResolvedDropPlacement & {
       slotTargetId?: string | null;
       visualLineIndex?: number;
       chosenIndent?: number;
     }
-  ): { nextBlocks: EditorBlock[]; status: string };
-  setBlocks(nextBlocks: EditorBlock[]): void;
+  ): { nextDocument: EditorDocument; status: string };
+  setDocument(nextDocument: EditorDocument): void;
   onPaletteBlockInserted?(block: EditorBlock): void | Promise<void>;
 }
 
@@ -440,7 +438,11 @@ export class DragInteractionController {
     };
 
     if (dragState.isOverEditor || slotTargetId) {
-      if (dragState.source === "palette" && this.ctx.getBlocks().length >= this.ctx.getMaxBlocks()) {
+      const exceedsTopLevelBlockLimit =
+        dragState.source === "palette" &&
+        !slotTargetId &&
+        this.ctx.getBlocks().length >= this.ctx.getMaxBlocks();
+      if (exceedsTopLevelBlockLimit) {
         this.ctx.emitStatus(`This level allows up to ${this.ctx.getMaxBlocks()} blocks.`);
       } else {
         const insertedBlock = await this.ctx.resolveInsertedBlockFromDrag(
@@ -452,21 +454,17 @@ export class DragInteractionController {
             return;
           }
         } else {
-          const baseBlocks =
-            dragState.source === "program" && dragState.blockId
-              ? this.ctx.extractBlockFromTree(this.ctx.getBlocks(), dragState.blockId)
-                  .nextBlocks
-              : this.ctx.getBlocks();
+          const baseDocument = this.ctx.getDocument();
           const effectiveSlotTargetId =
             slotTargetId && this.ctx.canUseSlotTarget(slotTargetId)
               ? slotTargetId
               : null;
-          const result = this.ctx.applyDropDestination(baseBlocks, insertedBlock, {
+          const result = this.ctx.applyDropDestination(baseDocument, insertedBlock, {
             slotTargetId: effectiveSlotTargetId,
             visualLineIndex: dragState.visualLineIndex,
             chosenIndent: dragState.chosenIndent
           });
-          this.ctx.setBlocks(result.nextBlocks);
+          this.ctx.setDocument(result.nextDocument);
           this.ctx.emitStatus(
             effectiveSlotTargetId
               ? result.status

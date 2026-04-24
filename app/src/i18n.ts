@@ -13,6 +13,7 @@ const resources = {
 				es: "Español"
 			},
 			menu: {
+				menuLabel: "Menu",
 				campaign: "Campaign Mode",
 				community: "Community Levels",
 				editor: "Level Editor"
@@ -59,6 +60,22 @@ const resources = {
 				blocksCount: "{{count}}/{{max}} blocks",
 				runHint: "Run your program to watch operations appear here.",
 				feedHint: "Run your program to watch the data move."
+			},
+			preview: {
+				findFunToPlay: "Find something fun to play.",
+				searchLevels: "Search levels...",
+				importLevel: "Import Level",
+				noLevelsHint: "Try a different search or clear some filters.",
+				readyToPlay: "Ready to play",
+				communityChallenge: "A community-made challenge.",
+				showInitialState: "Show Initial State",
+				hideInitialState: "Hide Initial State",
+				showGoalState: "Show Goal State",
+				hideGoalState: "Hide Goal State",
+				showConstraints: "Show Constraints",
+				hideConstraints: "Hide Constraints",
+				constraintsSummary: "Steps: {{steps}} · Ops: {{operations}}",
+				selectLevelToSeeDetails: "Select a level to see details."
 			},
 			editor: {
 				blocks: "Blocks",
@@ -139,7 +156,10 @@ const resources = {
 				returnInTypeRoutine: "Type routines cannot return values.",
 				unknownType: "Unknown type.",
 				unknownTypeField: "Unknown type field.",
-				typeMismatch: "Type mismatch."
+				typeMismatch: "Type mismatch.",
+				typeMismatchAssign: "Invalid assignment type.",
+				typeMismatchFieldAssign: "Invalid field assignment type.",
+				typeMismatchExpectArg: "Argument type does not match expected parameter type."
 			},
 			operations: {
 				POP: "pop",
@@ -165,6 +185,7 @@ const resources = {
 				es: "Español"
 			},
 			menu: {
+				menuLabel: "Menú",
 				campaign: "Modo Campaña",
 				community: "Niveles de la Comunidad",
 				editor: "Editor de Niveles"
@@ -211,6 +232,22 @@ const resources = {
 				blocksCount: "{{count}}/{{max}} bloques",
 				runHint: "Ejecuta tu programa para ver las operaciones aquí.",
 				feedHint: "Ejecuta tu programa para ver cómo se mueven los datos."
+			},
+			preview: {
+				findFunToPlay: "Encuentra algo divertido para jugar.",
+				searchLevels: "Buscar niveles...",
+				importLevel: "Importar nivel",
+				noLevelsHint: "Prueba otra búsqueda o limpia algunos filtros.",
+				readyToPlay: "Listo para jugar",
+				communityChallenge: "Un desafío creado por la comunidad.",
+				showInitialState: "Mostrar estado inicial",
+				hideInitialState: "Ocultar estado inicial",
+				showGoalState: "Mostrar estado objetivo",
+				hideGoalState: "Ocultar estado objetivo",
+				showConstraints: "Mostrar restricciones",
+				hideConstraints: "Ocultar restricciones",
+				constraintsSummary: "Pasos: {{steps}} · Ops: {{operations}}",
+				selectLevelToSeeDetails: "Selecciona un nivel para ver detalles."
 			},
 			editor: {
 				blocks: "Bloques",
@@ -291,7 +328,10 @@ const resources = {
 				returnInTypeRoutine: "Una viñeta de tipo no permite retornos.",
 				unknownType: "Tipo desconocido.",
 				unknownTypeField: "Campo de tipo desconocido.",
-				typeMismatch: "Incompatibilidad de tipos."
+				typeMismatch: "Incompatibilidad de tipos.",
+				typeMismatchAssign: "Tipo inválido en asignación.",
+				typeMismatchFieldAssign: "Tipo inválido en asignación de campo.",
+				typeMismatchExpectArg: "El tipo del argumento no coincide con el parámetro esperado."
 			},
 			operations: {
 				POP: "desapilar",

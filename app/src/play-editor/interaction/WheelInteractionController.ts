@@ -23,6 +23,10 @@ export interface WheelInteractionContext {
   updateConditionalMode(blockId: string, mode: ConditionalMode): void;
   updateVariableOperationMode(blockId: string, mode: VariableOperationMode): void;
   updateDeclarationBindingKind(blockId: string, bindingKind: RoutineBindingKind): void;
+  convertVariableBlockKind(
+    blockId: string,
+    kind: "var_read" | "var_assign" | "var_reference"
+  ): void;
   updateRoutineCallMode(
     blockId: string,
     mode: NonNullable<EditorBlock["routineCallMode"]>
@@ -42,6 +46,13 @@ export class WheelInteractionController {
     }
     if (block.kind === "var_binary_operation") {
       return this.getVarBinaryOperationWheelOptions(block);
+    }
+    if (
+      block.kind === "var_read" ||
+      block.kind === "var_assign" ||
+      block.kind === "var_reference"
+    ) {
+      return this.getVariableKindWheelOptions(block);
     }
     if (this.ctx.canShowDeclarationBindingWheel(block)) {
       return this.getDeclarationBindingWheelOptions(block);
@@ -118,6 +129,77 @@ export class WheelInteractionController {
         );
       }
     }));
+  }
+
+  private getVariableKindWheelOptions(
+    block: EditorBlock
+  ): WheelOption[] {
+    if (
+      block.kind !== "var_read" &&
+      block.kind !== "var_assign" &&
+      block.kind !== "var_reference"
+    ) {
+      return [];
+    }
+    const variableName = block.variableName ?? "variable";
+    const options: Array<{
+      kind: "var_read" | "var_assign" | "var_reference";
+      label: string;
+    }> = [
+      {
+        kind: "var_read",
+        label: variableName
+      },
+      {
+        kind: "var_assign",
+        label: `${variableName} =`
+      },
+      {
+        kind: "var_reference",
+        label: `reference to ${variableName}`
+      }
+    ];
+
+    const baseOptions = options.map((option) => ({
+      label: option.label,
+      className:
+        block.kind === option.kind && block.operation === null ? "mint selected" : "mint",
+      onSelect: () => {
+        this.ctx.convertVariableBlockKind(block.id, option.kind);
+        this.ctx.closeWheel();
+        this.ctx.rerender();
+        this.ctx.emitStatus("Variable block updated.");
+      }
+    }));
+
+    if (block.declaredTypeRef?.kind !== "structure") {
+      return baseOptions;
+    }
+
+    const structureOptions = buildWheelOptions(
+      this.ctx.getAllowedOperations(),
+      variableName,
+      block.declaredTypeRef.structureKind
+    )
+      .filter((option) => option.operation !== null)
+      .map((option) => ({
+        label: option.label,
+        className:
+          block.kind === "var_read" && block.operation === option.operation
+            ? `${option.className} selected`
+            : option.className,
+        onSelect: () => {
+          if (block.kind !== "var_read") {
+            this.ctx.convertVariableBlockKind(block.id, "var_read");
+          }
+          this.ctx.updateBlockOperation(block.id, option.operation);
+          this.ctx.closeWheel();
+          this.ctx.rerender();
+          this.ctx.emitStatus("Variable block updated.");
+        }
+      }));
+
+    return [...baseOptions, ...structureOptions];
   }
 
   private getRoutineCallWheelOptions(block: EditorBlock): WheelOption[] {

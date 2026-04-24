@@ -1,9 +1,9 @@
-import type { EditorBlock } from "../model";
+import type { EditorDocument } from "../model";
 import { collectVariableDeclarations } from "../model";
 
 export class VariableValidationService {
   public isVariableNameTaken(
-    blocks: EditorBlock[],
+    document: EditorDocument,
     name: string,
     excludeDeclarationId?: string
   ): boolean {
@@ -12,7 +12,7 @@ export class VariableValidationService {
       return false;
     }
 
-    return collectVariableDeclarations(blocks).some((declaration) => {
+    return collectVariableDeclarations(document).some((declaration) => {
       if (!declaration.name) {
         return false;
       }

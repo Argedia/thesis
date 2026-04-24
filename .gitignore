@@ -44,3 +44,7 @@ Thumbs.db
 
 #Theory course folder
 Estructuras2025-2/
+
+.agents/
+.codex/
+plugins/

@@ -231,7 +231,8 @@ export class DragPreviewBlockFactory {
           previewBlock = createVariableReadBlock(
             dragState.variableSourceId,
             dragState.variableName?.trim() || "variable",
-            dragState.color
+            dragState.color,
+            dragState.declaredTypeRef
           );
           break;
         case "var_reference":

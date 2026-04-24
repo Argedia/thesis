@@ -5,7 +5,7 @@ import { Button, DialogTrigger, Input, Label, TextField, Tooltip, TooltipTrigger
 import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import { Panel, PuzzleBoard, Screen } from "@thesis/ui-editor";
 import { compileEditorDocument, createEditorDocument } from "../program-editor-core";
-import { PlayEditorSurface } from "../program-editor-dom";
+import { PlayEditorSurface } from "../../play-editor/PlayEditorSurface";
 import {
   createPlaySessionController,
   type PlaySessionController,
@@ -47,6 +47,7 @@ export function PlayLevelScreen() {
   );
   const [leftPaneWidth, setLeftPaneWidth] = useState<number | null>(null);
   const [isResizingPanels, setIsResizingPanels] = useState(false);
+  const [outputMode, setOutputMode] = useState<"hidden" | "runtime" | "diagnostics">("hidden");
   const dualStageRef = useRef<HTMLElement | null>(null);
   const controllerRef = useRef<PlaySessionController | null>(null);
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
@@ -173,6 +174,16 @@ export function PlayLevelScreen() {
     );
   }, [isCompactLayout, viewportWidth]);
 
+  useEffect(() => {
+    const isRuntimeOutputActive =
+      sessionState.runState === "running" ||
+      sessionState.runState === "paused" ||
+      sessionState.events.length > 0;
+    if (isRuntimeOutputActive && outputMode !== "diagnostics") {
+      setOutputMode("runtime");
+    }
+  }, [sessionState.runState, sessionState.events.length, outputMode]);
+
   if (!sessionState.level) {
     return (
       <Screen mode="player">
@@ -192,6 +203,8 @@ export function PlayLevelScreen() {
   }
 
   const { level, compiledProgram } = sessionState;
+  const activeRoutineCompiled =
+    compiledProgram.routines[sessionState.document.activeRoutineId] ?? compiledProgram;
 
   const startPanelResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (isCompactLayout || !dualStageRef.current) {
@@ -223,10 +236,11 @@ export function PlayLevelScreen() {
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", stopResize);
   };
-  const isOutputVisible =
+  const isRuntimeOutputActive =
     sessionState.runState === "running" ||
     sessionState.runState === "paused" ||
     sessionState.events.length > 0;
+  const isOutputVisible = outputMode !== "hidden";
   const dualStageStyle =
     !isCompactLayout && leftPaneWidth
       ? { gridTemplateColumns: `${leftPaneWidth}px 8px minmax(0, 1fr)` }
@@ -238,6 +252,39 @@ export function PlayLevelScreen() {
   const visibleRoutineOperations =
     (visibleRoutine && compiledProgram.routines[visibleRoutine.id]?.operations.length) ??
     compiledProgram.operations.length;
+
+  const translateDiagnostic = (diagnostic: string): string => {
+    switch (diagnostic) {
+      case "function_type_conflict":
+        return t("messages.functionTypeConflict");
+      case "return_in_type_routine":
+        return t("messages.returnInTypeRoutine");
+      case "unknown_type":
+        return t("messages.unknownType");
+      case "unknown_type_field":
+        return t("messages.unknownTypeField");
+      case "type_mismatch_assign":
+        return t("messages.typeMismatchAssign");
+      case "type_mismatch_field_assign":
+        return t("messages.typeMismatchFieldAssign");
+      case "type_mismatch_expect_arg":
+        return t("messages.typeMismatchExpectArg");
+      default:
+        return diagnostic;
+    }
+  };
+
+  const openOutputForExecutionAttempt = () => {
+    const currentState = controller.getState();
+    const activeCompiled =
+      currentState.compiledProgram.routines[currentState.document.activeRoutineId] ??
+      currentState.compiledProgram;
+    if (!activeCompiled.isComplete) {
+      setOutputMode("diagnostics");
+      return;
+    }
+    setOutputMode("runtime");
+  };
 
   const closeDialog = () => {
     setDialogState(null);
@@ -511,10 +558,16 @@ export function PlayLevelScreen() {
 
                   <div className="ide-run-actions">
                     {renderRunActionButton("▶", t("actions.play"), () => {
-                      void controller.run();
+                      setOutputMode("runtime");
+                      void controller.run().finally(() => {
+                        openOutputForExecutionAttempt();
+                      });
                     })}
                     {renderRunActionButton("⏭", t("actions.step"), () => {
-                      void controller.step();
+                      setOutputMode("runtime");
+                      void controller.step().finally(() => {
+                        openOutputForExecutionAttempt();
+                      });
                     })}
                     {renderRunActionButton("⏸", t("actions.pause"), () => {
                       controller.pause();
@@ -538,7 +591,10 @@ export function PlayLevelScreen() {
                     highlightedNodeId={sessionState.highlightedNodeId}
                     breakpointNodeIds={sessionState.breakpointNodeIds}
                     onToggleBreakpoint={(nodeId) => controller.toggleBreakpoint(nodeId)}
-                    onChange={(document) => controller.setDocument(document)}
+                    onChange={(document) => {
+                      setOutputMode("hidden");
+                      controller.setDocument(document);
+                    }}
                     onStatus={(message) => controller.setStatus(message)}
                     onRequestTextInput={requestTextInput}
                     onRequestSelectInput={requestSelectInput}
@@ -559,8 +615,22 @@ export function PlayLevelScreen() {
                       </span>
                     </div>
                     <div className="ide-output-body">
-                      <div className="ide-output-line primary">{sessionState.status}</div>
-                      {sessionState.events.length === 0 ? (
+                      <div className="ide-output-line primary">
+                        {translateDiagnostic(sessionState.status)}
+                      </div>
+                      {outputMode === "diagnostics" ? (
+                        activeRoutineCompiled.diagnostics.length > 0 ? (
+                          activeRoutineCompiled.diagnostics.slice(0, 6).map((diagnostic, index) => (
+                            <div key={`${diagnostic}-${index}`} className="ide-output-line">
+                              {translateDiagnostic(diagnostic)}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="ide-output-line muted">
+                            {t("board.runHint")}
+                          </div>
+                        )
+                      ) : sessionState.events.length === 0 ? (
                         <div className="ide-output-line muted">
                           {t("board.runHint")}
                         </div>

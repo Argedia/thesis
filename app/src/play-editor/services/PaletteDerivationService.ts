@@ -2,9 +2,10 @@ import {
 	normalizeStructureSnapshot,
 	type StructureSnapshot
 } from "@thesis/core-engine";
-import type { EditorBlock, PaletteBlock, PlayEditorSurfaceProps } from "../model";
+import type { PaletteBlock, PlayEditorSurfaceProps } from "../model";
 import { collectVariableDeclarations } from "../model";
 import {
+	getActiveProgram,
 	listExportedObjectSignatures,
 	listPublishedRoutineSignatures,
 	listTypeSignatures
@@ -14,13 +15,13 @@ import { FUNCTION_BLUE } from "../contracts/constants";
 export class PaletteDerivationService {
 	public derivePaletteBlocks(
 		structures: StructureSnapshot[],
-		blocks: EditorBlock[],
 		value: PlayEditorSurfaceProps["value"]
 	): PaletteBlock[] {
 		const activeRoutine =
 			value.routines.find((routine) => routine.id === value.activeRoutineId) ?? value.routines[0] ?? null;
-		const hasFunctionDefinition = blocks.some((block) => block.kind === "function_definition");
-		const hasTypeDefinition = blocks.some((block) => block.kind === "type_definition");
+		const activeStatements = getActiveProgram(value).statements;
+		const hasFunctionDefinition = activeStatements.some((statement) => statement.kind === "function-definition");
+		const hasTypeDefinition = activeStatements.some((statement) => statement.kind === "type-definition");
 		const normalizedStructures = structures.map((rawStructure) =>
 			normalizeStructureSnapshot(rawStructure)
 		);
@@ -30,7 +31,7 @@ export class PaletteDerivationService {
 				structure.kind === "queue" ||
 				structure.kind === "list"
 		);
-		const variableDeclarations = collectVariableDeclarations(blocks);
+		const variableDeclarations = collectVariableDeclarations(value);
 		const typeSignatures = listTypeSignatures(value);
 		const typeSignatureById = new Map(typeSignatures.map((signature) => [signature.typeRoutineId, signature]));
 		const typeCreatedBlocks = typeSignatures.map((signature) => ({
@@ -341,6 +342,7 @@ export class PaletteDerivationService {
 				outputType: "value" as const,
 				valueType: null,
 				literalValue: null,
+				declaredTypeRef: variable.declaredTypeRef ?? null,
 				variableSourceId: variable.id,
 				variableName: variable.name,
 				label: variable.name

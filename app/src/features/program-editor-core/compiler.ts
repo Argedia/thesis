@@ -1,5 +1,5 @@
 import type { DataValue, OperationDefinition } from "@thesis/core-engine";
-import { analyzeDocumentRoutines } from "./routines";
+import { analyzeDocumentRoutines, analyzeDocumentTypes } from "./routines";
 import { projectProgramRows } from "./projection";
 import { getActiveRoutine, setActiveRoutineId } from "./tree";
 import type {
@@ -9,10 +9,12 @@ import type {
 	CompiledRoutine,
 	EditorDocument,
 	ExpressionNode,
+	DeclaredTypeRef,
 	RoutineNode,
 	RoutineSignature,
 	StatementNode,
-	StructureCallStatement
+	StructureCallStatement,
+	TypeSignature
 } from "./types";
 
 const structureExpressionSupportsValue = (operation: BuilderOperation | null): boolean =>
@@ -44,8 +46,14 @@ const callStatementSupportsExecution = (statement: StructureCallStatement): bool
 		return false;
 	}
 
+	const hasDynamicTarget = !!statement.targetDeclarationId || !!statement.targetName;
+
 	if (isSourceOperation(statement.operation)) {
 		return true;
+	}
+
+	if (hasDynamicTarget) {
+		return statement.args.length === 1;
 	}
 
 	return statement.args.length === 1;
@@ -203,6 +211,144 @@ const expressionCanExecuteAtRuntime = (
 	}
 };
 
+type DeclarationTypeLookup = Map<
+	string,
+	{
+		name: string;
+		declaredTypeRef: DeclaredTypeRef | null;
+	}
+>;
+
+const collectRoutineDeclarationTypes = (
+	statements: StatementNode[],
+	lookup: DeclarationTypeLookup
+): DeclarationTypeLookup => {
+	statements.forEach((statement) => {
+		if (statement.kind === "declare") {
+			lookup.set(statement.id, {
+				name: statement.variableName,
+				declaredTypeRef: statement.declaredTypeRef ?? null
+			});
+			return;
+		}
+		if (statement.kind === "for-each") {
+			lookup.set(statement.itemDeclarationId, {
+				name: statement.itemName,
+				declaredTypeRef: { kind: "primitive", primitive: "value" }
+			});
+			collectRoutineDeclarationTypes(statement.body, lookup);
+			return;
+		}
+		if (statement.kind === "if") {
+			collectRoutineDeclarationTypes(statement.thenBody, lookup);
+			collectRoutineDeclarationTypes(statement.elseBody ?? [], lookup);
+			return;
+		}
+		if (statement.kind === "while") {
+			collectRoutineDeclarationTypes(statement.body, lookup);
+		}
+	});
+	return lookup;
+};
+
+const findDeclarationTypeByName = (
+	lookup: DeclarationTypeLookup,
+	name: string
+): DeclaredTypeRef | null => {
+	for (const declaration of lookup.values()) {
+		if (declaration.name === name) {
+			return declaration.declaredTypeRef ?? null;
+		}
+	}
+	return null;
+};
+
+const inferExpressionTypeRef = (
+	expression: ExpressionNode | null,
+	declarationTypes: DeclarationTypeLookup,
+	typeSignatures: Record<string, TypeSignature>
+): DeclaredTypeRef | "unknown" | null => {
+	if (!expression) {
+		return null;
+	}
+
+	switch (expression.kind) {
+		case "literal":
+			return typeof expression.value === "boolean"
+				? { kind: "primitive", primitive: "boolean" }
+				: typeof expression.value === "string"
+					? { kind: "primitive", primitive: "text" }
+					: { kind: "primitive", primitive: "value" };
+		case "binary":
+		case "unary":
+			return expression.outputType === "boolean"
+				? { kind: "primitive", primitive: "boolean" }
+				: { kind: "primitive", primitive: "value" };
+		case "variable":
+			return (
+				declarationTypes.get(expression.declarationId)?.declaredTypeRef ??
+				findDeclarationTypeByName(declarationTypes, expression.variableName) ??
+				"unknown"
+			);
+		case "type-instance":
+			return { kind: "user", typeRoutineId: expression.typeRoutineId };
+		case "type-field-read": {
+			const parentType = declarationTypes.get(expression.targetDeclarationId)?.declaredTypeRef;
+			if (!parentType || parentType.kind !== "user") {
+				return "unknown";
+			}
+			const signature = typeSignatures[parentType.typeRoutineId];
+			if (!signature) {
+				return "unknown";
+			}
+			const field = signature.fieldDeclarations.find(
+				(fieldDeclaration) => fieldDeclaration.name === expression.fieldName
+			);
+			return field?.declaredTypeRef ?? "unknown";
+		}
+		case "structure":
+			return { kind: "primitive", primitive: "value" };
+		case "pointer":
+			if (expression.targetKind === "variable") {
+				return declarationTypes.get(expression.targetId)?.declaredTypeRef ?? "unknown";
+			}
+			return "unknown";
+		case "routine-call":
+		case "routine-reference":
+		case "routine-value":
+		case "routine-member":
+			return "unknown";
+	}
+};
+
+const isTypeCompatible = (
+	expected: DeclaredTypeRef | null | undefined,
+	actual: DeclaredTypeRef | "unknown" | null
+): boolean => {
+	if (!expected) {
+		return true;
+	}
+	if (!actual || actual === "unknown") {
+		return true;
+	}
+	if (expected.kind !== actual.kind) {
+		return false;
+	}
+	if (expected.kind === "primitive" && actual.kind === "primitive") {
+		if (expected.primitive === "value") {
+			return actual.primitive === "value" || actual.primitive === "text";
+		}
+		return expected.primitive === actual.primitive;
+	}
+	if (expected.kind === "structure" && actual.kind === "structure") {
+		return expected.structureKind === actual.structureKind;
+	}
+	if (expected.kind === "user" && actual.kind === "user") {
+		return expected.typeRoutineId === actual.typeRoutineId;
+	}
+	return false;
+};
+
 const createOperationForStatement = (
 	statement: StructureCallStatement
 ): OperationDefinition | null => {
@@ -242,7 +388,9 @@ interface ExpressionCompileResult {
 
 const compileExpression = (
 	expression: ExpressionNode | null,
-	signatures: Record<string, RoutineSignature>
+	signatures: Record<string, RoutineSignature>,
+	declarationTypes: DeclarationTypeLookup,
+	typeSignatures: Record<string, TypeSignature>
 ): ExpressionCompileResult => {
 	if (!expression) {
 		return {
@@ -277,6 +425,16 @@ const compileExpression = (
 				};
 			}
 			if (isSourceOperation(expression.operation)) {
+				if (expression.targetDeclarationId || expression.targetName) {
+					return {
+						operations: [],
+						operationNodeIds: [],
+						provides: { kind: "hand" },
+						isComplete: true,
+						unsupportedFeatures: [],
+						diagnostics: []
+					};
+				}
 				return {
 					operations: [createSourceOperation(expression.operation!, expression.structureId)],
 					operationNodeIds: [expression.id],
@@ -312,13 +470,32 @@ const compileExpression = (
 				provides: null,
 				isComplete:
 					expression.args.length === signature.params.length &&
-					expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures)),
+					expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures)) &&
+					expression.args.every((arg, index) =>
+						isTypeCompatible(
+							signature.params[index]?.declaredTypeRef ?? null,
+							inferExpressionTypeRef(arg, declarationTypes, typeSignatures)
+						)
+					),
 				unsupportedFeatures: [],
 				diagnostics:
 					expression.args.length === signature.params.length &&
-						expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
+						expression.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures)) &&
+						expression.args.every((arg, index) =>
+							isTypeCompatible(
+								signature.params[index]?.declaredTypeRef ?? null,
+								inferExpressionTypeRef(arg, declarationTypes, typeSignatures)
+							)
+						)
 						? []
-						: ["Finish each block and fill any missing value slots."]
+						: expression.args.some((arg, index) =>
+							!isTypeCompatible(
+								signature.params[index]?.declaredTypeRef ?? null,
+								inferExpressionTypeRef(arg, declarationTypes, typeSignatures)
+							)
+						)
+							? ["type_mismatch_expect_arg"]
+							: ["Finish each block and fill any missing value slots."]
 			};
 		}
 		case "routine-reference": {
@@ -486,6 +663,8 @@ const compileStatement = (
 	statement: StatementNode,
 	rowMap: ReturnType<typeof projectProgramRows>,
 	signatures: Record<string, RoutineSignature>,
+	typeSignatures: Record<string, TypeSignature>,
+	declarationTypes: DeclarationTypeLookup,
 	context: CompileContext,
 	loopStack: LoopCompileFrame[]
 ) => {
@@ -497,8 +676,14 @@ const compileStatement = (
 	switch (statement.kind) {
 		case "function-definition":
 		case "type-definition":
-			context.nodeRowMap[statement.id] = rowIds;
-			context.nodeRowNumberMap[statement.id] = rowNumbers;
+			appendInstruction(context, {
+				instructionId: `ins-${statement.id}-definition`,
+				kind: "definition",
+				nodeId: statement.id,
+				rowIds,
+				rowNumbers,
+				breakpointable: true
+			});
 			return;
 		case "declare":
 			appendInstruction(context, {
@@ -507,7 +692,7 @@ const compileStatement = (
 				nodeId: statement.id,
 				rowIds,
 				rowNumbers,
-				breakpointable: false
+				breakpointable: true
 			});
 			return;
 		case "assign":
@@ -521,6 +706,19 @@ const compileStatement = (
 			});
 			if (!statement.value || !expressionCanExecuteAtRuntime(statement.value, signatures)) {
 				context.diagnostics.push("Assignments need a complete value.");
+			} else {
+				const expectedType =
+					(statement.targetDeclarationId
+						? declarationTypes.get(statement.targetDeclarationId)?.declaredTypeRef
+						: findDeclarationTypeByName(declarationTypes, statement.targetName)) ?? null;
+				const actualType = inferExpressionTypeRef(
+					statement.value,
+					declarationTypes,
+					typeSignatures
+				);
+				if (!isTypeCompatible(expectedType, actualType)) {
+					context.diagnostics.push("type_mismatch_assign");
+				}
 			}
 			return;
 		case "type-field-assign":
@@ -537,6 +735,22 @@ const compileStatement = (
 			});
 			if (!statement.value || !expressionCanExecuteAtRuntime(statement.value, signatures)) {
 				context.diagnostics.push("Assignments need a complete value.");
+			} else {
+				const targetType = declarationTypes.get(statement.targetDeclarationId)?.declaredTypeRef;
+				if (targetType?.kind === "user") {
+					const signature = typeSignatures[targetType.typeRoutineId];
+					const fieldType =
+						signature?.fieldDeclarations.find((field) => field.name === statement.fieldName)
+							?.declaredTypeRef ?? null;
+					const actualType = inferExpressionTypeRef(
+						statement.value,
+						declarationTypes,
+						typeSignatures
+					);
+					if (!isTypeCompatible(fieldType, actualType)) {
+						context.diagnostics.push("type_mismatch_field_assign");
+					}
+				}
 			}
 			return;
 		case "expression":
@@ -554,7 +768,7 @@ const compileStatement = (
 			return;
 		case "call": {
 			const compiledArgument = statement.args[0]
-				? compileExpression(statement.args[0], signatures)
+				? compileExpression(statement.args[0], signatures, declarationTypes, typeSignatures)
 				: {
 					operations: [],
 					operationNodeIds: [],
@@ -563,8 +777,15 @@ const compileStatement = (
 					unsupportedFeatures: [],
 					diagnostics: []
 				};
+			const hasDynamicTarget = !!statement.targetDeclarationId || !!statement.targetName;
+			const supportsDynamicTargetExecution =
+				hasDynamicTarget &&
+				callStatementSupportsExecution(statement) &&
+				(!isTargetOperation(statement.operation) || compiledArgument.isComplete);
 			const operation =
-				isTargetOperation(statement.operation)
+				hasDynamicTarget
+					? null
+					: isTargetOperation(statement.operation)
 					? compiledArgument.isComplete && compiledArgument.provides
 						? createTargetOperation(
 							statement.operation,
@@ -591,6 +812,9 @@ const compileStatement = (
 				context.operationNodeIds.push(...compiledArgument.operationNodeIds);
 				context.operations.push(operation);
 				context.operationNodeIds.push(statement.id);
+			} else if (supportsDynamicTargetExecution) {
+				context.operations.push(...compiledArgument.operations);
+				context.operationNodeIds.push(...compiledArgument.operationNodeIds);
 			} else if (operation) {
 				context.operations.push(operation);
 				context.operationNodeIds.push(statement.id);
@@ -630,6 +854,15 @@ const compileStatement = (
 				!statement.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
 			) {
 				context.diagnostics.push("Finish each block and fill any missing value slots.");
+			} else if (
+				statement.args.some((arg, index) =>
+					!isTypeCompatible(
+						signature.params[index]?.declaredTypeRef ?? null,
+						inferExpressionTypeRef(arg, declarationTypes, typeSignatures)
+					)
+				)
+			) {
+				context.diagnostics.push("type_mismatch_expect_arg");
 			}
 			return;
 		}
@@ -652,6 +885,15 @@ const compileStatement = (
 				!statement.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
 			) {
 				context.diagnostics.push("Finish each block and fill any missing value slots.");
+			} else if (
+				statement.args.some((arg, index) =>
+					!isTypeCompatible(
+						memberSignature.params?.[index]?.declaredTypeRef ?? null,
+						inferExpressionTypeRef(arg, declarationTypes, typeSignatures)
+					)
+				)
+			) {
+				context.diagnostics.push("type_mismatch_expect_arg");
 			}
 			return;
 		}
@@ -686,7 +928,17 @@ const compileStatement = (
 				breakpointable: false,
 				jumpTargetIp: -1
 			});
-			statement.thenBody.forEach((child) => compileStatement(child, rowMap, signatures, context, loopStack));
+			statement.thenBody.forEach((child) =>
+				compileStatement(
+					child,
+					rowMap,
+					signatures,
+					typeSignatures,
+					declarationTypes,
+					context,
+					loopStack
+				)
+			);
 			let skipJumpIp: number | null = null;
 			if (statement.elseBody && statement.elseBody.length > 0) {
 				skipJumpIp = appendInstruction(context, {
@@ -701,7 +953,17 @@ const compileStatement = (
 			}
 			const elseStartIp = context.instructions.length;
 			if (statement.elseBody) {
-				statement.elseBody.forEach((child) => compileStatement(child, rowMap, signatures, context, loopStack));
+				statement.elseBody.forEach((child) =>
+					compileStatement(
+						child,
+						rowMap,
+						signatures,
+						typeSignatures,
+						declarationTypes,
+						context,
+						loopStack
+					)
+				);
 			}
 			const endIp = context.instructions.length;
 			context.instructions[jumpIfFalseIp] = {
@@ -714,8 +976,8 @@ const compileStatement = (
 					jumpTargetIp: endIp
 				};
 			}
-			if (!expressionIsBoolean(statement.condition) || !expressionCanExecuteAtRuntime(statement.condition, signatures)) {
-				context.diagnostics.push("Conditional blocks need a complete boolean input.");
+			if (!expressionCanExecuteAtRuntime(statement.condition, signatures)) {
+				context.diagnostics.push("Conditional blocks need a complete condition input.");
 			}
 			return;
 		}
@@ -742,7 +1004,17 @@ const compileStatement = (
 				breakpointable: false,
 				jumpTargetIp: -1
 			});
-			statement.body.forEach((child) => compileStatement(child, rowMap, signatures, context, loopStack));
+			statement.body.forEach((child) =>
+				compileStatement(
+					child,
+					rowMap,
+					signatures,
+					typeSignatures,
+					declarationTypes,
+					context,
+					loopStack
+				)
+			);
 			appendInstruction(context, {
 				instructionId: `ins-${statement.id}-jump-loop`,
 				kind: "jump",
@@ -764,8 +1036,8 @@ const compileStatement = (
 				};
 			});
 			loopStack.pop();
-			if (!expressionIsBoolean(statement.condition) || !expressionCanExecuteAtRuntime(statement.condition, signatures)) {
-				context.diagnostics.push("Loop blocks need a complete boolean input.");
+			if (!expressionCanExecuteAtRuntime(statement.condition, signatures)) {
+				context.diagnostics.push("Loop blocks need a complete condition input.");
 			}
 			return;
 		}
@@ -817,7 +1089,17 @@ const compileStatement = (
 				forEachItemDeclarationId: statement.itemDeclarationId,
 				forEachItemName: statement.itemName
 			});
-			statement.body.forEach((child) => compileStatement(child, rowMap, signatures, context, loopStack));
+			statement.body.forEach((child) =>
+				compileStatement(
+					child,
+					rowMap,
+					signatures,
+					typeSignatures,
+					declarationTypes,
+					context,
+					loopStack
+				)
+			);
 			appendInstruction(context, {
 				instructionId: `ins-${statement.id}-for-each-advance`,
 				kind: "for-each-advance",
@@ -896,7 +1178,8 @@ const compileRoutine = (
 	document: EditorDocument,
 	routine: RoutineNode,
 	signature: RoutineSignature,
-	signatures: Record<string, RoutineSignature>
+	signatures: Record<string, RoutineSignature>,
+	typeSignatures: Record<string, TypeSignature>
 ): CompiledRoutine => {
 	const rowMap = projectProgramRows(setActiveRoutineId(document, routine.id));
 	const context: CompileContext = {
@@ -910,6 +1193,10 @@ const compileRoutine = (
 		nodeRowMap: {},
 		nodeRowNumberMap: {}
 	};
+	const declarationTypes = collectRoutineDeclarationTypes(
+		routine.program.statements,
+		new Map()
+	);
 
 	const functionDefinitionStatements = routine.program.statements.filter(
 		(statement): statement is Extract<StatementNode, { kind: "function-definition" }> =>
@@ -937,7 +1224,15 @@ const compileRoutine = (
 	}
 
 	routine.program.statements.forEach((statement) =>
-		compileStatement(statement, rowMap, signatures, context, [])
+		compileStatement(
+			statement,
+			rowMap,
+			signatures,
+			typeSignatures,
+			declarationTypes,
+			context,
+			[]
+		)
 	);
 
 	const uniqueDiagnostics = Array.from(new Set(context.diagnostics));
@@ -964,10 +1259,17 @@ const compileRoutine = (
 
 export const compileEditorDocument = (document: EditorDocument): CompileResult => {
 	const signatures = analyzeDocumentRoutines(document);
+	const typeSignatures = analyzeDocumentTypes(document);
 	const routines = Object.fromEntries(
 		document.routines.map((routine) => [
 			routine.id,
-			compileRoutine(document, routine, signatures[routine.id]!, signatures)
+			compileRoutine(
+				document,
+				routine,
+				signatures[routine.id]!,
+				signatures,
+				typeSignatures
+			)
 		])
 	) as Record<string, CompiledRoutine>;
 

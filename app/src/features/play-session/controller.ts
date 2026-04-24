@@ -23,8 +23,8 @@ import type {
   CompileResult,
   CompiledInstruction,
   CompiledRoutine,
+  DeclaredTypeRef,
   ExpressionNode,
-  RoutineNode,
   RoutineSignature,
   StatementNode,
   StructureCallStatement
@@ -35,77 +35,38 @@ import type {
   RuntimeVariableSnapshot,
   PlaySessionState
 } from "./types";
-
-const goalMatches = (
-  currentState: StructureSnapshot[],
-  goalState: StructureSnapshot[]
-): boolean => {
-  const normalize = (state: StructureSnapshot[]) =>
-    JSON.stringify(
-      [...state]
-        .map((structure) => normalizeStructureSnapshot(structure))
-        .sort((left, right) => left.id.localeCompare(right.id))
-    );
-
-  return normalize(currentState) === normalize(goalState);
-};
+import { goalMatches } from "./runtime/progress";
+import {
+  assignScopedValue,
+  createRoutineLocals,
+  getDeclarationLookup,
+  getVisibleVariableSnapshots,
+  readVariableValue,
+  readVariableValueFromFrames,
+  setLocalValue,
+  type RuntimeFrame,
+  type RuntimeObjectInstance
+} from "./runtime/runtime-memory";
+import {
+  applyVariableOperator,
+  asBoolean,
+  assertPrimitiveValue,
+  formatRuntimeValue,
+  isPointerValue,
+  isPrimitiveValue,
+  isRoutineObjectValue,
+  isRoutineReferenceValue,
+  isRuntimeValueCompatibleWithDeclaredType,
+  isTypedObjectValue,
+  type RuntimeFunctionReferenceValue,
+  type RuntimeObjectValue,
+  type RuntimePointerValue,
+  type RuntimeStoredValue,
+  type RuntimeTypedObjectValue
+} from "./runtime/runtime-values";
 
 const MAX_WHILE_ITERATIONS = 20;
 const MAX_FUNCTION_CALL_DEPTH = 20;
-
-interface RuntimeFrame {
-  routineId: string;
-  ip: number;
-  locals: Map<string, RuntimeStoredValue>;
-  forEachContexts: Map<
-    string,
-    {
-      values: DataValue[];
-      index: number;
-      itemDeclarationId: string;
-      itemName: string;
-    }
-  >;
-}
-
-interface RuntimeFunctionReferenceValue {
-  kind: "routine-reference";
-  routineId: string;
-  routineName: string;
-}
-
-interface RuntimeObjectValue {
-  kind: "routine-object";
-  routineId: string;
-  routineName: string;
-}
-
-interface RuntimePointerValue {
-  kind: "pointer";
-  targetKind: "variable" | "structure" | "object";
-  targetId: string;
-  targetName: string;
-}
-
-interface RuntimeTypedObjectValue {
-  kind: "typed-object";
-  typeRoutineId: string;
-  typeName: string;
-  fields: Record<string, RuntimeStoredValue>;
-}
-
-type RuntimeStoredValue =
-  | DataValue
-  | RuntimeFunctionReferenceValue
-  | RuntimeObjectValue
-  | RuntimePointerValue
-  | RuntimeTypedObjectValue;
-
-interface RuntimeObjectInstance {
-  routineId: string;
-  routineName: string;
-  locals: Map<string, RuntimeStoredValue>;
-}
 
 interface ExecutionPoint {
   frame: RuntimeFrame;
@@ -406,70 +367,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.state = {
       ...this.state,
       ...partial,
-      variableSnapshots: partial.variableSnapshots ?? this.getVisibleVariableSnapshots(nextDocument)
+      variableSnapshots:
+        partial.variableSnapshots ?? getVisibleVariableSnapshots(nextDocument, this.runtimeFrames)
     };
     this.listeners.forEach((listener) => listener(this.state));
-  }
-
-  private getDeclarationLookup(document: EditorDocument): Map<string, { name: string; routineName: string }> {
-    const lookup = new Map<string, { name: string; routineName: string }>();
-    const visitStatements = (statements: StatementNode[], routineName: string) => {
-      statements.forEach((statement) => {
-        if (statement.kind === "declare") {
-          lookup.set(statement.id, {
-            name: statement.variableName,
-            routineName
-          });
-          return;
-        }
-        if (statement.kind === "if") {
-          visitStatements(statement.thenBody, routineName);
-          visitStatements(statement.elseBody ?? [], routineName);
-          return;
-        }
-        if (statement.kind === "while") {
-          visitStatements(statement.body, routineName);
-          return;
-        }
-        if (statement.kind === "for-each") {
-          lookup.set(statement.itemDeclarationId, {
-            name: statement.itemName,
-            routineName
-          });
-          visitStatements(statement.body, routineName);
-        }
-      });
-    };
-
-    document.routines.forEach((routine) => {
-      visitStatements(routine.program.statements, routine.name);
-    });
-    return lookup;
-  }
-
-  private getVisibleVariableSnapshots(document: EditorDocument): RuntimeVariableSnapshot[] {
-    if (this.runtimeFrames.length === 0) {
-      return [];
-    }
-
-    const declarationLookup = this.getDeclarationLookup(document);
-    const variables = new Map<string, RuntimeVariableSnapshot>();
-
-    this.runtimeFrames.forEach((frame) => {
-      frame.locals.forEach((value, key) => {
-        const declaration = declarationLookup.get(key);
-        if (!declaration) {
-          return;
-        }
-        variables.set(declaration.name, {
-          name: declaration.name,
-          value: this.formatRuntimeValue(value),
-          routineName: declaration.routineName
-        });
-      });
-    });
-
-    return [...variables.values()].sort((left, right) => left.name.localeCompare(right.name));
   }
 
   private syncFromEngine(): void {
@@ -483,44 +384,85 @@ export class DefaultPlaySessionController implements PlaySessionController {
     });
   }
 
-  private isPrimitiveValue(value: RuntimeStoredValue): value is DataValue {
-    return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
-  }
-
-  private isRoutineReferenceValue(value: RuntimeStoredValue): value is RuntimeFunctionReferenceValue {
-    return typeof value === "object" && value !== null && value.kind === "routine-reference";
-  }
-
-  private isRoutineObjectValue(value: RuntimeStoredValue): value is RuntimeObjectValue {
-    return typeof value === "object" && value !== null && value.kind === "routine-object";
-  }
-
-  private isPointerValue(value: RuntimeStoredValue): value is RuntimePointerValue {
-    return typeof value === "object" && value !== null && value.kind === "pointer";
-  }
-
-  private isTypedObjectValue(value: RuntimeStoredValue): value is RuntimeTypedObjectValue {
-    return typeof value === "object" && value !== null && value.kind === "typed-object";
-  }
-
-  private formatRuntimeValue(value: RuntimeStoredValue): string | number | boolean {
-    if (this.isPrimitiveValue(value)) {
-      return value;
+  private resolveStructureTargetId(options: {
+    structureId?: string;
+    expectedKind?: StructureSnapshot["kind"];
+    targetDeclarationId?: string | null;
+    targetName?: string | null;
+  }): string {
+    if (options.targetDeclarationId || options.targetName) {
+      const value = this.readVariableValue(
+        options.targetDeclarationId ?? options.targetName ?? "",
+        options.targetName ?? options.targetDeclarationId ?? "structure"
+      );
+      if (!isPointerValue(value) || value.targetKind !== "structure") {
+        throw new Error(`Variable "${options.targetName ?? "structure"}" is not referencing a data structure.`);
+      }
+      const snapshot = this.engine?.getState().structures[value.targetId];
+      if (!snapshot) {
+        throw new Error(`Structure "${value.targetName}" does not exist.`);
+      }
+      if (options.expectedKind && normalizeStructureSnapshot(snapshot).kind !== options.expectedKind) {
+        throw new Error(`Structure "${value.targetName}" does not match the expected type.`);
+      }
+      return value.targetId;
     }
 
-    if (this.isRoutineReferenceValue(value)) {
-      return `[fn ${value.routineName}]`;
+    if (!options.structureId) {
+      throw new Error("The target structure is missing.");
     }
 
-    if (this.isPointerValue(value)) {
-      return `[ptr ${value.targetKind}:${value.targetName}]`;
+    return options.structureId;
+  }
+
+  private resolveStructureTargetIdFromFrames(
+    frames: Map<string, RuntimeStoredValue>[],
+    options: {
+      structureId?: string;
+      expectedKind?: StructureSnapshot["kind"];
+      targetDeclarationId?: string | null;
+      targetName?: string | null;
+    }
+  ): string {
+    if (options.targetDeclarationId || options.targetName) {
+      const value = readVariableValueFromFrames(
+        frames,
+        options.targetDeclarationId ?? options.targetName ?? "",
+        options.targetName ?? options.targetDeclarationId ?? "structure"
+      );
+      if (!isPointerValue(value) || value.targetKind !== "structure") {
+        throw new Error(`Variable "${options.targetName ?? "structure"}" is not referencing a data structure.`);
+      }
+      const snapshot = this.engine?.getState().structures[value.targetId];
+      if (!snapshot) {
+        throw new Error(`Structure "${value.targetName}" does not exist.`);
+      }
+      if (options.expectedKind && normalizeStructureSnapshot(snapshot).kind !== options.expectedKind) {
+        throw new Error(`Structure "${value.targetName}" does not match the expected type.`);
+      }
+      return value.targetId;
     }
 
-    if (this.isTypedObjectValue(value)) {
-      return `[${value.typeName}]`;
+    if (!options.structureId) {
+      throw new Error("The target structure is missing.");
     }
 
-    return `[object ${value.routineName}]`;
+    return options.structureId;
+  }
+
+  private resolveAssignTargetDeclaredType(
+    statement: Extract<StatementNode, { kind: "assign" }>
+  ): DeclaredTypeRef | null {
+    const declarationLookup = getDeclarationLookup(this.state.document);
+    if (statement.targetDeclarationId) {
+      return declarationLookup.get(statement.targetDeclarationId)?.declaredTypeRef ?? null;
+    }
+    for (const declaration of declarationLookup.values()) {
+      if (declaration.name === statement.targetName) {
+        return declaration.declaredTypeRef ?? null;
+      }
+    }
+    return null;
   }
 
   private resetRuntimeState(): void {
@@ -671,53 +613,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
     }
   }
 
-  private setLocalValue(
-    locals: Map<string, RuntimeStoredValue>,
-    declarationId: string,
-    variableName: string,
-    value: RuntimeStoredValue
-  ) {
-    locals.set(declarationId, value);
-    locals.set(variableName, value);
-  }
-
   private readVariableValue(declarationId: string, variableName: string): RuntimeStoredValue {
-    const frameStack = [...this.runtimeFrames].reverse();
-    for (const frame of frameStack) {
-      if (frame.locals.has(declarationId)) {
-        return frame.locals.get(declarationId)!;
-      }
-      if (frame.locals.has(variableName)) {
-        return frame.locals.get(variableName)!;
-      }
-    }
-
-    throw new Error(`Variable "${variableName}" has not been assigned yet.`);
-  }
-
-  private createRoutineLocals(signature: RoutineSignature, args: RuntimeStoredValue[]): Map<string, RuntimeStoredValue> {
-    const locals = new Map<string, RuntimeStoredValue>();
-    signature.params.forEach((param, index) => {
-      this.setLocalValue(locals, param.declarationId, param.name, args[index] ?? false);
-    });
-    return locals;
-  }
-
-  private assignScopedValue(
-    frames: Map<string, RuntimeStoredValue>[],
-    declarationId: string,
-    variableName: string,
-    value: RuntimeStoredValue
-  ): void {
-    for (let index = frames.length - 1; index >= 0; index -= 1) {
-      const frame = frames[index]!;
-      if (frame.has(declarationId) || frame.has(variableName)) {
-        this.setLocalValue(frame, declarationId, variableName, value);
-        return;
-      }
-    }
-
-    this.setLocalValue(frames[frames.length - 1]!, declarationId, variableName, value);
+    return readVariableValue(this.runtimeFrames, declarationId, variableName);
   }
 
   private createSourceOperation(
@@ -816,9 +713,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const statement = findNode(this.state.document, instruction.nodeId);
 
     switch (instruction.kind) {
+      case "definition":
+        frame.ip += 1;
+        return;
       case "declare":
         if (statement?.kind === "declare" && !frame.locals.has(statement.id)) {
-          this.setLocalValue(frame.locals, statement.id, statement.variableName, false);
+          setLocalValue(frame.locals, statement.id, statement.variableName, false);
         }
         frame.ip += 1;
         return;
@@ -826,11 +726,20 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!statement || statement.kind !== "assign") {
           throw new Error("Assignment target is missing.");
         }
-        this.setLocalValue(
+        const assignedValue = this.evaluateExpression(statement.value, compiled).value;
+        if (
+          !isRuntimeValueCompatibleWithDeclaredType(
+            this.resolveAssignTargetDeclaredType(statement),
+            assignedValue
+          )
+        ) {
+          throw new Error("type_mismatch_assign");
+        }
+        setLocalValue(
           frame.locals,
           statement.targetDeclarationId ?? statement.targetName,
           statement.targetName,
-          this.evaluateExpression(statement.value, compiled).value
+          assignedValue
         );
         frame.ip += 1;
         return;
@@ -888,8 +797,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!statement || (statement.kind !== "if" && statement.kind !== "while")) {
           throw new Error("Conditional statement is missing.");
         }
-        this.lastConditionResult = this.asBoolean(
-          this.assertPrimitiveValue(this.evaluateExpression(statement.condition, compiled).value)
+        this.lastConditionResult = asBoolean(
+          assertPrimitiveValue(this.evaluateExpression(statement.condition, compiled).value)
         );
         if (statement.kind === "while" && this.lastConditionResult) {
           const iterationKey = `${frame.routineId}:${statement.id}`;
@@ -948,7 +857,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!context) {
           throw new Error("For-each context is missing.");
         }
-        this.setLocalValue(
+        setLocalValue(
           frame.locals,
           context.itemDeclarationId,
           context.itemName,
@@ -990,7 +899,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.runtimeFrames.push({
       routineId,
       ip: 0,
-      locals: this.createRoutineLocals(signature, values),
+      locals: createRoutineLocals(signature, values),
       forEachContexts: new Map()
     });
   }
@@ -1000,9 +909,16 @@ export class DefaultPlaySessionController implements PlaySessionController {
       throw new Error("The block could not run.");
     }
 
+    const targetId = this.resolveStructureTargetId({
+      structureId: statement.structureId,
+      expectedKind: statement.structureKind,
+      targetDeclarationId: statement.targetDeclarationId,
+      targetName: statement.targetName
+    });
+
     let operation: OperationDefinition;
     if (this.isSourceOperation(statement.operation)) {
-      operation = this.createSourceOperation(statement.operation, statement.structureId);
+      operation = this.createSourceOperation(statement.operation, targetId);
     } else if (this.isTargetOperation(statement.operation)) {
       const argument = statement.args[0] ? this.evaluateExpression(statement.args[0], compiled) : null;
       if (!argument) {
@@ -1010,8 +926,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
       }
       operation = this.createTargetOperation(
         statement.operation,
-        statement.structureId,
-        argument.kind === "literal" ? this.assertPrimitiveValue(argument.value) : undefined
+        targetId,
+        argument.kind === "literal" ? assertPrimitiveValue(argument.value) : undefined
       );
     } else {
       throw new Error("The block could not run.");
@@ -1050,24 +966,33 @@ export class DefaultPlaySessionController implements PlaySessionController {
             break;
           case "declare":
             if (!locals.has(statement.id)) {
-              this.setLocalValue(locals, statement.id, statement.variableName, false);
+              setLocalValue(locals, statement.id, statement.variableName, false);
             }
             break;
           case "assign":
-            this.assignScopedValue(
+            const scopedAssignedValue = this.evaluateExpressionDirect(
+              statement.value,
+              compiled,
+              frames,
+              depth + 1
+            ).value;
+            if (!isRuntimeValueCompatibleWithDeclaredType(this.resolveAssignTargetDeclaredType(statement), scopedAssignedValue)) {
+              throw new Error("type_mismatch_assign");
+            }
+            assignScopedValue(
               frames,
               statement.targetDeclarationId ?? statement.targetName,
               statement.targetName,
-              this.evaluateExpressionDirect(statement.value, compiled, frames, depth + 1).value
+              scopedAssignedValue
             );
             break;
           case "type-field-assign": {
-            const scopedValue = this.readVariableValueFromFrames(
+            const scopedValue = readVariableValueFromFrames(
               frames,
               statement.targetDeclarationId,
               statement.targetName
             );
-            if (!this.isTypedObjectValue(scopedValue)) {
+            if (!isTypedObjectValue(scopedValue)) {
               throw new Error(`Variable "${statement.targetName}" is not a typed object.`);
             }
             if (!(statement.fieldName in scopedValue.fields)) {
@@ -1079,7 +1004,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
               frames,
               depth + 1
             ).value;
-            this.assignScopedValue(
+            assignScopedValue(
               frames,
               statement.targetDeclarationId,
               statement.targetName,
@@ -1113,8 +1038,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
             );
             break;
           case "if": {
-            const branchTaken = this.asBoolean(
-              this.assertPrimitiveValue(
+            const branchTaken = asBoolean(
+              assertPrimitiveValue(
                 this.evaluateExpressionDirect(statement.condition, compiled, frames, depth + 1).value
               )
             );
@@ -1133,8 +1058,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
           case "while": {
             const iterationKey = `${routineId}:${statement.id}`;
             while (
-              this.asBoolean(
-                this.assertPrimitiveValue(
+              asBoolean(
+                assertPrimitiveValue(
                   this.evaluateExpressionDirect(statement.condition, compiled, frames, depth + 1).value
                 )
               )
@@ -1162,7 +1087,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
               statement.sourceStructureKind
             );
             for (const value of values) {
-              this.setLocalValue(
+              setLocalValue(
                 locals,
                 statement.itemDeclarationId,
                 statement.itemName,
@@ -1222,7 +1147,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     depth: number
   ): RuntimeStoredValue | undefined {
     const memberValue = this.readObjectMemberValue(compiled, routineId, memberName, depth);
-    if (!this.isRoutineReferenceValue(memberValue)) {
+    if (!isRoutineReferenceValue(memberValue)) {
       throw new Error(`Member "${memberName}" is not callable.`);
     }
 
@@ -1245,7 +1170,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     depth: number
   ): RuntimeStoredValue | undefined {
     const memberValue = this.readObjectMemberValue(compiled, routineId, memberName, depth);
-    if (!this.isRoutineReferenceValue(memberValue)) {
+    if (!isRoutineReferenceValue(memberValue)) {
       throw new Error(`Member "${memberName}" is not callable.`);
     }
 
@@ -1257,14 +1182,6 @@ export class DefaultPlaySessionController implements PlaySessionController {
       depth + 1,
       [this.getObjectInstance(compiled, routineId, depth).locals]
     );
-  }
-
-  private assertPrimitiveValue(value: RuntimeStoredValue): DataValue {
-    if (this.isPrimitiveValue(value)) {
-      return value;
-    }
-
-    throw new Error("Only primitive values can be moved into data structures for now.");
   }
 
   private createTypedObjectValue(typeRoutineId: string): RuntimeTypedObjectValue {
@@ -1292,7 +1209,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     fieldName: string
   ): RuntimeStoredValue {
     const value = this.readVariableValue(declarationId, variableName);
-    if (!this.isTypedObjectValue(value)) {
+    if (!isTypedObjectValue(value)) {
       throw new Error(`Variable "${variableName}" is not a typed object.`);
     }
     if (!(fieldName in value.fields)) {
@@ -1308,14 +1225,14 @@ export class DefaultPlaySessionController implements PlaySessionController {
     value: RuntimeStoredValue
   ): void {
     const current = this.readVariableValue(declarationId, variableName);
-    if (!this.isTypedObjectValue(current)) {
+    if (!isTypedObjectValue(current)) {
       throw new Error(`Variable "${variableName}" is not a typed object.`);
     }
     if (!(fieldName in current.fields)) {
       throw new Error("unknown_type_field");
     }
     current.fields[fieldName] = value;
-    this.setLocalValue(this.runtimeFrames[this.runtimeFrames.length - 1]!.locals, declarationId, variableName, current);
+    setLocalValue(this.runtimeFrames[this.runtimeFrames.length - 1]!.locals, declarationId, variableName, current);
   }
 
   private evaluateExpression(
@@ -1339,7 +1256,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!this.isSourceOperation(expression.operation)) {
           throw new Error("Only value-producing blocks can be used here.");
         }
-        this.engine.executeOperation(this.createSourceOperation(expression.operation, expression.structureId));
+        const targetId = this.resolveStructureTargetId({
+          structureId: expression.structureId,
+          expectedKind: expression.structureKind,
+          targetDeclarationId: expression.targetDeclarationId,
+          targetName: expression.targetName
+        });
+        this.engine.executeOperation(this.createSourceOperation(expression.operation, targetId));
         this.syncFromEngine();
         const handValue = this.engine.getState().handValue;
         if (!handValue) {
@@ -1411,10 +1334,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const operand = this.evaluateExpression(expression.operand, compiled);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(
+          value: applyVariableOperator(
             expression.mode,
-            this.assertPrimitiveValue(storedValue),
-            this.assertPrimitiveValue(operand.value)
+            assertPrimitiveValue(storedValue),
+            assertPrimitiveValue(operand.value)
           )
         };
       }
@@ -1423,10 +1346,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const right = this.evaluateExpression(expression.right, compiled);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(
+          value: applyVariableOperator(
             expression.operator,
-            this.assertPrimitiveValue(left.value),
-            this.assertPrimitiveValue(right.value)
+            assertPrimitiveValue(left.value),
+            assertPrimitiveValue(right.value)
           )
         };
       }
@@ -1434,7 +1357,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const operand = this.evaluateExpression(expression.operand, compiled);
         return {
           kind: "literal",
-          value: !this.asBoolean(this.assertPrimitiveValue(operand.value))
+          value: !asBoolean(assertPrimitiveValue(operand.value))
         };
       }
       case "pointer":
@@ -1483,7 +1406,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       throw new Error("This function is not publishable yet.");
     }
 
-    const locals = this.createRoutineLocals(signature, args);
+    const locals = createRoutineLocals(signature, args);
     const frames = [...outerFrames, locals];
     const loopCounts = new Map<string, number>();
 
@@ -1500,24 +1423,38 @@ export class DefaultPlaySessionController implements PlaySessionController {
             break;
           case "declare":
             if (!locals.has(statement.id)) {
-              this.setLocalValue(locals, statement.id, statement.variableName, false);
+              setLocalValue(locals, statement.id, statement.variableName, false);
             }
             break;
           case "assign":
-            this.assignScopedValue(
+            const assignedValue = this.evaluateExpressionDirect(
+              statement.value,
+              compiled,
+              frames,
+              depth
+            ).value;
+            if (
+              !isRuntimeValueCompatibleWithDeclaredType(
+                this.resolveAssignTargetDeclaredType(statement),
+                assignedValue
+              )
+            ) {
+              throw new Error("type_mismatch_assign");
+            }
+            assignScopedValue(
               frames,
               statement.targetDeclarationId ?? statement.targetName,
               statement.targetName,
-              this.evaluateExpressionDirect(statement.value, compiled, frames, depth).value
+              assignedValue
             );
             break;
           case "type-field-assign": {
-            const scopedValue = this.readVariableValueFromFrames(
+            const scopedValue = readVariableValueFromFrames(
               frames,
               statement.targetDeclarationId,
               statement.targetName
             );
-            if (!this.isTypedObjectValue(scopedValue)) {
+            if (!isTypedObjectValue(scopedValue)) {
               throw new Error(`Variable "${statement.targetName}" is not a typed object.`);
             }
             if (!(statement.fieldName in scopedValue.fields)) {
@@ -1529,7 +1466,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
               frames,
               depth
             ).value;
-            this.assignScopedValue(
+            assignScopedValue(
               frames,
               statement.targetDeclarationId,
               statement.targetName,
@@ -1563,8 +1500,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
             );
             break;
           case "if": {
-            const branchTaken = this.asBoolean(
-              this.assertPrimitiveValue(
+            const branchTaken = asBoolean(
+              assertPrimitiveValue(
                 this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value
               )
             );
@@ -1582,8 +1519,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
           }
           case "while": {
             while (
-              this.asBoolean(
-                this.assertPrimitiveValue(
+              asBoolean(
+                assertPrimitiveValue(
                   this.evaluateExpressionDirect(statement.condition, compiled, frames, depth).value
                 )
               )
@@ -1612,7 +1549,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
               statement.sourceStructureKind
             );
             for (const value of values) {
-              this.setLocalValue(
+              setLocalValue(
                 locals,
                 statement.itemDeclarationId,
                 statement.itemName,
@@ -1657,9 +1594,16 @@ export class DefaultPlaySessionController implements PlaySessionController {
       throw new Error("The block could not run.");
     }
 
+    const targetId = this.resolveStructureTargetIdFromFrames(frames, {
+      structureId: statement.structureId,
+      expectedKind: statement.structureKind,
+      targetDeclarationId: statement.targetDeclarationId,
+      targetName: statement.targetName
+    });
+
     let operation: OperationDefinition;
     if (this.isSourceOperation(statement.operation)) {
-      operation = this.createSourceOperation(statement.operation, statement.structureId);
+      operation = this.createSourceOperation(statement.operation, targetId);
     } else if (this.isTargetOperation(statement.operation)) {
       const argument = statement.args[0]
         ? this.evaluateExpressionDirect(statement.args[0], compiled, frames, depth)
@@ -1669,8 +1613,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
       }
       operation = this.createTargetOperation(
         statement.operation,
-        statement.structureId,
-        argument.kind === "literal" ? this.assertPrimitiveValue(argument.value) : undefined
+        targetId,
+        argument.kind === "literal" ? assertPrimitiveValue(argument.value) : undefined
       );
     } else {
       throw new Error("The block could not run.");
@@ -1700,7 +1644,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!this.engine || !expression.operation || !this.isSourceOperation(expression.operation)) {
           throw new Error("Only value-producing blocks can be used here.");
         }
-        this.engine.executeOperation(this.createSourceOperation(expression.operation, expression.structureId));
+        const targetId = this.resolveStructureTargetIdFromFrames(frames, {
+          structureId: expression.structureId,
+          expectedKind: expression.structureKind,
+          targetDeclarationId: expression.targetDeclarationId,
+          targetName: expression.targetName
+        });
+        this.engine.executeOperation(this.createSourceOperation(expression.operation, targetId));
         this.syncFromEngine();
         const handValue = this.engine.getState().handValue;
         if (!handValue) {
@@ -1766,7 +1716,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
             ) ?? false
         };
       case "variable": {
-        const storedValue = this.readVariableValueFromFrames(
+        const storedValue = readVariableValueFromFrames(
           frames,
           expression.declarationId,
           expression.variableName
@@ -1783,10 +1733,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const operand = this.evaluateExpressionDirect(expression.operand, compiled, frames, depth);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(
+          value: applyVariableOperator(
             expression.mode,
-            this.assertPrimitiveValue(storedValue),
-            this.assertPrimitiveValue(operand.value)
+            assertPrimitiveValue(storedValue),
+            assertPrimitiveValue(operand.value)
           )
         };
       }
@@ -1795,10 +1745,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const right = this.evaluateExpressionDirect(expression.right, compiled, frames, depth);
         return {
           kind: "literal",
-          value: this.applyVariableOperator(
+          value: applyVariableOperator(
             expression.operator,
-            this.assertPrimitiveValue(left.value),
-            this.assertPrimitiveValue(right.value)
+            assertPrimitiveValue(left.value),
+            assertPrimitiveValue(right.value)
           )
         };
       }
@@ -1806,7 +1756,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         const operand = this.evaluateExpressionDirect(expression.operand, compiled, frames, depth);
         return {
           kind: "literal",
-          value: !this.asBoolean(this.assertPrimitiveValue(operand.value))
+          value: !asBoolean(assertPrimitiveValue(operand.value))
         };
       }
       case "pointer":
@@ -1825,12 +1775,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
           value: this.createTypedObjectValue(expression.typeRoutineId)
         };
       case "type-field-read": {
-        const scopedValue = this.readVariableValueFromFrames(
+        const scopedValue = readVariableValueFromFrames(
           frames,
           expression.targetDeclarationId,
           expression.targetName
         );
-        if (!this.isTypedObjectValue(scopedValue)) {
+        if (!isTypedObjectValue(scopedValue)) {
           throw new Error(`Variable "${expression.targetName}" is not a typed object.`);
         }
         if (!(expression.fieldName in scopedValue.fields)) {
@@ -1842,106 +1792,6 @@ export class DefaultPlaySessionController implements PlaySessionController {
         };
       }
     }
-  }
-
-  private readVariableValueFromFrames(
-    frames: Map<string, RuntimeStoredValue>[],
-    declarationId: string,
-    variableName: string
-  ): RuntimeStoredValue {
-    for (let index = frames.length - 1; index >= 0; index -= 1) {
-      const frame = frames[index]!;
-      if (frame.has(declarationId)) {
-        return frame.get(declarationId)!;
-      }
-      if (frame.has(variableName)) {
-        return frame.get(variableName)!;
-      }
-    }
-    throw new Error(`Variable "${variableName}" has not been assigned yet.`);
-  }
-
-  private isValueProducingOperation(operation: OperationDefinition["type"]): boolean {
-    return (
-      operation === "POP" ||
-      operation === "DEQUEUE" ||
-      operation === "REMOVE_FIRST" ||
-      operation === "REMOVE_LAST" ||
-      operation === "GET_HEAD" ||
-      operation === "GET_TAIL" ||
-      operation === "SIZE"
-    );
-  }
-
-  private applyVariableOperator(
-    mode: string,
-    left: DataValue,
-    right: DataValue
-  ): DataValue {
-    switch (mode) {
-      case "add":
-        return this.isNumeric(left) && this.isNumeric(right)
-          ? Number(left) + Number(right)
-          : `${left}${right}`;
-      case "subtract":
-        return Number(left) - Number(right);
-      case "multiply":
-        return Number(left) * Number(right);
-      case "divide":
-        return Number(left) / Number(right);
-      case "modulo":
-        return Number(left) % Number(right);
-      case "equals":
-        return left === right;
-      case "not_equals":
-        return left !== right;
-      case "greater_than":
-        return this.compareValues(left, right) > 0;
-      case "greater_or_equal":
-        return this.compareValues(left, right) >= 0;
-      case "less_than":
-        return this.compareValues(left, right) < 0;
-      case "less_or_equal":
-        return this.compareValues(left, right) <= 0;
-      case "and":
-        return this.asBoolean(left) && this.asBoolean(right);
-      case "or":
-        return this.asBoolean(left) || this.asBoolean(right);
-      default:
-        return left;
-    }
-  }
-
-  private compareValues(left: DataValue, right: DataValue): number {
-    if (this.isNumeric(left) && this.isNumeric(right)) {
-      return Number(left) - Number(right);
-    }
-
-    return String(left).localeCompare(String(right));
-  }
-
-  private asBoolean(value: DataValue): boolean {
-    if (typeof value === "boolean") {
-      return value;
-    }
-    if (typeof value === "number") {
-      return value !== 0;
-    }
-    const normalized = value.trim().toLocaleLowerCase();
-    if (normalized === "true") {
-      return true;
-    }
-    if (normalized === "false") {
-      return false;
-    }
-    return normalized.length > 0;
-  }
-
-  private isNumeric(value: DataValue): boolean {
-    return (
-      typeof value === "number" ||
-      (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value)))
-    );
   }
 
   private async evaluateProgress(): Promise<void> {

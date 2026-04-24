@@ -65,7 +65,7 @@ El engine **no** define reglas de negocio de editor en detalle: orquesta servici
 4. Mutaciones de árbol usan:
    - `BlockMutationService`
    - `DropPlacementService`
-5. Cambios de bloques se propagan por `props.onChange(...)` con `createEditorDocumentFromLegacyBlocks`.
+5. Cambios de bloques se propagan por `props.onChange(...)` con `createEditorDocumentFromEditorBlocks`.
 
 ## 4. Drag & drop: puntos críticos
 
@@ -132,4 +132,3 @@ Tras cualquier cambio en `play-editor`, validar:
 7. Breakpoints en gutter.
 8. `npx tsc -p app/tsconfig.json --noEmit`
 9. `npm run build -w app`
-

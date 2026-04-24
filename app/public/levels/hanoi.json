@@ -1,0 +1,89 @@
+{
+  "id": "hanoi",
+  "title": "Hanoi",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [3, 2, 1],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "C",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "C",
+      "kind": "stack",
+      "values": [3, 2, 1],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "allowedOperations": ["POP", "PUSH"],
+    "forbiddenBlocks": [],
+    "maxSteps": 99
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B", "C"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": "hard",
+    "author": "Core Team",
+    "description": "Solve the basic Tower of Hanoi using three stacks."
+  },
+  "tooling": {
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
+  }
+}

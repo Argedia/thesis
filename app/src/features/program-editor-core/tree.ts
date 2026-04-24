@@ -410,6 +410,109 @@ export const findNode = (source: ProgramNode | EditorDocument, nodeId: string): 
 export const findRoutineByNodeId = (document: EditorDocument, nodeId: string): RoutineNode | null =>
   document.routines.find((routine) => !!findNodeInProgram(routine.program, nodeId)) ?? null;
 
+const findExpressionInNode = (expression: ExpressionNode, expressionId: string): ExpressionNode | null => {
+  if (expression.id === expressionId) {
+    return expression;
+  }
+
+  if (expression.kind === "variable" && expression.operand) {
+    return findExpressionInNode(expression.operand, expressionId);
+  }
+
+  if (expression.kind === "binary") {
+    return (
+      findExpressionInNode(expression.left, expressionId) ??
+      (expression.right ? findExpressionInNode(expression.right, expressionId) : null)
+    );
+  }
+
+  if (
+    expression.kind === "structure" ||
+    expression.kind === "routine-call" ||
+    expression.kind === "routine-member"
+  ) {
+    for (const arg of expression.args) {
+      const nested = findExpressionInNode(arg, expressionId);
+      if (nested) {
+        return nested;
+      }
+    }
+  }
+
+  if (expression.kind === "unary" && expression.operand) {
+    return findExpressionInNode(expression.operand, expressionId);
+  }
+
+  return null;
+};
+
+const findExpressionInStatement = (
+  statement: StatementNode,
+  expressionId: string
+): ExpressionNode | null => {
+  switch (statement.kind) {
+    case "assign":
+    case "type-field-assign":
+      return statement.value ? findExpressionInNode(statement.value, expressionId) : null;
+    case "call":
+    case "routine-call":
+    case "routine-member-call":
+      for (const arg of statement.args) {
+        const nested = findExpressionInNode(arg, expressionId);
+        if (nested) {
+          return nested;
+        }
+      }
+      return null;
+    case "if":
+      return (
+        (statement.condition ? findExpressionInNode(statement.condition, expressionId) : null) ??
+        statement.thenBody.map((child) => findExpressionInStatement(child, expressionId)).find(Boolean) ??
+        (statement.elseBody?.map((child) => findExpressionInStatement(child, expressionId)).find(Boolean) ?? null)
+      );
+    case "while":
+      return (
+        (statement.condition ? findExpressionInNode(statement.condition, expressionId) : null) ??
+        statement.body.map((child) => findExpressionInStatement(child, expressionId)).find(Boolean) ??
+        null
+      );
+    case "return":
+      return statement.value ? findExpressionInNode(statement.value, expressionId) : null;
+    case "expression":
+      return findExpressionInNode(statement.expression, expressionId);
+    case "for-each":
+      return statement.body.map((child) => findExpressionInStatement(child, expressionId)).find(Boolean) ?? null;
+    default:
+      return null;
+  }
+};
+
+export const findExpression = (
+  source: ProgramNode | EditorDocument,
+  expressionId: string
+): ExpressionNode | null => {
+  if ("routines" in source) {
+    for (const routine of source.routines) {
+      for (const statement of routine.program.statements) {
+        const expression = findExpressionInStatement(statement, expressionId);
+        if (expression) {
+          return expression;
+        }
+      }
+    }
+    return null;
+  }
+
+  for (const statement of source.statements) {
+    const expression = findExpressionInStatement(statement, expressionId);
+    if (expression) {
+      return expression;
+    }
+  }
+
+  return null;
+};
+
 export const findParentContainer = (
   program: ProgramNode,
   nodeId: string
@@ -612,6 +715,34 @@ export const moveNode = (
   return insertNode(detached.program, targetContainer, targetIndex, detached.node);
 };
 
+export const replaceStatementNode = (
+  program: ProgramNode,
+  nodeId: string,
+  nextStatement: StatementNode
+): ProgramNode => {
+  const parent = findParentContainer(program, nodeId);
+  if (!parent) {
+    return program;
+  }
+
+  const nextStatements = [...parent.statements];
+  nextStatements[parent.index] = nextStatement;
+  return replaceContainerStatements(program, parent.container, nextStatements);
+};
+
+export const updateStatementNode = (
+  program: ProgramNode,
+  nodeId: string,
+  updater: (statement: StatementNode) => StatementNode
+): ProgramNode => {
+  const current = findNode(program, nodeId);
+  if (!current) {
+    return program;
+  }
+
+  return replaceStatementNode(program, nodeId, updater(current));
+};
+
 const updateExpressionNode = (
   expression: ExpressionNode,
   targetId: string,
@@ -655,6 +786,402 @@ const updateExpressionNode = (
   }
 
   return expression;
+};
+
+export const replaceExpressionNode = (
+  program: ProgramNode,
+  expressionId: string,
+  nextExpression: ExpressionNode
+): ProgramNode => {
+  const current = findExpression(program, expressionId);
+  if (!current) {
+    return program;
+  }
+
+  return {
+    ...program,
+    statements: program.statements.map((statement) => {
+      switch (statement.kind) {
+        case "assign":
+          return statement.value
+            ? { ...statement, value: updateExpressionNode(statement.value, expressionId, () => nextExpression) }
+            : statement;
+        case "type-field-assign":
+          return statement.value
+            ? { ...statement, value: updateExpressionNode(statement.value, expressionId, () => nextExpression) }
+            : statement;
+        case "call":
+        case "routine-call":
+        case "routine-member-call":
+          return {
+            ...statement,
+            args: statement.args.map((arg) => updateExpressionNode(arg, expressionId, () => nextExpression))
+          };
+        case "if":
+          return {
+            ...statement,
+            condition: statement.condition
+              ? updateExpressionNode(statement.condition, expressionId, () => nextExpression)
+              : null,
+            thenBody: statement.thenBody.map((child) => replaceStatementExpressions(child, expressionId, nextExpression)),
+            elseBody: statement.elseBody
+              ? statement.elseBody.map((child) => replaceStatementExpressions(child, expressionId, nextExpression))
+              : null
+          };
+        case "while":
+          return {
+            ...statement,
+            condition: statement.condition
+              ? updateExpressionNode(statement.condition, expressionId, () => nextExpression)
+              : null,
+            body: statement.body.map((child) => replaceStatementExpressions(child, expressionId, nextExpression))
+          };
+        case "return":
+          return statement.value
+            ? { ...statement, value: updateExpressionNode(statement.value, expressionId, () => nextExpression) }
+            : statement;
+        case "expression":
+          return {
+            ...statement,
+            expression: updateExpressionNode(statement.expression, expressionId, () => nextExpression)
+          };
+        case "for-each":
+          return {
+            ...statement,
+            body: statement.body.map((child) => replaceStatementExpressions(child, expressionId, nextExpression))
+          };
+        default:
+          return statement;
+      }
+    })
+  };
+};
+
+const replaceStatementExpressions = (
+  statement: StatementNode,
+  expressionId: string,
+  nextExpression: ExpressionNode
+): StatementNode => {
+  switch (statement.kind) {
+    case "assign":
+      return statement.value
+        ? { ...statement, value: updateExpressionNode(statement.value, expressionId, () => nextExpression) }
+        : statement;
+    case "type-field-assign":
+      return statement.value
+        ? { ...statement, value: updateExpressionNode(statement.value, expressionId, () => nextExpression) }
+        : statement;
+    case "call":
+    case "routine-call":
+    case "routine-member-call":
+      return {
+        ...statement,
+        args: statement.args.map((arg) => updateExpressionNode(arg, expressionId, () => nextExpression))
+      };
+    case "if":
+      return {
+        ...statement,
+        condition: statement.condition
+          ? updateExpressionNode(statement.condition, expressionId, () => nextExpression)
+          : null,
+        thenBody: statement.thenBody.map((child) => replaceStatementExpressions(child, expressionId, nextExpression)),
+        elseBody: statement.elseBody
+          ? statement.elseBody.map((child) => replaceStatementExpressions(child, expressionId, nextExpression))
+          : null
+      };
+    case "while":
+      return {
+        ...statement,
+        condition: statement.condition
+          ? updateExpressionNode(statement.condition, expressionId, () => nextExpression)
+          : null,
+        body: statement.body.map((child) => replaceStatementExpressions(child, expressionId, nextExpression))
+      };
+    case "return":
+      return statement.value
+        ? { ...statement, value: updateExpressionNode(statement.value, expressionId, () => nextExpression) }
+        : statement;
+    case "expression":
+      return {
+        ...statement,
+        expression: updateExpressionNode(statement.expression, expressionId, () => nextExpression)
+      };
+    case "for-each":
+      return {
+        ...statement,
+        body: statement.body.map((child) => replaceStatementExpressions(child, expressionId, nextExpression))
+      };
+    default:
+      return statement;
+  }
+};
+
+type DetachExpressionResult = { nextExpression: ExpressionNode | null; detached: ExpressionNode | null };
+
+const detachExpressionFromNode = (
+  expression: ExpressionNode,
+  expressionId: string
+): DetachExpressionResult => {
+  if (expression.id === expressionId) {
+    return { nextExpression: null, detached: expression };
+  }
+
+  if (expression.kind === "variable" && expression.operand) {
+    const detached = detachExpressionFromNode(expression.operand, expressionId);
+    if (detached.detached) {
+      return {
+        nextExpression: { ...expression, operand: detached.nextExpression },
+        detached: detached.detached
+      };
+    }
+  }
+
+  if (expression.kind === "binary") {
+    const detachedLeft = detachExpressionFromNode(expression.left, expressionId);
+    if (detachedLeft.detached) {
+      return {
+        nextExpression: detachedLeft.nextExpression
+          ? { ...expression, left: detachedLeft.nextExpression }
+          : expression,
+        detached: detachedLeft.detached
+      };
+    }
+    if (expression.right) {
+      const detachedRight = detachExpressionFromNode(expression.right, expressionId);
+      if (detachedRight.detached) {
+        return {
+          nextExpression: { ...expression, right: detachedRight.nextExpression },
+          detached: detachedRight.detached
+        };
+      }
+    }
+  }
+
+  if (
+    expression.kind === "structure" ||
+    expression.kind === "routine-call" ||
+    expression.kind === "routine-member"
+  ) {
+    for (let index = 0; index < expression.args.length; index += 1) {
+      const detached = detachExpressionFromNode(expression.args[index]!, expressionId);
+      if (detached.detached) {
+        const nextArgs = [...expression.args];
+        if (detached.nextExpression) {
+          nextArgs[index] = detached.nextExpression;
+        } else {
+          nextArgs.splice(index, 1);
+        }
+        return {
+          nextExpression: { ...expression, args: nextArgs },
+          detached: detached.detached
+        };
+      }
+    }
+  }
+
+  if (expression.kind === "unary" && expression.operand) {
+    const detached = detachExpressionFromNode(expression.operand, expressionId);
+    if (detached.detached) {
+      return {
+        nextExpression: { ...expression, operand: detached.nextExpression },
+        detached: detached.detached
+      };
+    }
+  }
+
+  return { nextExpression: expression, detached: null };
+};
+
+const detachExpressionFromStatement = (
+  statement: StatementNode,
+  expressionId: string
+): { nextStatement: StatementNode | null; detached: ExpressionNode | null } => {
+  switch (statement.kind) {
+    case "assign":
+      if (!statement.value) {
+        return { nextStatement: statement, detached: null };
+      }
+      if (statement.value.id === expressionId) {
+        return { nextStatement: { ...statement, value: null }, detached: statement.value };
+      }
+      {
+        const detached = detachExpressionFromNode(statement.value, expressionId);
+        return detached.detached
+          ? { nextStatement: { ...statement, value: detached.nextExpression }, detached: detached.detached }
+          : { nextStatement: statement, detached: null };
+      }
+    case "type-field-assign":
+      if (!statement.value) {
+        return { nextStatement: statement, detached: null };
+      }
+      if (statement.value.id === expressionId) {
+        return { nextStatement: { ...statement, value: null }, detached: statement.value };
+      }
+      {
+        const detached = detachExpressionFromNode(statement.value, expressionId);
+        return detached.detached
+          ? { nextStatement: { ...statement, value: detached.nextExpression }, detached: detached.detached }
+          : { nextStatement: statement, detached: null };
+      }
+    case "call":
+    case "routine-call":
+    case "routine-member-call": {
+      for (let index = 0; index < statement.args.length; index += 1) {
+        const arg = statement.args[index]!;
+        if (arg.id === expressionId) {
+          const nextArgs = [...statement.args];
+          const detached = nextArgs.splice(index, 1)[0] ?? null;
+          return {
+            nextStatement: { ...statement, args: nextArgs } as StatementNode,
+            detached
+          };
+        }
+        const detached = detachExpressionFromNode(arg, expressionId);
+        if (detached.detached) {
+          const nextArgs = [...statement.args];
+          if (detached.nextExpression) {
+            nextArgs[index] = detached.nextExpression;
+          } else {
+            nextArgs.splice(index, 1);
+          }
+          return {
+            nextStatement: { ...statement, args: nextArgs } as StatementNode,
+            detached: detached.detached
+          };
+        }
+      }
+      return { nextStatement: statement, detached: null };
+    }
+    case "if":
+      if (statement.condition?.id === expressionId) {
+        return { nextStatement: { ...statement, condition: null }, detached: statement.condition };
+      }
+      if (statement.condition) {
+        const detachedCondition = detachExpressionFromNode(statement.condition, expressionId);
+        if (detachedCondition.detached) {
+          return {
+            nextStatement: { ...statement, condition: detachedCondition.nextExpression },
+            detached: detachedCondition.detached
+          };
+        }
+      }
+      {
+        const detachedThen = detachExpressionFromStatements(statement.thenBody, expressionId);
+        if (detachedThen.detached) {
+          return {
+            nextStatement: { ...statement, thenBody: detachedThen.nextStatements },
+            detached: detachedThen.detached
+          };
+        }
+        if (statement.elseBody) {
+          const detachedElse = detachExpressionFromStatements(statement.elseBody, expressionId);
+          if (detachedElse.detached) {
+            return {
+              nextStatement: { ...statement, elseBody: detachedElse.nextStatements },
+              detached: detachedElse.detached
+            };
+          }
+        }
+      }
+      return { nextStatement: statement, detached: null };
+    case "while":
+      if (statement.condition?.id === expressionId) {
+        return { nextStatement: { ...statement, condition: null }, detached: statement.condition };
+      }
+      if (statement.condition) {
+        const detachedCondition = detachExpressionFromNode(statement.condition, expressionId);
+        if (detachedCondition.detached) {
+          return {
+            nextStatement: { ...statement, condition: detachedCondition.nextExpression },
+            detached: detachedCondition.detached
+          };
+        }
+      }
+      {
+        const detachedBody = detachExpressionFromStatements(statement.body, expressionId);
+        if (detachedBody.detached) {
+          return {
+            nextStatement: { ...statement, body: detachedBody.nextStatements },
+            detached: detachedBody.detached
+          };
+        }
+      }
+      return { nextStatement: statement, detached: null };
+    case "return":
+      if (!statement.value) {
+        return { nextStatement: statement, detached: null };
+      }
+      if (statement.value.id === expressionId) {
+        return { nextStatement: { ...statement, value: null }, detached: statement.value };
+      }
+      {
+        const detached = detachExpressionFromNode(statement.value, expressionId);
+        return detached.detached
+          ? { nextStatement: { ...statement, value: detached.nextExpression }, detached: detached.detached }
+          : { nextStatement: statement, detached: null };
+      }
+    case "expression":
+      if (statement.expression.id === expressionId) {
+        return { nextStatement: null, detached: statement.expression };
+      }
+      {
+        const detached = detachExpressionFromNode(statement.expression, expressionId);
+        return detached.detached && detached.nextExpression
+          ? { nextStatement: { ...statement, expression: detached.nextExpression }, detached: detached.detached }
+          : { nextStatement: statement, detached: null };
+      }
+    case "for-each": {
+      const detachedBody = detachExpressionFromStatements(statement.body, expressionId);
+      if (detachedBody.detached) {
+        return {
+          nextStatement: { ...statement, body: detachedBody.nextStatements },
+          detached: detachedBody.detached
+        };
+      }
+      return { nextStatement: statement, detached: null };
+    }
+    default:
+      return { nextStatement: statement, detached: null };
+  }
+};
+
+const detachExpressionFromStatements = (
+  statements: StatementNode[],
+  expressionId: string
+): { nextStatements: StatementNode[]; detached: ExpressionNode | null } => {
+  for (let index = 0; index < statements.length; index += 1) {
+    const statement = statements[index]!;
+    const detached = detachExpressionFromStatement(statement, expressionId);
+    if (detached.detached) {
+      const nextStatements = [...statements];
+      if (detached.nextStatement) {
+        nextStatements[index] = detached.nextStatement;
+      } else {
+        nextStatements.splice(index, 1);
+      }
+      return { nextStatements, detached: detached.detached };
+    }
+  }
+
+  return { nextStatements: statements, detached: null };
+};
+
+export const detachExpression = (
+  program: ProgramNode,
+  expressionId: string
+): { program: ProgramNode; expression: ExpressionNode | null } => {
+  const detached = detachExpressionFromStatements(program.statements, expressionId);
+  if (!detached.detached) {
+    return { program, expression: null };
+  }
+
+  return {
+    program: {
+      ...program,
+      statements: detached.nextStatements
+    },
+    expression: detached.detached
+  };
 };
 
 export const replaceExpression = (

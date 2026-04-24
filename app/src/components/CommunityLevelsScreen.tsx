@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   isDataNode,
   normalizeStructureSnapshot,
@@ -47,6 +48,7 @@ const difficultyRank: Record<LevelDifficulty, number> = {
 };
 
 export function CommunityLevelsScreen() {
+  const { t } = useTranslation();
   const [levels, setLevels] = useState<LevelDefinition[]>([]);
   const [completedLevelIds, setCompletedLevelIds] = useState<string[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<LevelDefinition | null>(null);
@@ -57,6 +59,9 @@ export function CommunityLevelsScreen() {
   const [completionFilter, setCompletionFilter] = useState<CompletionFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isInitialOpen, setIsInitialOpen] = useState(false);
+  const [isGoalOpen, setIsGoalOpen] = useState(false);
+  const [isConstraintsOpen, setIsConstraintsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadData = async () => {
@@ -154,6 +159,12 @@ export function CommunityLevelsScreen() {
     }
   }, [filteredLevels, selectedLevel]);
 
+  useEffect(() => {
+    setIsInitialOpen(false);
+    setIsGoalOpen(false);
+    setIsConstraintsOpen(false);
+  }, [selectedLevel?.id]);
+
   const toggleStructureFilter = (tag: StructureTag) => {
     setStructureFilters((current) =>
       current.includes(tag)
@@ -196,13 +207,13 @@ export function CommunityLevelsScreen() {
   return (
     <Screen mode="player">
       <div className="community-shell">
-        <header className="topbar">
+        <header className="topbar community-topbar">
           <Link className="back-link" to={APP_ROUTES.home}>
-            Menu
+            {t("menu.menuLabel")}
           </Link>
           <div>
-            <p className="eyebrow">Community Levels</p>
-            <h1>Find something fun to play.</h1>
+            <p className="eyebrow">{t("menu.community")}</p>
+            <h1>{t("preview.findFunToPlay")}</h1>
           </div>
         </header>
 
@@ -210,12 +221,12 @@ export function CommunityLevelsScreen() {
           <input
             className="search-input"
             type="text"
-            placeholder="Search levels..."
+            placeholder={t("preview.searchLevels")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
           <button type="button" onClick={() => fileInputRef.current?.click()}>
-            Import Level
+            {t("preview.importLevel")}
           </button>
           <select
             className="sort-select"
@@ -237,7 +248,7 @@ export function CommunityLevelsScreen() {
 
         {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
 
-        <section className="catalog-layout">
+        <section className="catalog-layout catalog-layout--full">
           <aside className="filters-column">
             <Panel title="Level Source" accent="#ffffff">
               <div className="chip-group">
@@ -307,7 +318,7 @@ export function CommunityLevelsScreen() {
           <section className="levels-column">
             {filteredLevels.length === 0 ? (
               <Panel title="No levels found" accent="#ffffff">
-                <p>Try a different search or clear some filters.</p>
+                <p>{t("preview.noLevelsHint")}</p>
               </Panel>
             ) : (
               <div className="level-grid">
@@ -346,72 +357,131 @@ export function CommunityLevelsScreen() {
               </div>
             )}
           </section>
-        </section>
-
-        {selectedLevel ? (
-          <aside className="preview-sheet">
-            <Panel title="Level Preview" accent="#ffffff">
-              <div className="preview-content">
-                <div className="preview-header">
-                  <div>
-                    <p className="eyebrow">Ready to play</p>
-                    <h2>{selectedLevel.title}</h2>
+          <aside className="preview-sheet preview-column">
+            {selectedLevel ? (
+              <Panel title="Level Preview" accent="#ffffff">
+                <div className="preview-content">
+                  <div className="preview-header">
+                    <div>
+                      <p className="eyebrow">{t("preview.readyToPlay")}</p>
+                      <h2>{selectedLevel.title}</h2>
+                    </div>
+                    <span className="difficulty-pill">{selectedLevel.metadata.difficulty}</span>
                   </div>
-                  <span className="difficulty-pill">{selectedLevel.metadata.difficulty}</span>
-                </div>
 
-                <p>{selectedLevel.metadata.description ?? "A community-made challenge."}</p>
+                  <p className="preview-description">
+                    {selectedLevel.metadata.description ?? t("preview.communityChallenge")}
+                  </p>
 
-                <div className="preview-section">
-                  <strong>Initial State</strong>
-                  <div className="state-row">
-                    {selectedLevel.initialState.map((structure) => (
-                      <div key={structure.id} className="state-card">
-                        <span>{structure.id}</span>
-                        <small>{structure.kind}</small>
-                        <p>{formatStructureValues(structure)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="preview-section">
-                  <strong>Goal State</strong>
-                  <div className="state-row">
-                    {selectedLevel.goalState.map((structure) => (
-                      <div key={structure.id} className="state-card">
-                        <span>{structure.id}</span>
-                        <small>{structure.kind}</small>
-                        <p>{formatStructureValues(structure)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="preview-section">
-                  <strong>Constraints</strong>
-                  <div className="tag-row">
+                  <div className="preview-summary-row">
                     <span className="mini-tag">
-                      Steps: {selectedLevel.constraints.maxSteps}
+                      {t("preview.constraintsSummary", {
+                        steps: selectedLevel.constraints.maxSteps,
+                        operations: selectedLevel.constraints.allowedOperations.length
+                      })}
                     </span>
-                    {selectedLevel.constraints.allowedOperations.map((operation) => (
-                      <span key={operation} className="mini-tag">
-                        {operation}
-                      </span>
-                    ))}
                   </div>
-                </div>
 
-                <Link
-                  className="menu-link preview-play-link"
-                  to={`${APP_ROUTES.play}/${selectedLevel.id}`}
-                >
-                  Play
-                </Link>
-              </div>
-            </Panel>
+                  <div className="preview-section">
+                    <button
+                      type="button"
+                      className="preview-toggle"
+                      aria-expanded={isInitialOpen}
+                      aria-controls={`preview-initial-${selectedLevel.id}`}
+                      onClick={() => setIsInitialOpen((current) => !current)}
+                    >
+                      {isInitialOpen
+                        ? t("preview.hideInitialState")
+                        : t("preview.showInitialState")}
+                    </button>
+                    <div
+                      id={`preview-initial-${selectedLevel.id}`}
+                      hidden={!isInitialOpen}
+                      className="preview-panel-body"
+                    >
+                      <div className="state-row">
+                        {selectedLevel.initialState.map((structure) => (
+                          <div key={structure.id} className="state-card">
+                            <span>{structure.id}</span>
+                            <small>{structure.kind}</small>
+                            <p>{formatStructureValues(structure)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="preview-section">
+                    <button
+                      type="button"
+                      className="preview-toggle"
+                      aria-expanded={isGoalOpen}
+                      aria-controls={`preview-goal-${selectedLevel.id}`}
+                      onClick={() => setIsGoalOpen((current) => !current)}
+                    >
+                      {isGoalOpen
+                        ? t("preview.hideGoalState")
+                        : t("preview.showGoalState")}
+                    </button>
+                    <div
+                      id={`preview-goal-${selectedLevel.id}`}
+                      hidden={!isGoalOpen}
+                      className="preview-panel-body"
+                    >
+                      <div className="state-row">
+                        {selectedLevel.goalState.map((structure) => (
+                          <div key={structure.id} className="state-card">
+                            <span>{structure.id}</span>
+                            <small>{structure.kind}</small>
+                            <p>{formatStructureValues(structure)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="preview-section">
+                    <button
+                      type="button"
+                      className="preview-toggle"
+                      aria-expanded={isConstraintsOpen}
+                      aria-controls={`preview-constraints-${selectedLevel.id}`}
+                      onClick={() => setIsConstraintsOpen((current) => !current)}
+                    >
+                      {isConstraintsOpen
+                        ? t("preview.hideConstraints")
+                        : t("preview.showConstraints")}
+                    </button>
+                    <div
+                      id={`preview-constraints-${selectedLevel.id}`}
+                      hidden={!isConstraintsOpen}
+                      className="preview-panel-body"
+                    >
+                      <div className="tag-row">
+                        {selectedLevel.constraints.allowedOperations.map((operation) => (
+                          <span key={operation} className="mini-tag">
+                            {operation}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link
+                    className="menu-link preview-play-link"
+                    to={`${APP_ROUTES.play}/${selectedLevel.id}`}
+                  >
+                    {t("actions.play")}
+                  </Link>
+                </div>
+              </Panel>
+            ) : (
+              <Panel title="Level Preview" accent="#ffffff">
+                <p>{t("preview.selectLevelToSeeDetails")}</p>
+              </Panel>
+            )}
           </aside>
-        ) : null}
+        </section>
       </div>
     </Screen>
   );

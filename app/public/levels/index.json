@@ -89,13 +89,13 @@
     }
   },
   {
-    "id": "intro-transfer",
-    "title": "First Transfer",
+    "id": "hanoi",
+    "title": "Hanoi",
     "initialState": [
       {
         "id": "A",
         "kind": "stack",
-        "values": [1, 2, 3],
+        "values": [3, 2, 1],
         "properties": {
           "color": "#f6b457",
           "nodeAutoTaint": false
@@ -104,225 +104,62 @@
       {
         "id": "B",
         "kind": "stack",
-        "values": [8],
-        "properties": {
-          "color": "#8ec5ff",
-          "nodeAutoTaint": false
-        }
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [1, 2],
-        "properties": {
-          "color": "#f6b457",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [8, 3],
-        "properties": {
-          "color": "#8ec5ff",
-          "nodeAutoTaint": false
-        }
-      }
-    ],
-    "constraints": {
-      "allowedOperations": ["POP", "PUSH"],
-      "forbiddenBlocks": [],
-      "maxSteps": 2
-    },
-    "playLayout": {
-      "panelOrder": ["board", "steps", "timeline"],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": ["A", "B"],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": ["canvas", "preview"]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": ["stack"],
-      "difficulty": "easy",
-      "author": "Core Team",
-      "description": "Move the top item from A into B."
-    },
-    "tooling": {
-      "availableStructures": ["stack", "queue"],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "queue-relay",
-    "title": "Queue Relay",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "queue",
-        "values": [4, 5, 6],
-        "properties": {
-          "color": "#7ad3ba",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "B",
-        "kind": "queue",
         "values": [],
         "properties": {
           "color": "#8ec5ff",
           "nodeAutoTaint": false
         }
+      },
+      {
+        "id": "C",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
       }
     ],
     "goalState": [
       {
         "id": "A",
-        "kind": "queue",
-        "values": [5, 6],
+        "kind": "stack",
+        "values": [],
         "properties": {
-          "color": "#7ad3ba",
+          "color": "#f6b457",
           "nodeAutoTaint": false
         }
       },
       {
         "id": "B",
-        "kind": "queue",
-        "values": [4],
+        "kind": "stack",
+        "values": [],
         "properties": {
           "color": "#8ec5ff",
           "nodeAutoTaint": false
         }
-      }
-    ],
-    "constraints": {
-      "allowedOperations": ["DEQUEUE", "ENQUEUE"],
-      "forbiddenBlocks": [],
-      "maxSteps": 2
-    },
-    "playLayout": {
-      "panelOrder": ["board", "steps", "timeline"],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": ["A", "B"],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": ["canvas", "preview"]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": ["queue"],
-      "difficulty": "medium",
-      "author": "Core Team",
-      "description": "Relay the front item into the second queue."
-    },
-    "tooling": {
-      "availableStructures": ["stack", "queue"],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "mixed-shuffle",
-    "title": "Mixed Shuffle",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [2, 7]
       },
       {
-        "id": "B",
-        "kind": "queue",
-        "values": [9]
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
+        "id": "C",
         "kind": "stack",
-        "values": [2]
-      },
-      {
-        "id": "B",
-        "kind": "queue",
-        "values": [9, 7]
-      }
-    ],
-    "constraints": {
-      "allowedOperations": ["POP", "ENQUEUE"],
-      "forbiddenBlocks": [],
-      "maxSteps": 2
-    },
-    "playLayout": {
-      "panelOrder": ["board", "steps", "timeline"],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": ["A", "B"],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": ["canvas", "preview"]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": ["stack", "queue"],
-      "difficulty": "hard",
-      "author": "Puzzle Forge",
-      "description": "Use mixed structures to place the item into the queue."
-    },
-    "tooling": {
-      "availableStructures": ["stack", "queue"],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "double-stack-hop",
-    "title": "Double Stack Hop",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [1, 4]
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": []
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": []
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [4, 1]
+        "values": [3, 2, 1],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
       }
     ],
     "constraints": {
       "allowedOperations": ["POP", "PUSH"],
       "forbiddenBlocks": [],
-      "maxSteps": 4
+      "maxSteps": 7
     },
     "playLayout": {
       "panelOrder": ["board", "steps", "timeline"],
       "initialPanel": "board"
     },
     "editorLayout": {
-      "structureOrder": ["A", "B"],
+      "structureOrder": ["A", "B", "C"],
       "leftPanel": "palette",
       "rightPanel": "inspector",
       "bottomPanel": "timeline",
@@ -331,122 +168,12 @@
     "metadata": {
       "source": "community",
       "structuresUsed": ["stack"],
-      "difficulty": "medium",
-      "author": "Core Team",
-      "description": "Move both items so the stack order flips in B."
-    },
-    "tooling": {
-      "availableStructures": ["stack", "queue"],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "queue-keep-order",
-    "title": "Queue Keep Order",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "queue",
-        "values": [3, 1]
-      },
-      {
-        "id": "B",
-        "kind": "queue",
-        "values": []
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
-        "kind": "queue",
-        "values": []
-      },
-      {
-        "id": "B",
-        "kind": "queue",
-        "values": [3, 1]
-      }
-    ],
-    "constraints": {
-      "allowedOperations": ["DEQUEUE", "ENQUEUE"],
-      "forbiddenBlocks": [],
-      "maxSteps": 4
-    },
-    "playLayout": {
-      "panelOrder": ["board", "steps", "timeline"],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": ["A", "B"],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": ["canvas", "preview"]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": ["queue"],
-      "difficulty": "easy",
-      "author": "Learning Lab",
-      "description": "Move the queue while keeping the order intact."
-    },
-    "tooling": {
-      "availableStructures": ["stack", "queue"],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "mixed-limited",
-    "title": "Mixed Limited",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "queue",
-        "values": [8]
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [2]
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
-        "kind": "queue",
-        "values": []
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [2, 8]
-      }
-    ],
-    "constraints": {
-      "allowedOperations": ["DEQUEUE", "PUSH"],
-      "forbiddenBlocks": [],
-      "maxSteps": 2
-    },
-    "playLayout": {
-      "panelOrder": ["board", "steps", "timeline"],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": ["A", "B"],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": ["canvas", "preview"]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": ["stack", "queue"],
       "difficulty": "hard",
-      "author": "Puzzle Forge",
-      "description": "Use the exact two moves available to place the queue item on the stack."
+      "author": "Core Team",
+      "description": "Solve the basic Tower of Hanoi using three stacks."
     },
     "tooling": {
-      "availableStructures": ["stack", "queue"],
+      "availableStructures": ["stack"],
       "advancedToolsEnabled": true
     }
   }

@@ -82,7 +82,8 @@ const analyzeRoutineBase = (
     .filter((statement) => statement.bindingKind === "expect")
     .map((statement) => ({
       declarationId: statement.id,
-      name: statement.variableName
+      name: statement.variableName,
+      declaredTypeRef: statement.declaredTypeRef ?? null
     }));
 
   const returns: Array<Extract<StatementNode, { kind: "return" }>> = [];

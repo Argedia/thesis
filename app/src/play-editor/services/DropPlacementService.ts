@@ -1,61 +1,91 @@
 import type {
   ControlBodyKey,
   EditorBlock,
+  EditorDocument,
   EditorDragState
 } from "../model";
 import { buildEditorLineLayout } from "../model";
-import { insertAt } from "../layout";
-import { setBlockSlotBlock } from "../operations";
+import {
+  detachExpression,
+  detachNode,
+  editorBlockToExpression,
+  editorBlockToStatement,
+  findExpression,
+  findNode,
+  findParentContainer,
+  getActiveProgram,
+  insertNode,
+  projectDocumentToEditorBlocks,
+  replaceActiveProgram,
+  replaceExpression
+} from "../operations";
 import type { ResolvedDropPlacement } from "../contracts/types";
 
 export interface DropPlacementContext {
   blockContainsId(block: EditorBlock, blockId: string | null | undefined): boolean;
   findBlockById(blocks: EditorBlock[], blockId: string): EditorBlock | null;
   parseSlotKey(slotKey: string): { ownerId: string; slotId: string };
-  updateBlockById(
-    blocks: EditorBlock[],
-    blockId: string,
-    updater: (block: EditorBlock) => EditorBlock
-  ): EditorBlock[];
 }
 
 export class DropPlacementService {
   public constructor(private readonly ctx: DropPlacementContext) {}
 
   public applyResolvedPlacement(
-    blocks: EditorBlock[],
+    document: EditorDocument,
     placement: ResolvedDropPlacement,
     insertedBlock: EditorBlock
-  ): EditorBlock[] {
+  ): EditorDocument {
+    const activeProgram = getActiveProgram(document);
+    const insertedNode = editorBlockToStatement(insertedBlock);
     if (placement.branchTarget && placement.beforeBlockId) {
-      return this.insertBlockBefore(blocks, placement.beforeBlockId, insertedBlock);
-    }
-
-    if (placement.branchTarget) {
-      return this.appendBlockToBranch(
-        blocks,
-        placement.branchTarget.ownerId,
-        placement.branchTarget.branch,
-        insertedBlock
+      const parent = findParentContainer(activeProgram, placement.beforeBlockId);
+      if (!parent) {
+        return document;
+      }
+      return replaceActiveProgram(
+        document,
+        insertNode(activeProgram, parent.container, parent.index, insertedNode)
       );
     }
 
-    return insertAt(blocks, placement.rootIndex ?? blocks.length, insertedBlock);
-  }
-
-  public resolveBaseBlocksForDrop(
-    dragState: EditorDragState | null,
-    blocks: EditorBlock[],
-    extractBlockFromTree: (
-      blocks: EditorBlock[],
-      blockId: string
-    ) => { nextBlocks: EditorBlock[]; block: EditorBlock | null }
-  ): EditorBlock[] {
-    if (dragState?.source === "program" && dragState.blockId) {
-      return extractBlockFromTree(blocks, dragState.blockId).nextBlocks;
+    if (placement.branchTarget) {
+      return replaceActiveProgram(
+        document,
+        insertNode(
+          activeProgram,
+          this.toProgramContainerRef(activeProgram, placement.branchTarget.ownerId, placement.branchTarget.branch),
+          Number.MAX_SAFE_INTEGER,
+          insertedNode
+        )
+      );
     }
 
-    return blocks;
+    return replaceActiveProgram(
+      document,
+      insertNode(
+        activeProgram,
+        { kind: "program", programId: activeProgram.id },
+        placement.rootIndex ?? activeProgram.statements.length,
+        insertedNode
+      )
+    );
+  }
+
+  public resolveBaseDocumentForDrop(
+    dragState: EditorDragState | null,
+    document: EditorDocument
+  ): EditorDocument {
+    if (dragState?.source === "program" && dragState.blockId) {
+      const activeProgram = getActiveProgram(document);
+      if (findNode(activeProgram, dragState.blockId)) {
+        return replaceActiveProgram(document, detachNode(activeProgram, dragState.blockId).program);
+      }
+      if (findExpression(activeProgram, dragState.blockId)) {
+        return replaceActiveProgram(document, detachExpression(activeProgram, dragState.blockId).program);
+      }
+    }
+
+    return document;
   }
 
   public canUseSlotTarget(
@@ -77,7 +107,7 @@ export class DropPlacementService {
   }
 
   public applyDropDestination(
-    baseBlocks: EditorBlock[],
+    document: EditorDocument,
     insertedBlock: EditorBlock,
     options: {
       slotTargetId?: string | null;
@@ -90,14 +120,15 @@ export class DropPlacementService {
       visualLineIndex: number,
       chosenIndent: number
     ) => ResolvedDropPlacement
-  ): { nextBlocks: EditorBlock[]; status: string } {
+  ): { nextDocument: EditorDocument; status: string } {
     if (options.slotTargetId) {
       return {
-        nextBlocks: this.assignBlockIntoSlot(baseBlocks, options.slotTargetId, insertedBlock),
+        nextDocument: this.assignBlockIntoSlot(document, options.slotTargetId, insertedBlock),
         status: "Block inserted into slot."
       };
     }
 
+    const baseBlocks = projectDocumentToEditorBlocks(document);
     const baseLineLayouts = buildEditorLineLayout(baseBlocks);
     const placement = resolveDropPlacement(
       baseBlocks,
@@ -107,75 +138,42 @@ export class DropPlacementService {
     );
 
     return {
-      nextBlocks: this.applyResolvedPlacement(baseBlocks, placement, insertedBlock),
+      nextDocument: this.applyResolvedPlacement(document, placement, insertedBlock),
       status: placement.branchTarget ? "Block added to control body." : "Block moved."
     };
   }
 
   private assignBlockIntoSlot(
-    blocks: EditorBlock[],
+    document: EditorDocument,
     slotTargetKey: string,
     insertedBlock: EditorBlock
-  ): EditorBlock[] {
+  ): EditorDocument {
     const { ownerId, slotId } = this.ctx.parseSlotKey(slotTargetKey);
-    return this.ctx.updateBlockById(blocks, ownerId, (block) =>
-      setBlockSlotBlock(block, slotId, insertedBlock)
+    const activeProgram = getActiveProgram(document);
+    const nextProgram = replaceExpression(
+      activeProgram,
+      ownerId,
+      slotId,
+      editorBlockToExpression(insertedBlock)
     );
+    return replaceActiveProgram(document, nextProgram);
   }
 
-  private insertBlockBefore(
-    blocks: EditorBlock[],
-    targetBlockId: string,
-    insertedBlock: EditorBlock
-  ): EditorBlock[] {
-    const directIndex = blocks.findIndex((block) => block.id === targetBlockId);
-    if (directIndex >= 0) {
-      const next = [...blocks];
-      next.splice(directIndex, 0, insertedBlock);
-      return next;
-    }
-
-    return blocks.map((block) => {
-      if (block.bodyBlocks?.some((child) => this.ctx.blockContainsId(child, targetBlockId))) {
-        return {
-          ...block,
-          bodyBlocks: this.insertBlockBefore(block.bodyBlocks, targetBlockId, insertedBlock)
-        };
-      }
-
-      if (
-        block.alternateBodyBlocks?.some((child) =>
-          this.ctx.blockContainsId(child, targetBlockId)
-        )
-      ) {
-        return {
-          ...block,
-          alternateBodyBlocks: this.insertBlockBefore(
-            block.alternateBodyBlocks,
-            targetBlockId,
-            insertedBlock
-          )
-        };
-      }
-
-      return block;
-    });
-  }
-
-  private appendBlockToBranch(
-    blocks: EditorBlock[],
+  private toProgramContainerRef(
+    activeProgram: ReturnType<typeof getActiveProgram>,
     ownerId: string,
-    branch: ControlBodyKey,
-    insertedBlock: EditorBlock
-  ): EditorBlock[] {
-    return this.ctx.updateBlockById(blocks, ownerId, (block) => ({
-      ...block,
-      bodyBlocks:
-        branch === "body" ? [...(block.bodyBlocks ?? []), insertedBlock] : (block.bodyBlocks ?? []),
-      alternateBodyBlocks:
-        branch === "alternateBody"
-          ? [...(block.alternateBodyBlocks ?? []), insertedBlock]
-          : (block.alternateBodyBlocks ?? [])
-    }));
+    branch: ControlBodyKey
+  ) {
+    const owner = findNode(activeProgram, ownerId);
+    if (branch === "alternateBody") {
+      return { kind: "if-else" as const, ownerId };
+    }
+    if (owner?.kind === "if") {
+      return { kind: "if-then" as const, ownerId };
+    }
+    if (owner?.kind === "for-each") {
+      return { kind: "for-each-body" as const, ownerId };
+    }
+    return { kind: "while-body" as const, ownerId };
   }
 }

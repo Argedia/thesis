@@ -206,6 +206,10 @@ button:disabled {
 	overflow: hidden;
 }
 
+.community-shell {
+	gap: 0.9rem;
+}
+
 .play-shell {
 	position: relative;
 }
@@ -284,8 +288,9 @@ button:disabled {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto auto;
 	gap: 0.75rem;
-	padding: 1rem;
-	margin-bottom: 1rem;
+	padding: 0.9rem;
+	margin-bottom: 0;
+	border-radius: 24px;
 }
 
 .search-input,
@@ -343,6 +348,26 @@ button:disabled {
 	display: grid;
 	grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
 	gap: 1rem;
+	min-height: 0;
+}
+
+.catalog-layout--full {
+	flex: 1 1 auto;
+	grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(300px, 360px);
+	align-items: stretch;
+}
+
+.community-topbar {
+	padding: 1.1rem 1.25rem;
+	margin-bottom: 0;
+	background:
+		linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(241, 249, 255, 0.96)),
+		#ffffff;
+}
+
+.community-topbar h1 {
+	font-size: clamp(1.7rem, 3.2vw, 2.65rem);
+	line-height: 1.05;
 }
 
 .play-summary {
@@ -556,6 +581,7 @@ button:disabled {
 	overflow: hidden;
 	min-width: 0;
 	min-height: 0;
+	height: 100%;
 }
 
 .device-header {
@@ -1562,6 +1588,21 @@ button:disabled {
 	color: #9f6122;
 }
 
+.editor-value-type-stack {
+	background: rgba(236, 181, 90, 0.28);
+	color: #8a5a16;
+}
+
+.editor-value-type-queue {
+	background: rgba(120, 201, 184, 0.28);
+	color: #2d7b6d;
+}
+
+.editor-value-type-list {
+	background: rgba(179, 153, 236, 0.3);
+	color: #5f469d;
+}
+
 .editor-block.declaration-type-int {
 	--block-accent: #7b4f12;
 }
@@ -1576,6 +1617,18 @@ button:disabled {
 
 .editor-block.declaration-type-user {
 	--block-accent: #b8692e;
+}
+
+.editor-block.declaration-type-stack {
+	--block-accent: #b67827;
+}
+
+.editor-block.declaration-type-queue {
+	--block-accent: #2f8d7f;
+}
+
+.editor-block.declaration-type-list {
+	--block-accent: #7d5ea5;
 }
 
 .editor-block-instance-cavity {
@@ -1791,7 +1844,8 @@ button:disabled {
 .board-surface {
 	position: relative;
 	flex: 1 1 auto;
-	min-height: 100%;
+	height: 100%;
+	min-height: 0;
 	min-width: 0;
 	padding: 1rem;
 	overflow: hidden;
@@ -1813,7 +1867,10 @@ button:disabled {
 	position: relative;
 	z-index: 1;
 	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
 	gap: 0.9rem;
+	height: 100%;
+	min-height: 0;
 }
 
 .board-console {
@@ -1842,16 +1899,22 @@ button:disabled {
 }
 
 .board-visual-panel {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
 	border: 2px solid #6d84ad;
 	border-radius: 24px;
 	padding: 1rem;
 	background: rgba(248, 251, 255, 0.96);
+	overflow: hidden;
 }
 
 .board-lower-panels {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	align-items: start;
+	min-height: 0;
 }
 
 .filters-column,
@@ -1859,6 +1922,14 @@ button:disabled {
 	display: grid;
 	gap: 1rem;
 	align-content: start;
+	min-height: 0;
+}
+
+.filters-column,
+.levels-column,
+.preview-column {
+	overflow: auto;
+	padding-right: 0.2rem;
 }
 
 .chip-group,
@@ -1891,6 +1962,7 @@ button:disabled {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 1rem;
+	align-content: start;
 }
 
 .level-card {
@@ -1958,14 +2030,50 @@ button:disabled {
 }
 
 .preview-sheet {
-	margin-top: 1rem;
-	padding: 1rem;
+	margin-top: 0;
+	padding: 0.25rem;
+	min-height: 0;
 }
 
 .preview-content,
 .preview-section {
 	display: grid;
-	gap: 0.9rem;
+	gap: 0.65rem;
+}
+
+.preview-content {
+	gap: 0.8rem;
+}
+
+.preview-description {
+	margin: 0;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.preview-summary-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.preview-toggle {
+	width: 100%;
+	min-height: 40px;
+	padding: 0.5rem 0.8rem;
+	border: 2px solid #d8e7f7;
+	border-radius: 12px;
+	background: #f8fbff;
+	color: #355070;
+	font-size: 0.88rem;
+	font-weight: 800;
+	text-align: left;
+}
+
+.preview-panel-body {
+	padding: 0.2rem 0.1rem 0.4rem;
 }
 
 .state-row {
@@ -2004,6 +2112,16 @@ button:disabled {
 	width: 100%;
 }
 
+@media (max-width: 1380px) {
+	.catalog-layout--full {
+		grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+	}
+
+	.preview-column {
+		grid-column: 1 / -1;
+	}
+}
+
 @media (max-width: 640px) {
 	.level-info-dock {
 		top: 1rem;
@@ -2034,6 +2152,10 @@ button:disabled {
 	.play-summary,
 	.play-dual-stage,
 	.editor-middle {
+		grid-template-columns: 1fr;
+	}
+
+	.catalog-layout--full {
 		grid-template-columns: 1fr;
 	}
 
