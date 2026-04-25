@@ -98,7 +98,7 @@ Regla: cualquier nueva acción de wheel debe terminar en `BlockActionController`
 
 ### Añadir un nuevo tipo de bloque
 1. Agregar tipo/campos en `features/program-editor-core/types.ts`.
-2. Integrar factories/adapters en `features/program-editor-core/adapters.ts`.
+2. Integrar factories/adapters en `features/program-editor-core/adapters/*` (barrel: `features/program-editor-core/adapters/index.ts`).
 3. Añadir metadata visual en `play-editor/BlockMetadata.ts` y, si aplica, `PaletteDescriptorService`.
 4. Definir slots/compatibilidad en `operations` (`getBlockInputSlots`, `isSlotCompatible`).
 5. Render de instancia en `BlockInstanceRenderer`.

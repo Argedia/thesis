@@ -205,7 +205,7 @@ Pantallas relevantes:
 - [app/src/components/CommunityLevelsScreen.tsx](C:\Users\aguerra\Documents\thesis\app\src\components\CommunityLevelsScreen.tsx)
 - [app/src/components/CampaignScreen.tsx](C:\Users\aguerra\Documents\thesis\app\src\components\CampaignScreen.tsx)
 - [app/src/components/EditorShell.tsx](C:\Users\aguerra\Documents\thesis\app\src\components\EditorShell.tsx)
-- [app/src/components/PlayLevelScreen.tsx](C:\Users\aguerra\Documents\thesis\app\src\components\PlayLevelScreen.tsx)
+- [app/src/features/play-ui/PlayLevelScreen.tsx](C:\Users\aguerra\Documents\thesis\app\src\features\play-ui\PlayLevelScreen.tsx)
 
 ## 7. Flujo funcional principal
 
@@ -272,12 +272,14 @@ Archivos clave:
 
 - [types.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\types.ts)
 - [tree.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\tree.ts)
-- [adapters.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\adapters.ts)
+- [adapters/index.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\adapters\index.ts)
 - [compiler.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\compiler.ts)
+- [compiler-statement.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\compiler-statement.ts)
+- [compiler-expression.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\compiler-expression.ts)
 - [projection.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\projection.ts)
 - [routines.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\routines.ts)
 - [pseudocode.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\pseudocode.ts)
-- [document.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\document.ts)
+- [persistence.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\persistence.ts)
 - [index.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\index.ts)
 
 Responsabilidad:
@@ -454,7 +456,7 @@ Motor:
 
 ### 10.3 Compilación
 
-`compiler.ts` produce:
+`compiler.ts` y módulos `compiler-*` producen:
 
 - `CompiledInstruction[]`
 - operaciones del engine
@@ -465,7 +467,7 @@ Motor:
 
 ### 10.4 Ejecución
 
-`play-session/controller.ts`:
+`play-session/controller.ts` + `play-session/runtime/*`:
 
 - prepara ejecución;
 - maneja frames runtime;
@@ -486,6 +488,9 @@ Archivos clave:
 
 - [controller.ts](C:\Users\aguerra\Documents\thesis\app\src\features\play-session\controller.ts)
 - [types.ts](C:\Users\aguerra\Documents\thesis\app\src\features\play-session\types.ts)
+- [runtime/interpreter.ts](C:\Users\aguerra\Documents\thesis\app\src\features\play-session\runtime\interpreter.ts)
+- [runtime/instruction-executor.ts](C:\Users\aguerra\Documents\thesis\app\src\features\play-session\runtime\instruction-executor.ts)
+- [runtime/runtime-memory.ts](C:\Users\aguerra\Documents\thesis\app\src\features\play-session\runtime\runtime-memory.ts)
 
 Responsabilidad:
 
@@ -751,7 +756,7 @@ Es archivo crítico y sensible a regresiones.
 Tocar primero:
 
 1. `types.ts`
-2. `adapters.ts`
+2. `adapters/index.ts` (o módulo concreto dentro de `adapters/*`)
 3. `compiler.ts`
 4. `controller.ts`
 5. luego render/editor
@@ -830,7 +835,7 @@ Después de cambios relevantes validar:
 ### AST, compilación, proyección
 
 - [app/src/features/program-editor-core/types.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\types.ts)
-- [app/src/features/program-editor-core/adapters.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\adapters.ts)
+- [app/src/features/program-editor-core/adapters/index.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\adapters\index.ts)
 - [app/src/features/program-editor-core/compiler.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\compiler.ts)
 - [app/src/features/program-editor-core/projection.ts](C:\Users\aguerra\Documents\thesis\app\src\features\program-editor-core\projection.ts)
 
