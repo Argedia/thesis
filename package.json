@@ -17,5 +17,8 @@
   "dependencies": {
     "i18next": "^26.0.4",
     "react-i18next": "^17.0.2"
+  },
+  "devDependencies": {
+    "@fullhuman/postcss-purgecss": "^8.0.0"
   }
 }
