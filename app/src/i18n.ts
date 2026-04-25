@@ -65,9 +65,35 @@ const resources = {
 				findFunToPlay: "Find something fun to play.",
 				searchLevels: "Search levels...",
 				importLevel: "Import Level",
+				sortNewest: "Newest",
+				sortDifficulty: "Difficulty",
+				sortTitle: "Title",
+				levelSource: "Level Source",
+				structuresUsed: "Structures Used",
+				difficulty: "Difficulty",
+				completion: "Completion",
+				levelPreview: "Level Preview",
+				noLevelsFound: "No levels found",
+				communityBuilder: "Community Builder",
 				noLevelsHint: "Try a different search or clear some filters.",
 				readyToPlay: "Ready to play",
 				communityChallenge: "A community-made challenge.",
+				source: {
+					all: "All",
+					community: "Community",
+					"my-levels": "My Levels"
+				},
+				difficultyOption: {
+					easy: "Easy",
+					medium: "Medium",
+					hard: "Hard"
+				},
+				completionOption: {
+					all: "All",
+					completed: "Completed",
+					notCompleted: "Not completed",
+					pending: "Pending"
+				},
 				showInitialState: "Show Initial State",
 				hideInitialState: "Hide Initial State",
 				showGoalState: "Show Goal State",
@@ -237,9 +263,35 @@ const resources = {
 				findFunToPlay: "Encuentra algo divertido para jugar.",
 				searchLevels: "Buscar niveles...",
 				importLevel: "Importar nivel",
+				sortNewest: "Más recientes",
+				sortDifficulty: "Dificultad",
+				sortTitle: "Título",
+				levelSource: "Fuente del nivel",
+				structuresUsed: "Estructuras usadas",
+				difficulty: "Dificultad",
+				completion: "Completado",
+				levelPreview: "Vista previa del nivel",
+				noLevelsFound: "No se encontraron niveles",
+				communityBuilder: "Creador de la comunidad",
 				noLevelsHint: "Prueba otra búsqueda o limpia algunos filtros.",
 				readyToPlay: "Listo para jugar",
 				communityChallenge: "Un desafío creado por la comunidad.",
+				source: {
+					all: "Todos",
+					community: "Comunidad",
+					"my-levels": "Mis niveles"
+				},
+				difficultyOption: {
+					easy: "Fácil",
+					medium: "Intermedio",
+					hard: "Difícil"
+				},
+				completionOption: {
+					all: "Todos",
+					completed: "Completados",
+					notCompleted: "No completados",
+					pending: "Pendiente"
+				},
 				showInitialState: "Mostrar estado inicial",
 				hideInitialState: "Ocultar estado inicial",
 				showGoalState: "Mostrar estado objetivo",

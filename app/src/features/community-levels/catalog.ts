@@ -25,11 +25,7 @@ export interface CommunityLevelFilters {
 
 export const structureOptions: StructureTag[] = ["stack", "queue", "list"];
 export const difficultyOptions: LevelDifficulty[] = ["easy", "medium", "hard"];
-export const sourceOptions: Array<{ id: LevelSource | "all"; label: string }> = [
-  { id: "all", label: "All" },
-  { id: "community", label: "Community" },
-  { id: "my-levels", label: "My Levels" }
-];
+export const sourceOptions: Array<LevelSource | "all"> = ["all", "community", "my-levels"];
 
 const difficultyRank: Record<LevelDifficulty, number> = {
   easy: 1,
@@ -41,7 +37,7 @@ export const formatStructureValues = (structure: StructureSnapshot): string => {
   const normalized = normalizeStructureSnapshot(structure);
   return normalized.values
     .map((node) => (isDataNode(node) ? node.value : node))
-    .join(", ") || "Empty";
+    .join(", ");
 };
 
 const matchesFilters = (level: LevelDefinition, filters: CommunityLevelFilters): boolean => {

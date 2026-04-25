@@ -1,0 +1,194 @@
+:root {
+	font-family: "Trebuchet MS", "Arial Rounded MT Bold", "Segoe UI", sans-serif;
+	color: #355070;
+	background: #eef6ff;
+	--editor-row-height: 54px;
+	--editor-block-height: 50px;
+	--editor-slot-height: 46px;
+	--editor-palette-block-height: var(--editor-block-height);
+	--editor-block-handle-height: 2.05rem;
+}
+
+html {
+	height: 100%;
+}
+
+body,
+#root {
+	height: 100%;
+	overflow: hidden;
+}
+
+body {
+	margin: 0;
+	background: #eef6ff;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+button {
+	border: 2px solid #9ec5e5;
+	border-radius: 18px;
+	padding: 1rem 1.5rem;
+	background: #ffffff;
+	color: #355070;
+	font-size: 1.05rem;
+	font-weight: 900;
+	cursor: pointer;
+}
+
+button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.app-shell {
+	position: relative;
+	height: 100dvh;
+	overflow: hidden;
+}
+
+.app-language-dock {
+	position: fixed;
+	top: 1rem;
+	left: 1rem;
+	z-index: 40;
+}
+
+.app-language-options {
+	display: inline-flex;
+	gap: 0.35rem;
+	padding: 0.25rem;
+	border: 1px solid rgba(170, 198, 223, 0.9);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.7);
+	box-shadow: 0 12px 28px rgba(53, 80, 112, 0.1);
+	backdrop-filter: blur(10px);
+}
+
+.app-language-button {
+	min-width: 3rem;
+	min-height: 2.1rem;
+	padding: 0.3rem 0.75rem;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: #5a7691;
+	font-size: 0.84rem;
+	font-weight: 800;
+}
+
+.app-language-button.active {
+	background: #dfeeff;
+	color: #21406b;
+}
+
+.app-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 70;
+	display: grid;
+	place-items: center;
+	padding: 1.5rem;
+	background: rgba(53, 80, 112, 0.22);
+	backdrop-filter: blur(6px);
+}
+
+.app-modal {
+	width: min(440px, calc(100vw - 3rem));
+}
+
+.app-popover {
+	z-index: 60;
+}
+
+.app-dialog {
+	display: grid;
+	gap: 0.9rem;
+	padding: 1rem;
+	border: 1px solid #cfe0f0;
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.98);
+	box-shadow: 0 22px 44px rgba(53, 80, 112, 0.16);
+	color: #355070;
+}
+
+.app-dialog-title {
+	margin: 0;
+	font-size: 1.15rem;
+	font-weight: 900;
+}
+
+.app-dialog-message {
+	margin: 0;
+	line-height: 1.5;
+	color: #55748b;
+	font-weight: 700;
+}
+
+.app-dialog-actions {
+	display: flex;
+	justify-content: end;
+	gap: 0.75rem;
+}
+
+.app-dialog-button {
+	min-height: 40px;
+	padding: 0.55rem 1rem;
+	border-radius: 12px;
+	font-size: 0.92rem;
+}
+
+.app-dialog-button.secondary {
+	background: #f2f7fc;
+	color: #5f7690;
+}
+
+.app-dialog-error {
+	margin: 0;
+	color: #a24f4f;
+	font-size: 0.88rem;
+	font-weight: 800;
+}
+
+.app-tooltip {
+	padding: 0.35rem 0.55rem;
+	border: 1px solid #c9d6e3;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.98);
+	color: #355070;
+	font-size: 0.75rem;
+	font-weight: 800;
+	box-shadow: 0 8px 20px rgba(53, 80, 112, 0.14);
+	z-index: 120;
+}
+
+.app-text-dialog-field {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.app-text-dialog-label {
+	font-size: 0.82rem;
+	font-weight: 800;
+	color: #5c7388;
+}
+
+.app-text-dialog-input {
+	width: 100%;
+	min-height: 46px;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid #c9d6e3;
+	border-radius: 14px;
+	background: #f8fbff;
+	color: #355070;
+	font: inherit;
+}
+
+.menu-link,
+.back-link {
+	text-decoration: none;
+}
+

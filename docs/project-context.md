@@ -766,7 +766,7 @@ Tocar primero:
 Tocar primero:
 
 1. `ui-editor/src/index.tsx`
-2. `app/src/styles.css`
+2. `app/src/styles/*` (entrypoint: `app/src/styles.css`)
 3. renderers de `play-editor`
 
 ### 20.3 Si cambio es de paleta o wheel
@@ -822,6 +822,7 @@ Después de cambios relevantes validar:
 
 - [app/src/App.tsx](C:\Users\aguerra\Documents\thesis\app\src\App.tsx)
 - [app/src/styles.css](C:\Users\aguerra\Documents\thesis\app\src\styles.css)
+- `app/src/styles/*.css`
 - [app/src/i18n.ts](C:\Users\aguerra\Documents\thesis\app\src\i18n.ts)
 
 ### Pantalla de juego

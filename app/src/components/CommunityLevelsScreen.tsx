@@ -82,9 +82,9 @@ export function CommunityLevelsScreen() {
             value={sortMode}
             onChange={(event) => setSortMode(event.target.value as SortMode)}
           >
-            <option value="newest">Newest</option>
-            <option value="difficulty">Difficulty</option>
-            <option value="title">Title</option>
+            <option value="newest">{t("preview.sortNewest")}</option>
+            <option value="difficulty">{t("preview.sortDifficulty")}</option>
+            <option value="title">{t("preview.sortTitle")}</option>
           </select>
           <input
             ref={fileInputRef}
@@ -99,22 +99,22 @@ export function CommunityLevelsScreen() {
 
         <section className="catalog-layout catalog-layout--full">
           <aside className="filters-column">
-            <Panel title="Level Source" accent="#ffffff">
+            <Panel title={t("preview.levelSource")} accent="#ffffff">
               <div className="chip-group">
-                {sourceOptions.map((option) => (
+                {sourceOptions.map((optionId) => (
                   <button
-                    key={option.id}
+                    key={optionId}
                     type="button"
-                    className={sourceFilter === option.id ? "chip-button active" : "chip-button"}
-                    onClick={() => setSourceFilter(option.id)}
+                    className={sourceFilter === optionId ? "chip-button active" : "chip-button"}
+                    onClick={() => setSourceFilter(optionId)}
                   >
-                    {option.label}
+                    {t(`preview.source.${optionId}`)}
                   </button>
                 ))}
               </div>
             </Panel>
 
-            <Panel title="Structures Used" accent="#ffffff">
+            <Panel title={t("preview.structuresUsed")} accent="#ffffff">
               <div className="chip-group">
                 {structureOptions.map((tag) => (
                   <button
@@ -123,13 +123,13 @@ export function CommunityLevelsScreen() {
                     className={structureFilters.includes(tag) ? "chip-button active" : "chip-button"}
                     onClick={() => toggleStructureFilter(tag)}
                   >
-                    {tag}
+                    {t(`structures.${tag}`)}
                   </button>
                 ))}
               </div>
             </Panel>
 
-            <Panel title="Difficulty" accent="#ffffff">
+            <Panel title={t("preview.difficulty")} accent="#ffffff">
               <div className="chip-group">
                 {difficultyOptions.map((difficulty) => (
                   <button
@@ -138,18 +138,18 @@ export function CommunityLevelsScreen() {
                     className={difficultyFilters.includes(difficulty) ? "chip-button active" : "chip-button"}
                     onClick={() => toggleDifficultyFilter(difficulty)}
                   >
-                    {difficulty}
+                    {t(`preview.difficultyOption.${difficulty}`)}
                   </button>
                 ))}
               </div>
             </Panel>
 
-            <Panel title="Completion" accent="#ffffff">
+            <Panel title={t("preview.completion")} accent="#ffffff">
               <div className="chip-group">
                 {[
-                  ["all", "All"],
-                  ["completed", "Completed"],
-                  ["not-completed", "Not completed"]
+                  ["all", t("preview.completionOption.all")],
+                  ["completed", t("preview.completionOption.completed")],
+                  ["not-completed", t("preview.completionOption.notCompleted")]
                 ].map(([id, label]) => (
                   <button
                     key={id}
@@ -166,7 +166,7 @@ export function CommunityLevelsScreen() {
 
           <section className="levels-column">
             {filteredLevels.length === 0 ? (
-              <Panel title="No levels found" accent="#ffffff">
+              <Panel title={t("preview.noLevelsFound")} accent="#ffffff">
                 <p>{t("preview.noLevelsHint")}</p>
               </Panel>
             ) : (
@@ -183,22 +183,22 @@ export function CommunityLevelsScreen() {
                       onClick={() => setSelectedLevel(level)}
                     >
                       <div className="level-card-header">
-                        <span className="difficulty-pill">{level.metadata.difficulty}</span>
+                        <span className="difficulty-pill">{t(`preview.difficultyOption.${level.metadata.difficulty}`)}</span>
                         <span className="completion-pill">
-                          {isCompleted ? "Completed" : "Pending"}
+                          {isCompleted ? t("preview.completionOption.completed") : t("preview.completionOption.pending")}
                         </span>
                       </div>
                       <h3>{level.title}</h3>
-                      <p>{level.metadata.description ?? "Community challenge"}</p>
+                      <p>{level.metadata.description ?? t("preview.communityChallenge")}</p>
                       <div className="tag-row">
                         {level.metadata.structuresUsed.map((structure) => (
                           <span key={structure} className="mini-tag">
-                            {structure}
+                            {t(`structures.${structure}`)}
                           </span>
                         ))}
                       </div>
                       <span className="author-label">
-                        {level.metadata.author ?? "Community Builder"}
+                        {level.metadata.author ?? t("preview.communityBuilder")}
                       </span>
                     </button>
                   );
@@ -208,7 +208,7 @@ export function CommunityLevelsScreen() {
           </section>
           <aside className="preview-sheet preview-column">
             {selectedLevel ? (
-              <Panel title="Level Preview" accent="#ffffff">
+              <Panel title={t("preview.levelPreview")} accent="#ffffff">
                 <div className="preview-content">
                   <div className="preview-header">
                     <div>
@@ -252,8 +252,8 @@ export function CommunityLevelsScreen() {
                         {selectedLevel.initialState.map((structure) => (
                           <div key={structure.id} className="state-card">
                             <span>{structure.id}</span>
-                            <small>{structure.kind}</small>
-                            <p>{formatStructureValues(structure)}</p>
+                            <small>{t(`structures.${structure.kind}`)}</small>
+                            <p>{formatStructureValues(structure) || t("common.empty")}</p>
                           </div>
                         ))}
                       </div>
@@ -281,8 +281,8 @@ export function CommunityLevelsScreen() {
                         {selectedLevel.goalState.map((structure) => (
                           <div key={structure.id} className="state-card">
                             <span>{structure.id}</span>
-                            <small>{structure.kind}</small>
-                            <p>{formatStructureValues(structure)}</p>
+                            <small>{t(`structures.${structure.kind}`)}</small>
+                            <p>{formatStructureValues(structure) || t("common.empty")}</p>
                           </div>
                         ))}
                       </div>
@@ -309,7 +309,7 @@ export function CommunityLevelsScreen() {
                       <div className="tag-row">
                         {selectedLevel.constraints.allowedOperations.map((operation) => (
                           <span key={operation} className="mini-tag">
-                            {operation}
+                            {t(`operations.${operation}`)}
                           </span>
                         ))}
                       </div>
@@ -325,7 +325,7 @@ export function CommunityLevelsScreen() {
                 </div>
               </Panel>
             ) : (
-              <Panel title="Level Preview" accent="#ffffff">
+              <Panel title={t("preview.levelPreview")} accent="#ffffff">
                 <p>{t("preview.selectLevelToSeeDetails")}</p>
               </Panel>
             )}

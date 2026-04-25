@@ -1,0 +1,10 @@
+.editor-middle {
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) minmax(220px, 280px);
+}
+
+.tool-buttons button {
+	width: 100%;
+}
+

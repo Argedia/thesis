@@ -1,0 +1,70 @@
+@media (max-width: 1380px) {
+	.catalog-layout--full {
+		grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+	}
+
+	.preview-column {
+		grid-column: 1 / -1;
+	}
+}
+
+@media (max-width: 640px) {
+	.level-info-dock {
+		top: 1rem;
+		right: 1rem;
+	}
+
+	.level-info-panel {
+		width: min(420px, calc(100vw - 2rem));
+	}
+
+	.level-info-header {
+		flex-direction: column;
+	}
+
+	.menu-card {
+		padding: 1.5rem;
+	}
+
+	.topbar,
+	.player-status,
+	.preview-header {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.catalog-topbar,
+	.catalog-layout,
+	.play-summary,
+	.play-dual-stage,
+	.editor-middle {
+		grid-template-columns: 1fr;
+	}
+
+	.catalog-layout--full {
+		grid-template-columns: 1fr;
+	}
+
+	.play-stage-divider {
+		display: none;
+	}
+
+	.ide-shell {
+		height: auto;
+		max-height: none;
+		min-height: 720px;
+	}
+
+	.scratch-toolbar,
+	.scratch-workbench {
+		grid-template-columns: 1fr;
+	}
+
+	.board-lower-panels {
+		grid-template-columns: 1fr;
+	}
+
+	.control-grid {
+		grid-template-columns: 1fr;
+	}
+}

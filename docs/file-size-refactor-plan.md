@@ -15,7 +15,7 @@ Actualizado con estado real del repositorio al **25 de abril de 2026**.
 
 Archivos más grandes en código activo (`app/src`, `core-engine/src`, `game-system/src`, `storage/src`, `ui-editor/src`):
 
-1. `app/src/styles.css` — 2184 líneas
+1. `app/src/styles/play-editor.css` — 1326 líneas
 2. `ui-editor/src/index.tsx` — 930 líneas
 3. `app/src/play-editor/render/BlockInstanceRenderer.ts` — 624 líneas
 4. `core-engine/src/index.ts` — 610 líneas
@@ -23,12 +23,13 @@ Archivos más grandes en código activo (`app/src`, `core-engine/src`, `game-sys
 6. `app/src/features/program-editor-core/tree-mutation.ts` — 519 líneas
 7. `app/src/play-editor/engine/engine-service-registry.ts` — 503 líneas
 8. `app/src/features/program-editor-core/compiler-statement.ts` — 494 líneas
-9. `app/src/components/CommunityLevelsScreen.tsx` — 488 líneas
-10. `app/src/play-editor/DragInteractionController.ts` — 484 líneas
+9. `app/src/play-editor/DragInteractionController.ts` — 484 líneas
+10. `app/src/i18n.ts` — 447 líneas
 11. `app/src/play-editor/engine/PlayEditorEngine.ts` — 436 líneas
 12. `app/src/features/program-editor-core/adapters/block-factories.ts` — 432 líneas
 13. `app/src/play-editor/engine/engine-prompts.ts` — 414 líneas
 14. `app/src/features/play-session/controller.ts` — 413 líneas
+15. `app/src/styles/app-layout.css` — 399 líneas
 
 ## Estado de refactor vs plan original
 
@@ -45,7 +46,7 @@ Archivos más grandes en código activo (`app/src`, `core-engine/src`, `game-sys
 
 ### Pendiente crítico
 
-1. `app/src/styles.css` sigue como archivo dios principal.
+1. `app/src/styles.css` ya quedó como entrypoint de imports; el archivo CSS dios ahora es `app/src/styles/play-editor.css`.
 2. `ui-editor/src/index.tsx` sigue como archivo multipropósito.
 3. `BlockInstanceRenderer.ts` mantiene mezcla de render y construcción detallada de elementos.
 4. `play-session/runtime/interpreter.ts` concentra demasiada semántica.
@@ -77,29 +78,26 @@ Ejemplos malos:
 
 ## Plan vigente por prioridad
 
-## 1. `app/src/styles.css`
+## 1. `app/src/styles/play-editor.css`
 
 ### Problema
 
-Archivo global enorme con mezcla de estilos de múltiples pantallas y componentes.
+Archivo más grande de estilos tras la división inicial.  
+Concentra casi todo el estilo del editor visual.
 
 ### Acción recomendada
 
-Partir por dominio visual.
+Partir por subdominio interno del editor.
 
 ### Corte propuesto
 
-- `styles/tokens.css`
-- `styles/base.css`
-- `styles/app-shell.css`
-- `styles/community-levels.css`
-- `styles/play-level.css`
-- `styles/play-editor.css`
-- `styles/board.css`
-- `styles/dialogs.css`
-- `styles/utilities.css`
+- `styles/play-editor-canvas.css`
+- `styles/play-editor-palette.css`
+- `styles/play-editor-blocks.css`
+- `styles/play-editor-wheel-ghost.css`
+- `styles/play-editor-output.css`
 
-Mantener `styles.css` como punto de entrada con `@import`.
+Mantener `styles.css` como punto de entrada con `@import` (ya aplicado).
 
 ## 2. `ui-editor/src/index.tsx`
 
@@ -161,7 +159,7 @@ Partir en `types`, `normalize`, `structures/*`, `VisualExecutionEngine`.
 
 ## Orden recomendado (siguiente iteración)
 
-1. `styles.css`
+1. `styles/play-editor.css`
 2. `ui-editor/src/index.tsx`
 3. `BlockInstanceRenderer.ts`
 4. `play-session/runtime/interpreter.ts`
