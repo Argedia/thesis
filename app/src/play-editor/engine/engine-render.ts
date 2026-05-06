@@ -34,16 +34,17 @@ export const render = (deps: RenderDeps): void => {
 	const shell = deps.getShell()!;
 	const workbench = deps.getWorkbench()!;
 	shell.className = `scratch-shell${deps.isLocked() ? " is-locked" : ""}`;
+	removeChildrenBySelector(workbench, ".scratch-palette");
+	removeChildrenBySelector(workbench, ".scratch-editor");
 
 	if (deps.isLocked()) {
-		removeChildrenBySelector(workbench, ".scratch-palette");
-	} else if (!deps.getDragState()) {
-		removeChildrenBySelector(workbench, ".scratch-palette");
-		deps.registry.getPaletteRenderer().render(workbench);
+		workbench.classList.remove("palette-left-collapsed", "palette-right-collapsed");
+		deps.registry.getEditorCanvasRenderer().render(workbench);
+	} else {
+		deps.registry.getPaletteRenderer().renderLeft(workbench);
+		deps.registry.getEditorCanvasRenderer().render(workbench);
+		deps.registry.getPaletteRenderer().renderRight(workbench);
 	}
-
-	removeChildrenBySelector(workbench, ".scratch-editor");
-	deps.registry.getEditorCanvasRenderer().render(workbench);
 
 	removeChildrenBySelector(shell, ".operation-wheel");
 	removeChildrenBySelector(shell, ".drag-ghost");

@@ -20,6 +20,14 @@ export interface StructuresBoardProps {
   structures: StructureSnapshot[];
   handValue?: string | number | null;
   variables?: BoardVariableSnapshot[];
+  showStructureConfigActions?: boolean;
+  onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
+}
+
+export interface StructureConfigClickPayload {
+  structureId: string;
+  clientX: number;
+  clientY: number;
 }
 
 export interface BoardVariableSnapshot {
@@ -86,9 +94,17 @@ const drawRoundedRect = (
   ctx.closePath();
 };
 
-export function StructuresBoard({ structures, variables = [] }: StructuresBoardProps) {
+export function StructuresBoard({
+  structures,
+  variables = [],
+  showStructureConfigActions = false,
+  onStructureConfigClick
+}: StructuresBoardProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const structureConfigHitboxesRef = useRef<
+    Array<{ id: string; x: number; y: number; width: number; height: number }>
+  >([]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -159,6 +175,14 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
         ctx.stroke();
       }
 
+      const structureConfigHitboxes: Array<{
+        id: string;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      }> = [];
+
       normalizedStructures.forEach((structure, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
@@ -215,6 +239,34 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
           frameY + Math.round(24 * layoutScale)
         );
         ctx.textAlign = "start";
+
+        if (showStructureConfigActions) {
+          const actionWidth = Math.max(24, Math.round(28 * layoutScale));
+          const actionHeight = Math.max(24, Math.round(28 * layoutScale));
+          const actionX = frameX + Math.round(14 * layoutScale);
+          const actionY = frameY + frameHeight - actionHeight - Math.round(12 * layoutScale);
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.62)";
+          drawRoundedRect(ctx, actionX, actionY, actionWidth, actionHeight, Math.max(6, Math.round(8 * layoutScale)));
+          ctx.fill();
+          ctx.strokeStyle = "rgba(158, 197, 229, 0.82)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = "#355070";
+          ctx.font = `900 ${Math.max(13, Math.round(16 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText("⚙", actionX + actionWidth / 2, actionY + actionHeight * 0.68);
+          ctx.textAlign = "start";
+
+          structureConfigHitboxes.push({
+            id: structure.id,
+            x: actionX,
+            y: actionY,
+            width: actionWidth,
+            height: actionHeight
+          });
+        }
 
         if (structure.kind === "stack") {
           const slotWidth = Math.min(Math.round(120 * layoutScale), frameWidth * 0.34);
@@ -533,6 +585,8 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
         ctx.closePath();
         ctx.fill();
       });
+
+      structureConfigHitboxesRef.current = structureConfigHitboxes;
     };
 
     draw();
@@ -545,17 +599,63 @@ export function StructuresBoard({ structures, variables = [] }: StructuresBoardP
     const handleViewportResize = () => {
       draw();
     };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!onStructureConfigClick || !showStructureConfigActions) {
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const hitbox = structureConfigHitboxesRef.current.find(
+        (item) =>
+          x >= item.x &&
+          x <= item.x + item.width &&
+          y >= item.y &&
+          y <= item.y + item.height
+      );
+      if (!hitbox) {
+        return;
+      }
+      event.preventDefault();
+      onStructureConfigClick({
+        structureId: hitbox.id,
+        clientX: event.clientX,
+        clientY: event.clientY
+      });
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!showStructureConfigActions) {
+        canvas.style.cursor = "default";
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const hit = structureConfigHitboxesRef.current.some(
+        (item) =>
+          x >= item.x &&
+          x <= item.x + item.width &&
+          y >= item.y &&
+          y <= item.y + item.height
+      );
+      canvas.style.cursor = hit ? "pointer" : "default";
+    };
     window.addEventListener("resize", handleViewportResize);
     window.visualViewport?.addEventListener("resize", handleViewportResize);
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointermove", handlePointerMove);
     const animationFrame = window.requestAnimationFrame(draw);
 
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleViewportResize);
       window.visualViewport?.removeEventListener("resize", handleViewportResize);
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+      canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.style.cursor = "default";
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [structures, variables]);
+  }, [onStructureConfigClick, showStructureConfigActions, structures, variables]);
 
   return (
     <section style={boardWrapperStyle}>
@@ -874,10 +974,24 @@ export interface PuzzleBoardProps {
   structures: StructureSnapshot[];
   handValue?: string | number | null;
   variables?: BoardVariableSnapshot[];
+  showStructureConfigActions?: boolean;
+  onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 }
 
-export function PuzzleBoard({ structures, variables }: PuzzleBoardProps) {
-  return <StructuresBoard structures={structures} variables={variables} />;
+export function PuzzleBoard({
+  structures,
+  variables,
+  showStructureConfigActions,
+  onStructureConfigClick
+}: PuzzleBoardProps) {
+  return (
+    <StructuresBoard
+      structures={structures}
+      variables={variables}
+      showStructureConfigActions={showStructureConfigActions}
+      onStructureConfigClick={onStructureConfigClick}
+    />
+  );
 }
 
 export interface ExecutionTimelineProps {

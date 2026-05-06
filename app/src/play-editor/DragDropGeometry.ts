@@ -1,5 +1,6 @@
-import type { EditorBlock, EditorLineLayout } from "./model";
+import type { EditorBlock, EditorDragState, EditorLineLayout, ControlBodyKey } from "./model";
 import type { DragGeometry } from "./layout";
+import type { ResolvedDropPlacement } from "./contracts/types";
 import { buildEditorLineLayout } from "./model";
 import { calculateDropIndex } from "./layout";
 
@@ -37,17 +38,20 @@ export function ghostGeometry(
 /**
  * Service for calculating drag/drop geometry and placement
  */
+type ControlEditorBlock = EditorBlock & { kind: "conditional" | "while" | "for_each" };
+type BranchTarget = { ownerId: string; branch: ControlBodyKey };
+
 export class DragDropGeometryService {
 	constructor(
 		private editorLane: HTMLDivElement | null,
 		private lineRowRefs: Map<string, HTMLDivElement>,
 		private slotRefs: Map<string, HTMLDivElement>,
-		private dragState: any,
+		private dragState: EditorDragState | null,
 		private dragBaseLineRects: Array<{ id: string; rect: DOMRect }> | null,
 		private parseSlotKey: (key: string) => { ownerId: string; slotId: string },
 		private canUseSlotTarget: (targetSlotKey: string) => boolean,
 		private findBlockById: (blocks: EditorBlock[], blockId: string) => EditorBlock | null,
-		private isControlBlock: (block: EditorBlock | null | undefined) => block is any,
+		private isControlBlock: (block: EditorBlock | null | undefined) => block is ControlEditorBlock,
 		private getBlocks: () => EditorBlock[]
 	) { }
 
@@ -141,7 +145,7 @@ export class DragDropGeometryService {
 		lineLayouts: EditorLineLayout[],
 		visualLineIndex: number,
 		chosenIndent: number
-	): any {
+	): ResolvedDropPlacement {
 		const targetLine =
 			visualLineIndex < lineLayouts.length ? lineLayouts[visualLineIndex] : null;
 		const previousLine =
@@ -149,7 +153,7 @@ export class DragDropGeometryService {
 
 		const branchFromLine = (
 			line: EditorLineLayout | null
-		): any | null => {
+		): BranchTarget | null => {
 			if (!line || chosenIndent <= 0) {
 				return null;
 			}
@@ -289,11 +293,11 @@ export class DragDropGeometryService {
 		visualLineIndex: number,
 		lineLayouts: EditorLineLayout[],
 		chosenIndent: number
-	): { ownerId: string; branch: any } | null {
+	): BranchTarget | null {
 		return this.resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent).branchTarget ?? null;
 	}
 
-	isImplicitBodyTarget(target: { ownerId: string; branch: any } | null | undefined): boolean {
+	isImplicitBodyTarget(target: BranchTarget | null | undefined): boolean {
 		if (!target || target.branch !== "body") {
 			return false;
 		}

@@ -1,4 +1,5 @@
-import type { VisualExecutionEngine } from "@thesis/core-engine";
+import type { OperationDefinition, VisualExecutionEngine } from "@thesis/core-engine";
+import type { LevelConstraints } from "@thesis/game-system";
 import type {
   CompileResult,
   DeclaredTypeRef,
@@ -36,6 +37,7 @@ import {
 } from "./structure-ops";
 import { createTypedObjectValue } from "./typed-objects";
 import type { StructureCallStatement } from "../../program-editor-core";
+import { executeOperationWithLevelConstraints } from "./constraints";
 
 const MAX_WHILE_ITERATIONS = 20;
 const MAX_FUNCTION_CALL_DEPTH = 20;
@@ -44,6 +46,7 @@ export type EvalResult = { kind: "literal" | "hand"; value: RuntimeStoredValue }
 
 export interface InterpreterContext {
   engine: VisualExecutionEngine;
+  levelConstraints: LevelConstraints | null;
   document: EditorDocument;
   compiled: CompileResult;
   runtimeFrames: RuntimeFrame[];
@@ -51,7 +54,26 @@ export interface InterpreterContext {
   loopIterationCounts: Map<string, number>;
   lastConditionResult: boolean | null;
   syncFromEngine: () => void;
+  onOperationExecuted?: (operationType: OperationDefinition["type"]) => void;
 }
+
+const executeStructureOperation = (
+  ctx: InterpreterContext,
+  operation: OperationDefinition
+): void => {
+  if (ctx.levelConstraints) {
+    executeOperationWithLevelConstraints({
+      engine: ctx.engine,
+      constraints: ctx.levelConstraints,
+      operation,
+      onOperationExecuted: ctx.onOperationExecuted
+    });
+    return;
+  }
+
+  ctx.engine.executeOperation(operation);
+  ctx.onOperationExecuted?.(operation.type);
+};
 
 // ---------------------------------------------------------------------------
 // Assign target type resolution
@@ -99,7 +121,7 @@ export const evaluateExpression = (
         targetDeclarationId: expression.targetDeclarationId,
         targetName: expression.targetName
       });
-      ctx.engine.executeOperation(createSourceOperation(expression.operation, targetId));
+      executeStructureOperation(ctx, createSourceOperation(expression.operation, targetId));
       ctx.syncFromEngine();
       const handValue = ctx.engine.getState().handValue;
       if (!handValue) throw new Error("No value was extracted.");
@@ -206,7 +228,7 @@ export const evaluateExpressionDirect = (
         targetDeclarationId: expression.targetDeclarationId,
         targetName: expression.targetName
       });
-      ctx.engine.executeOperation(createSourceOperation(expression.operation, targetId));
+      executeStructureOperation(ctx, createSourceOperation(expression.operation, targetId));
       ctx.syncFromEngine();
       const handValue = ctx.engine.getState().handValue;
       if (!handValue) throw new Error("No value was extracted.");
@@ -542,6 +564,6 @@ export const executeCallDirect = (
     throw new Error("The block could not run.");
   }
 
-  ctx.engine.executeOperation(operation);
+  executeStructureOperation(ctx, operation);
   ctx.syncFromEngine();
 };

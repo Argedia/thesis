@@ -78,7 +78,11 @@ export interface EngineRegistryDeps {
 	setBranchLineRefs: (refs: Array<{ ownerId: string; branch: import("../model").ControlBodyKey; depth: number; element: HTMLDivElement; isLast: boolean }>) => void;
 	getSelectedPaletteLane: () => PaletteLaneId;
 	setSelectedPaletteLane: (lane: PaletteLaneId) => void;
-	getExpandedPaletteGroupIds: () => Set<PaletteGroupId>;
+	getIsBasePaletteCollapsed: () => boolean;
+	setIsBasePaletteCollapsed: (collapsed: boolean) => void;
+	getIsSidePaletteCollapsed: () => boolean;
+	setIsSidePaletteCollapsed: (collapsed: boolean) => void;
+	getExpandedPaletteGroupIds: () => Set<string>;
 	isLocked: () => boolean;
 	isActiveRoutineFunction: () => boolean;
 	isControlBlock: (block: EditorBlock | null | undefined) => block is ControlEditorBlock;
@@ -97,6 +101,10 @@ export interface EngineRegistryDeps {
 		dragState: EditorDragState,
 		matcher: (block: PaletteBlock) => boolean
 	) => Promise<EditorBlock | null>;
+	resolveBaseDocumentForDrop: (
+		dragState: EditorDragState | null,
+		document: PlayEditorSurfaceProps["value"]
+	) => PlayEditorSurfaceProps["value"];
 	setDocument: (doc: PlayEditorSurfaceProps["value"]) => void;
 	setBlocks: (blocks: EditorBlock[]) => void;
 	removeBlockById: (blocks: EditorBlock[], blockId: string) => EditorBlock[];
@@ -123,8 +131,11 @@ export interface EngineRegistryDeps {
 	assignLiteralExpressionIntoSlot: (slotKey: string, rawValue: string, expectedType: "value" | "boolean" | "any") => void;
 	getPaletteBlocks: () => PaletteBlock[];
 	getDefinitionDescriptor: (block: PaletteBlock) => { chip?: string; label: string };
+	getBlockLimitForPaletteBlock: (block: PaletteBlock) => number | null;
+	adjustBlockLimitForPaletteBlock: (block: PaletteBlock, delta: number) => void;
 	getPaletteGroupId: (block: PaletteBlock) => PaletteGroupId;
 	getPaletteGroupLabel: (groupId: PaletteGroupId) => string;
+	canInsertPaletteBlock: (dragState: EditorDragState) => { allowed: boolean; message?: string };
 }
 
 export class EngineServiceRegistry {
@@ -252,8 +263,11 @@ export class EngineServiceRegistry {
 				findInputOwnerId: (blocks, blockId) => this.getTreeService().findInputOwnerId(blocks, blockId),
 				resolveInsertedBlockFromDrag: (dragState, matcher) =>
 					this.deps.resolveInsertedBlockFromDrag(dragState, matcher),
+				resolveBaseDocumentForDrop: (dragState, document) =>
+					this.deps.resolveBaseDocumentForDrop(dragState, document),
 				getDocument: () => this.deps.getProps().value,
 				canUseSlotTarget: (targetSlotKey) => this.deps.canUseSlotTarget(targetSlotKey),
+				canInsertPaletteBlock: (dragState) => this.deps.canInsertPaletteBlock(dragState),
 				applyDropDestination: (document, insertedBlock, placement) =>
 					this.deps.applyDropDestination(document, insertedBlock, placement),
 				setDocument: (doc) => this.deps.setDocument(doc),
@@ -280,6 +294,18 @@ export class EngineServiceRegistry {
 					this.deps.setSelectedPaletteLane(lane);
 					this.deps.render();
 				},
+				getIsBasePaletteCollapsed: () => this.deps.getIsBasePaletteCollapsed(),
+				setIsBasePaletteCollapsed: (collapsed) => {
+					if (this.deps.getIsBasePaletteCollapsed() === collapsed) return;
+					this.deps.setIsBasePaletteCollapsed(collapsed);
+					this.deps.render();
+				},
+				getIsSidePaletteCollapsed: () => this.deps.getIsSidePaletteCollapsed(),
+				setIsSidePaletteCollapsed: (collapsed) => {
+					if (this.deps.getIsSidePaletteCollapsed() === collapsed) return;
+					this.deps.setIsSidePaletteCollapsed(collapsed);
+					this.deps.render();
+				},
 				getPaletteLaneLabel: (lane) => {
 					switch (lane) {
 						case "scope": return t("editor.paletteLaneScope");
@@ -289,10 +315,12 @@ export class EngineServiceRegistry {
 					}
 				},
 				getEmptyPaletteLaneText: () => t("editor.paletteLaneEmpty"),
-				isPaletteGroupExpanded: (groupId) => this.deps.getExpandedPaletteGroupIds().has(groupId),
-				togglePaletteGroupExpanded: (groupId) => {
+				isPaletteGroupExpanded: (lane, groupId) =>
+					this.deps.getExpandedPaletteGroupIds().has(`${lane}:${groupId}`),
+				togglePaletteGroupExpanded: (lane, groupId) => {
+					const key = `${lane}:${groupId}`;
 					const ids = this.deps.getExpandedPaletteGroupIds();
-					if (ids.has(groupId)) { ids.delete(groupId); } else { ids.add(groupId); }
+					if (ids.has(key)) { ids.delete(key); } else { ids.add(key); }
 					this.deps.render();
 				},
 				getPaletteGroupId: (block) => this.deps.getPaletteGroupId(block),
@@ -302,7 +330,14 @@ export class EngineServiceRegistry {
 					kind === "declared"
 						? t("editor.groupDeclaredVariables")
 						: t("editor.groupVariableBlocks"),
+				getVariableScopeLabel: (kind) =>
+					kind === "global"
+						? t("editor.groupScopeGlobal")
+						: t("editor.groupScopeRoutine"),
 				getDefinitionDescriptor: (block) => this.deps.getDefinitionDescriptor(block),
+				getBlockLimitForPaletteBlock: (block) => this.deps.getBlockLimitForPaletteBlock(block),
+				adjustBlockLimitForPaletteBlock: (block, delta) =>
+					this.deps.adjustBlockLimitForPaletteBlock(block, delta),
 				getBlocksHeadingText: () => t("editor.blocks"),
 				getDragHintText: () => t("editor.dragHint"),
 				applyBlockColor: (element, color) => this.deps.applyBlockColor(element, color),

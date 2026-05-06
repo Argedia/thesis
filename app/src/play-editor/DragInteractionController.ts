@@ -29,8 +29,16 @@ export interface DragInteractionControllerContext {
     dragState: EditorDragState,
     matchesPaletteBlock: (block: PaletteBlock) => boolean
   ): Promise<EditorBlock | null>;
+  resolveBaseDocumentForDrop(
+    dragState: EditorDragState | null,
+    document: EditorDocument
+  ): EditorDocument;
   getDocument(): EditorDocument;
   canUseSlotTarget(targetSlotKey: string): boolean;
+  canInsertPaletteBlock(dragState: EditorDragState): {
+    allowed: boolean;
+    message?: string;
+  };
   applyDropDestination(
     document: EditorDocument,
     insertedBlock: EditorBlock,
@@ -335,6 +343,14 @@ export class DragInteractionController {
     this.ctx.setDragBaseLineRects(null);
     this.ctx.render();
 
+    if (dragState.source === "palette") {
+      const insertValidation = this.ctx.canInsertPaletteBlock(dragState);
+      if (!insertValidation.allowed) {
+        this.ctx.emitStatus(insertValidation.message ?? "Block limit reached.");
+        return;
+      }
+    }
+
     const slotTargetId = dragState.slotTargetKey ?? null;
     const matchesPaletteBlock = (block: PaletteBlock): boolean => {
       switch (dragState.blockKind) {
@@ -454,7 +470,10 @@ export class DragInteractionController {
             return;
           }
         } else {
-          const baseDocument = this.ctx.getDocument();
+          const baseDocument = this.ctx.resolveBaseDocumentForDrop(
+            dragState,
+            this.ctx.getDocument()
+          );
           const effectiveSlotTargetId =
             slotTargetId && this.ctx.canUseSlotTarget(slotTargetId)
               ? slotTargetId

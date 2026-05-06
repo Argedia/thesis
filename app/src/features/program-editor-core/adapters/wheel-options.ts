@@ -5,35 +5,60 @@ import type {
 	DeclarationBindingWheelOption,
 	ExpressionFamily,
 	RoutineBindingKind,
-	VariableOperationMode,
-	WheelOption
+	VariableOperationMode
 } from "../types";
 import { blockColorClass } from "./block-descriptors";
 import {
 	VARIABLE_BINARY_OPERATION_MODES,
 	VARIABLE_UNARY_OPERATION_MODES,
 	describeOperation,
-	getAllowedOperations,
 	getVariableOperationLabel,
 	inferExpressionFamilyFromOperationMode,
 	type VariableOperationBlockMode
 } from "./shared";
+
+const getStructureCompatibleOperations = (
+	structureKind: StructureKind
+): Array<
+	"POP" | "PUSH" | "DEQUEUE" | "ENQUEUE" | "APPEND" | "PREPEND" | "REMOVE_FIRST" | "REMOVE_LAST" | "GET_HEAD" | "GET_TAIL" | "SIZE"
+> => {
+	if (structureKind === "stack") {
+		return ["POP", "PUSH"];
+	}
+
+	if (structureKind === "queue") {
+		return ["DEQUEUE", "ENQUEUE"];
+	}
+
+	return ["APPEND", "PREPEND", "REMOVE_FIRST", "REMOVE_LAST", "GET_HEAD", "GET_TAIL", "SIZE"];
+};
+
 export const buildWheelOptions = (
 	allowedOperations: string[],
 	structureId: string,
 	structureKind: StructureKind
-): WheelOption[] => [
-		...getAllowedOperations(allowedOperations, structureKind).map((operation) => ({
+): Array<{
+	operation: import("../types").BuilderOperation | null;
+	label: string;
+	className: string;
+	disabled: boolean;
+}> => {
+		const allowedSet = new Set(allowedOperations);
+		return [
+			...getStructureCompatibleOperations(structureKind).map((operation) => ({
 			operation,
 			label: describeOperation(operation, structureId),
-			className: blockColorClass(operation)
+			className: blockColorClass(operation),
+			disabled: !allowedSet.has(operation)
 		})),
 		{
 			operation: null,
 			label: "Base",
-			className: "sky"
+			className: "sky",
+			disabled: false
 		}
-	];
+		];
+	};
 
 export const buildConditionalWheelOptions = (
 	currentMode: ConditionalMode

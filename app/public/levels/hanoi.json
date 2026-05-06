@@ -60,9 +60,27 @@
     }
   ],
   "constraints": {
-    "allowedOperations": ["POP", "PUSH"],
+    "operationPolicy": {
+      "POP": "permitted",
+      "PUSH": "permitted",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden"
+    },
     "forbiddenBlocks": [],
-    "maxSteps": 99
+    "maxSteps": 99,
+    "noLargerOnSmaller": {
+      "enabled": true
+    },
+    "valueDomain": {
+      "numericOnly": true
+    }
   },
   "playLayout": {
     "panelOrder": ["board", "steps", "timeline"],

@@ -136,6 +136,14 @@ export class BlockActionController {
       block?.kind === "var_read" ||
       block?.kind === "var_operation"
     ) {
+      if (
+        block.kind === "var_read" &&
+        block.variableSourceId?.startsWith("__level_structure__") &&
+        block.declaredTypeRef?.kind === "structure"
+      ) {
+        this.ctx.emitStatus("Level structures are pre-instantiated and cannot be retargeted.");
+        return;
+      }
       const target = await this.ctx.promptForScopeVariableTarget(
         block.kind === "var_reference"
           ? block.referenceTargetId

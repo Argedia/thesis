@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Panel, Screen } from "@thesis/ui-editor";
+import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
 import { APP_ROUTES } from "../types/routes";
 import {
   difficultyOptions,
@@ -39,6 +40,9 @@ export function CommunityLevelsScreen() {
     toggleDifficultyFilter,
     toggleStructureFilter
   } = useCommunityLevelsCatalog();
+  const selectedPermittedOperations = selectedLevel
+    ? getPermittedOperationsFromPolicy(selectedLevel.constraints.operationPolicy)
+    : [];
 
   useEffect(() => {
     setIsInitialOpen(false);
@@ -226,7 +230,7 @@ export function CommunityLevelsScreen() {
                     <span className="mini-tag">
                       {t("preview.constraintsSummary", {
                         steps: selectedLevel.constraints.maxSteps,
-                        operations: selectedLevel.constraints.allowedOperations.length
+                        operations: selectedPermittedOperations.length
                       })}
                     </span>
                   </div>
@@ -307,7 +311,7 @@ export function CommunityLevelsScreen() {
                       className="preview-panel-body"
                     >
                       <div className="tag-row">
-                        {selectedLevel.constraints.allowedOperations.map((operation) => (
+                        {selectedPermittedOperations.map((operation) => (
                           <span key={operation} className="mini-tag">
                             {t(`operations.${operation}`)}
                           </span>

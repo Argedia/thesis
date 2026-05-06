@@ -60,7 +60,19 @@
     }
   ],
   "constraints": {
-    "allowedOperations": ["POP", "PUSH", "DEQUEUE", "ENQUEUE", "APPEND", "PREPEND", "REMOVE_FIRST", "REMOVE_LAST", "GET_HEAD", "GET_TAIL", "SIZE"],
+    "operationPolicy": {
+      "POP": "permitted",
+      "PUSH": "permitted",
+      "DEQUEUE": "permitted",
+      "ENQUEUE": "permitted",
+      "APPEND": "permitted",
+      "PREPEND": "permitted",
+      "REMOVE_FIRST": "permitted",
+      "REMOVE_LAST": "permitted",
+      "GET_HEAD": "permitted",
+      "GET_TAIL": "permitted",
+      "SIZE": "permitted"
+    },
     "forbiddenBlocks": [],
     "maxSteps": 99
   },

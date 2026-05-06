@@ -9,7 +9,13 @@ import type {
 import { analyzeDocumentRoutines, projectDocumentToEditorBlocks } from "../operations";
 import { HostInteractionController } from "../interaction/HostInteractionController";
 import { t } from "../../i18n-helpers";
-import type { PaletteGroupId } from "../BlockMetadata";
+import {
+	createDefaultBlockLimits,
+	countBlockLimitUsageFromBlocks,
+	resolveBlockLimitKeyForDragState,
+	resolveBlockLimitKeyForPaletteBlock,
+	type BlockLimitKey
+} from "../block-limits";
 import type { PendingPress, WheelState } from "../contracts/types";
 import type { PaletteLaneId } from "../render/PaletteRenderer";
 import { renameRoutine } from "../model";
@@ -53,7 +59,9 @@ export class PlayEditorEngine {
 	private pressState: PendingPress | null = null;
 	private wheelState: WheelState | null = null;
 	private selectedPaletteLane: PaletteLaneId = "base";
-	private expandedPaletteGroupIds = new Set<PaletteGroupId>();
+	private isBasePaletteCollapsed = true;
+	private isSidePaletteCollapsed = true;
+	private expandedPaletteGroupIds = new Set<string>();
 	private cleanupFns: Array<() => void> = [];
 	private readonly registry: EngineServiceRegistry;
 
@@ -107,6 +115,10 @@ export class PlayEditorEngine {
 			setBranchLineRefs: (refs) => { this.branchLineRefs = refs; },
 			getSelectedPaletteLane: () => this.selectedPaletteLane,
 			setSelectedPaletteLane: (lane) => { this.selectedPaletteLane = lane; },
+			getIsBasePaletteCollapsed: () => this.isBasePaletteCollapsed,
+			setIsBasePaletteCollapsed: (collapsed) => { this.isBasePaletteCollapsed = collapsed; },
+			getIsSidePaletteCollapsed: () => this.isSidePaletteCollapsed,
+			setIsSidePaletteCollapsed: (collapsed) => { this.isSidePaletteCollapsed = collapsed; },
 			getExpandedPaletteGroupIds: () => this.expandedPaletteGroupIds,
 			isLocked: () => this.props.disabled === true,
 			isActiveRoutineFunction: () => this.isActiveRoutineFunction(),
@@ -124,6 +136,8 @@ export class PlayEditorEngine {
 						this.registry.getGeometryService().resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent)
 				),
 			resolveInsertedBlockFromDrag: (dragState, matcher) => this.resolveInsertedBlockFromDrag(dragState, matcher),
+			resolveBaseDocumentForDrop: (dragState, document) =>
+				this.registry.getDropPlacementService().resolveBaseDocumentForDrop(dragState, document),
 			setDocument: (doc) => this.props.onChange(doc),
 			setBlocks: (blocks) => setBlocks(this.buildHelperDeps(), blocks),
 			removeBlockById: (blocks, blockId) => this.registry.getMutationService().removeBlockById(blocks, blockId),
@@ -157,10 +171,47 @@ export class PlayEditorEngine {
 			getPaletteBlocks: () => this.paletteBlocks,
 			getDefinitionDescriptor: (block) =>
 				this.registry.getPaletteDescriptorService().getDefinitionDescriptor(block, (key) => t(key as never)),
+			getBlockLimitForPaletteBlock: (block) => {
+				if (!this.props.onSetBlockLimit) {
+					return null;
+				}
+				const key = resolveBlockLimitKeyForPaletteBlock(block);
+				if (!key) {
+					return null;
+				}
+				return this.getBlockLimitValue(key);
+			},
+			adjustBlockLimitForPaletteBlock: (block, delta) => {
+				if (!this.props.onSetBlockLimit) {
+					return;
+				}
+				const key = resolveBlockLimitKeyForPaletteBlock(block);
+				if (!key) {
+					return;
+				}
+				const current = this.getBlockLimitValue(key);
+				const next = Math.max(0, Math.floor(current + delta));
+				this.props.onSetBlockLimit(key, next);
+			},
 			getPaletteGroupId: (block) =>
 				this.registry.getPaletteDescriptorService().getPaletteGroupId(block),
 			getPaletteGroupLabel: (groupId) =>
 				this.registry.getPaletteDescriptorService().getPaletteGroupLabel(groupId, (key) => t(key as never)),
+			canInsertPaletteBlock: (dragState) => {
+				const limitKey = resolveBlockLimitKeyForDragState(dragState);
+				if (!limitKey) {
+					return { allowed: true };
+				}
+				const limit = this.getBlockLimitValue(limitKey);
+				if (limit <= 0) {
+					return { allowed: false, message: "Este bloque está deshabilitado para este nivel." };
+				}
+				const used = countBlockLimitUsageFromBlocks(this.getBlocks(), limitKey);
+				if (used >= limit) {
+					return { allowed: false, message: `Límite alcanzado (${used}/${limit}).` };
+				}
+				return { allowed: true };
+			},
 			replaceProjectedBlockById: (blockId, updater) =>
 				replaceProjectedBlockById(this.buildHelperDeps(), blockId, updater),
 			clearExpressionSlot: (slotKey) =>
@@ -182,6 +233,23 @@ export class PlayEditorEngine {
 			getMutationService: () => this.registry.getMutationService(),
 			getTreeService: () => this.registry.getTreeService()
 		};
+	}
+
+	private getEffectiveBlockLimits(): Record<BlockLimitKey, number> {
+		const defaultLimit = this.props.onSetBlockLimit ? 0 : Number.MAX_SAFE_INTEGER;
+		return {
+			...createDefaultBlockLimits(defaultLimit),
+			...(this.props.blockLimits ?? {})
+		};
+	}
+
+	private getBlockLimitValue(key: BlockLimitKey): number {
+		const limits = this.getEffectiveBlockLimits();
+		const value = limits[key];
+		if (typeof value !== "number" || !Number.isFinite(value)) {
+			return this.props.onSetBlockLimit ? 0 : Number.MAX_SAFE_INTEGER;
+		}
+		return Math.max(0, Math.floor(value));
 	}
 
 	// ---------------------------------------------------------------------------
@@ -276,9 +344,11 @@ export class PlayEditorEngine {
 	}
 
 	private canShowDeclarationBindingWheel(block: EditorBlock): boolean {
+		const sig = this.getActiveRoutineSignature();
 		return (
 			block.kind === "var_declaration" &&
-			!!this.getActiveRoutineSignature()?.isFunction &&
+			!!sig?.isFunction &&
+			sig.routineKind !== "type" &&
 			this.isRootLevelBlock(block.id)
 		);
 	}

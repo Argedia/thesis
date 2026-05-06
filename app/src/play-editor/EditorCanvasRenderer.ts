@@ -60,11 +60,6 @@ export class EditorCanvasRenderer {
     const editor = document.createElement("div");
     editor.className = `scratch-editor${this.ctx.getIsLocked() ? " locked" : ""}${this.ctx.getIsActiveRoutineFunction() ? " function-routine" : ""}`;
 
-    const heading = document.createElement("div");
-    heading.className = "builder-heading";
-    heading.innerHTML = `<strong>${t("editor.program")}</strong><span>${t("editor.buildHint")}</span>`;
-    editor.appendChild(heading);
-
     const lane = document.createElement("div");
     lane.className = "editor-lane";
 
@@ -108,6 +103,13 @@ export class EditorCanvasRenderer {
         this.renderEditorBlockRow(lineLayout, gutter, programBody, previewBlocks);
       }
     });
+
+    if (this.ctx.getBlocks().length === 0) {
+      const emptyHint = document.createElement("div");
+      emptyHint.className = "editor-empty-hint";
+      emptyHint.textContent = t("editor.emptyBuildHint");
+      programBody.appendChild(emptyHint);
+    }
 
     lane.appendChild(gutter);
     lane.appendChild(programBody);

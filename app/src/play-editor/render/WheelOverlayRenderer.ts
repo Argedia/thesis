@@ -23,6 +23,10 @@ export class WheelOverlayRenderer {
       const button = document.createElement("button");
       button.type = "button";
       button.className = `wheel-option ${option.className}`;
+      if (option.disabled) {
+        button.classList.add("disabled");
+        button.disabled = true;
+      }
       button.style.minWidth = `${layout.buttonMinWidth}px`;
       button.style.padding = `${layout.buttonPaddingY}px ${layout.buttonPaddingX}px`;
       button.style.fontSize = `${layout.buttonFontSize}px`;
@@ -34,7 +38,9 @@ export class WheelOverlayRenderer {
         baseX: layout.baseX
       });
       button.textContent = option.label;
-      button.addEventListener("click", option.onSelect);
+      if (!option.disabled) {
+        button.addEventListener("click", option.onSelect);
+      }
       wheel.appendChild(button);
     });
 

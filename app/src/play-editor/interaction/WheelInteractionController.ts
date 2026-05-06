@@ -25,7 +25,7 @@ export interface WheelInteractionContext {
   updateDeclarationBindingKind(blockId: string, bindingKind: RoutineBindingKind): void;
   convertVariableBlockKind(
     blockId: string,
-    kind: "var_read" | "var_assign" | "var_reference"
+    kind: "var_read" | "var_reference"
   ): void;
   updateRoutineCallMode(
     blockId: string,
@@ -47,11 +47,7 @@ export class WheelInteractionController {
     if (block.kind === "var_binary_operation") {
       return this.getVarBinaryOperationWheelOptions(block);
     }
-    if (
-      block.kind === "var_read" ||
-      block.kind === "var_assign" ||
-      block.kind === "var_reference"
-    ) {
+    if (block.kind === "var_read" || block.kind === "var_reference") {
       return this.getVariableKindWheelOptions(block);
     }
     if (this.ctx.canShowDeclarationBindingWheel(block)) {
@@ -134,33 +130,16 @@ export class WheelInteractionController {
   private getVariableKindWheelOptions(
     block: EditorBlock
   ): WheelOption[] {
-    if (
-      block.kind !== "var_read" &&
-      block.kind !== "var_assign" &&
-      block.kind !== "var_reference"
-    ) {
+    if (block.kind !== "var_read" && block.kind !== "var_reference") {
       return [];
     }
     const variableName = block.variableName ?? "variable";
-    const options: Array<{
-      kind: "var_read" | "var_assign" | "var_reference";
-      label: string;
-    }> = [
-      {
-        kind: "var_read",
-        label: variableName
-      },
-      {
-        kind: "var_assign",
-        label: `${variableName} =`
-      },
-      {
-        kind: "var_reference",
-        label: `reference to ${variableName}`
-      }
+    const modes: Array<{ kind: "var_read" | "var_reference"; label: string }> = [
+      { kind: "var_read", label: variableName },
+      { kind: "var_reference", label: `ref ${variableName}` }
     ];
 
-    const baseOptions = options.map((option) => ({
+    const baseOptions = modes.map((option) => ({
       label: option.label,
       className:
         block.kind === option.kind && block.operation === null ? "mint selected" : "mint",
@@ -184,6 +163,7 @@ export class WheelInteractionController {
       .filter((option) => option.operation !== null)
       .map((option) => ({
         label: option.label,
+        disabled: option.disabled,
         className:
           block.kind === "var_read" && block.operation === option.operation
             ? `${option.className} selected`
@@ -259,6 +239,7 @@ export class WheelInteractionController {
       block.structureKind!
     ).map((option) => ({
       label: option.label,
+      disabled: option.disabled,
       className: option.className,
       onSelect: () => {
         this.ctx.updateBlockOperation(block.id, option.operation);

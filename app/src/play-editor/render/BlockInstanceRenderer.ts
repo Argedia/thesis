@@ -296,7 +296,12 @@ export class BlockInstanceRenderer {
 		} = {}
 	): void {
 		const createVariableNameControl = (): HTMLElement => {
-			if (options.ghost) {
+			const isStaticName =
+				options.ghost ||
+				block.kind === "var_reference" ||
+				block.kind === "var_assign";
+
+			if (isStaticName) {
 				const namePill = document.createElement("span");
 				namePill.className = "editor-variable-name";
 				namePill.textContent = block.variableName?.trim() || "variable";
@@ -597,7 +602,6 @@ export class BlockInstanceRenderer {
 			block.kind !== "structure" &&
 			block.kind !== "conditional" &&
 			block.kind !== "var_read" &&
-			block.kind !== "var_assign" &&
 			block.kind !== "var_reference" &&
 			block.kind !== "var_operation" &&
 			block.kind !== "var_binary_operation" &&

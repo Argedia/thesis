@@ -5,10 +5,62 @@ import {
   VisualExecutionEngine
 } from "@thesis/core-engine";
 
+export const LEVEL_OPERATIONS = [
+  "POP",
+  "PUSH",
+  "DEQUEUE",
+  "ENQUEUE",
+  "APPEND",
+  "PREPEND",
+  "REMOVE_FIRST",
+  "REMOVE_LAST",
+  "GET_HEAD",
+  "GET_TAIL",
+  "SIZE"
+] as const;
+
+export type LevelOperation = (typeof LEVEL_OPERATIONS)[number];
+export type LevelOperationState = "forbidden" | "permitted" | "required";
+export type LevelOperationPolicy = Record<LevelOperation, LevelOperationState>;
+export interface LevelNoLargerOnSmallerConstraint {
+  enabled: boolean;
+}
+export interface LevelValueDomainConstraint {
+  numericOnly?: boolean;
+  min?: number;
+  max?: number;
+}
+export interface LevelStructureConstraintOverride {
+  noLargerOnSmaller?: LevelNoLargerOnSmallerConstraint;
+  valueDomain?: LevelValueDomainConstraint;
+}
+
+export const createOperationPolicy = (
+  defaultState: LevelOperationState = "forbidden"
+): LevelOperationPolicy =>
+  Object.fromEntries(
+    LEVEL_OPERATIONS.map((operation) => [operation, defaultState])
+  ) as LevelOperationPolicy;
+
+export const getPermittedOperationsFromPolicy = (
+  policy: LevelOperationPolicy
+): LevelOperation[] =>
+  LEVEL_OPERATIONS.filter((operation) => policy[operation] !== "forbidden");
+
+export const getRequiredOperationsFromPolicy = (
+  policy: LevelOperationPolicy
+): LevelOperation[] =>
+  LEVEL_OPERATIONS.filter((operation) => policy[operation] === "required");
+
 export interface LevelConstraints {
-  allowedOperations: string[];
+  operationPolicy: LevelOperationPolicy;
   forbiddenBlocks: string[];
+  blockLimits?: Record<string, number>;
   maxSteps: number;
+  structureCapacities?: Record<string, number>;
+  noLargerOnSmaller?: LevelNoLargerOnSmallerConstraint;
+  valueDomain?: LevelValueDomainConstraint;
+  structureConstraints?: Record<string, LevelStructureConstraintOverride>;
 }
 
 export type LevelSource = "community" | "my-levels";

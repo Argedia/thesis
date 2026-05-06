@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button, DialogTrigger } from "react-aria-components";
 import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import { Screen } from "@thesis/ui-editor";
+import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
 import { compileEditorDocument, createEditorDocument } from "../program-editor-core";
 import {
   createPlaySessionController,
@@ -18,6 +19,7 @@ import { usePanelResize } from "./usePanelResize";
 import { AppDialogs } from "./AppDialogs";
 import { IdePanel } from "./IdePanel";
 import { BoardPanel } from "./BoardPanel";
+import { normalizeBlockLimits } from "../../play-editor/block-limits";
 
 const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
@@ -117,6 +119,11 @@ export function PlayLevelScreen() {
   }
 
   const { level, compiledProgram } = sessionState;
+  const effectiveBlockLimits = normalizeBlockLimits({
+    blockLimits: level.constraints.blockLimits,
+    forbiddenBlocks: level.constraints.forbiddenBlocks,
+    defaultLimit: Number.MAX_SAFE_INTEGER
+  });
   const activeRoutineCompiled =
     compiledProgram.routines[sessionState.document.activeRoutineId] ?? compiledProgram;
 
@@ -126,6 +133,7 @@ export function PlayLevelScreen() {
   const visibleRoutineOperations =
     (visibleRoutine && compiledProgram.routines[visibleRoutine.id]?.operations.length) ??
     compiledProgram.operations.length;
+  const permittedOperations = getPermittedOperationsFromPolicy(level.constraints.operationPolicy);
 
   const translateDiagnostic = (diagnostic: string): string => {
     const mapped: Record<string, string | undefined> = {
@@ -199,7 +207,7 @@ export function PlayLevelScreen() {
                   </button>
                 </div>
                 <div className="level-info-actions">
-                  {level.constraints.allowedOperations.map((op) => (
+                  {permittedOperations.map((op) => (
                     <span key={op} className="mini-tag">{t(`operations.${op}`)}</span>
                   ))}
                 </div>
@@ -224,7 +232,8 @@ export function PlayLevelScreen() {
             breakpointNodeIds={sessionState.breakpointNodeIds}
             events={sessionState.events}
             structures={level.initialState}
-            allowedOperations={level.constraints.allowedOperations}
+            allowedOperations={permittedOperations}
+            blockLimits={effectiveBlockLimits}
             maxSteps={level.constraints.maxSteps}
             outputMode={outputMode}
             visibleRoutineOperations={visibleRoutineOperations}

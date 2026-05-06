@@ -36,6 +36,7 @@ import {
   invokeObjectMember,
   type InterpreterContext
 } from "./interpreter";
+import { executeOperationWithLevelConstraints } from "./constraints";
 
 const MAX_WHILE_ITERATIONS = 20;
 const MAX_FUNCTION_CALL_DEPTH = 20;
@@ -312,7 +313,17 @@ const executeCallStepped = (
     throw new Error("The block could not run.");
   }
 
-  ctx.engine.executeOperation(operation);
+  if (ctx.levelConstraints) {
+    executeOperationWithLevelConstraints({
+      engine: ctx.engine,
+      constraints: ctx.levelConstraints,
+      operation,
+      onOperationExecuted: ctx.onOperationExecuted
+    });
+  } else {
+    ctx.engine.executeOperation(operation);
+    ctx.onOperationExecuted?.(operation.type);
+  }
   ctx.syncFromEngine();
 };
 

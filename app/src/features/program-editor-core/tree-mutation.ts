@@ -310,8 +310,16 @@ const detachExpressionFromNode = (
   if (expression.kind === "binary") {
     const left = detachExpressionFromNode(expression.left, expressionId);
     if (left.detached) {
+      const leftFallback: ExpressionNode = {
+        id: `${expression.id}-left-missing`,
+        kind: "literal",
+        valueType: "text",
+        value: "<missing>",
+        outputType: "value",
+        visual: expression.visual
+      };
       return {
-        nextExpression: left.nextExpression ? { ...expression, left: left.nextExpression } : expression,
+        nextExpression: { ...expression, left: left.nextExpression ?? leftFallback },
         detached: left.detached
       };
     }
@@ -461,6 +469,53 @@ export const replaceExpression = (
   slotId: string,
   expression: ExpressionNode | null
 ): ProgramNode => {
+  const replaceExpressionSlot = (
+    target: ExpressionNode,
+    targetSlotId: string,
+    nextExpression: ExpressionNode | null
+  ): ExpressionNode => {
+    if (target.kind === "binary") {
+      if (targetSlotId === "left") {
+        return { ...target, left: nextExpression ?? target.left };
+      }
+      if (targetSlotId === "right") {
+        return { ...target, right: nextExpression };
+      }
+    }
+
+    if (target.kind === "variable" || target.kind === "unary") {
+      if (targetSlotId === "input" || targetSlotId === "operand" || targetSlotId === "value") {
+        return { ...target, operand: nextExpression };
+      }
+    }
+
+    if (
+      target.kind === "structure" ||
+      target.kind === "routine-call" ||
+      target.kind === "routine-member"
+    ) {
+      const slotIndex = targetSlotId.startsWith("arg-") ? Number(targetSlotId.slice(4)) : 0;
+      if (!Number.isFinite(slotIndex) || slotIndex < 0) {
+        return target;
+      }
+      const nextArgs = [...target.args];
+      nextArgs[slotIndex] = nextExpression!;
+      return {
+        ...target,
+        args: nextExpression
+          ? nextArgs.filter((v) => v !== undefined)
+          : nextArgs.filter((_, index) => index !== slotIndex)
+      };
+    }
+
+    return nextExpression ?? target;
+  };
+
+  const updateExpressionSlotByOwner = (root: ExpressionNode): ExpressionNode =>
+    updateExpressionNode(root, ownerId, (target) =>
+      replaceExpressionSlot(target, slotId, expression)
+    );
+
   const updateStatement = (statement: StatementNode): StatementNode => {
     if (statement.id === ownerId) {
       if (statement.kind === "assign" || statement.kind === "type-field-assign")
@@ -482,28 +537,62 @@ export const replaceExpression = (
       if (statement.kind === "while") return { ...statement, condition: expression };
       if (statement.kind === "for-each") return statement;
       if (statement.kind === "return") return { ...statement, value: expression };
-      if (statement.kind === "expression") return { ...statement, expression: expression ?? statement.expression };
+      if (statement.kind === "expression") {
+        return {
+          ...statement,
+          expression: replaceExpressionSlot(statement.expression, slotId, expression)
+        };
+      }
     }
 
     if (statement.kind === "if") {
       return {
         ...statement,
+        condition: statement.condition ? updateExpressionSlotByOwner(statement.condition) : null,
         thenBody: statement.thenBody.map(updateStatement),
         elseBody: statement.elseBody ? statement.elseBody.map(updateStatement) : null
       };
     }
-    if (statement.kind === "while") return { ...statement, body: statement.body.map(updateStatement) };
+    if (statement.kind === "while") {
+      return {
+        ...statement,
+        condition: statement.condition ? updateExpressionSlotByOwner(statement.condition) : null,
+        body: statement.body.map(updateStatement)
+      };
+    }
     if (statement.kind === "for-each") return { ...statement, body: statement.body.map(updateStatement) };
+    if (
+      statement.kind === "call" ||
+      statement.kind === "routine-call" ||
+      statement.kind === "routine-member-call"
+    ) {
+      return {
+        ...statement,
+        args: statement.args.map(updateExpressionSlotByOwner)
+      } as StatementNode;
+    }
+    if (statement.kind === "return" && statement.value) {
+      return {
+        ...statement,
+        value: updateExpressionSlotByOwner(statement.value)
+      };
+    }
+    if (statement.kind === "expression") {
+      return {
+        ...statement,
+        expression: updateExpressionSlotByOwner(statement.expression)
+      };
+    }
     if (statement.kind === "assign" && statement.value) {
       return {
         ...statement,
-        value: updateExpressionNode(statement.value, ownerId, () => expression ?? statement.value!)
+        value: updateExpressionSlotByOwner(statement.value)
       };
     }
     if (statement.kind === "type-field-assign" && statement.value) {
       return {
         ...statement,
-        value: updateExpressionNode(statement.value, ownerId, () => expression ?? statement.value!)
+        value: updateExpressionSlotByOwner(statement.value)
       };
     }
     return statement;

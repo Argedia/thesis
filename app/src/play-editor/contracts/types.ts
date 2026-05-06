@@ -72,5 +72,6 @@ export interface PreviewDescriptor {
 export interface WheelOption {
   label: string;
   className: string;
+  disabled?: boolean;
   onSelect: () => void;
 }

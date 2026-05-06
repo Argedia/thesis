@@ -25,6 +25,18 @@ export class PaletteDerivationService {
 		const normalizedStructures = structures.map((rawStructure) =>
 			normalizeStructureSnapshot(rawStructure)
 		);
+		const levelStructureVariableBlocks: PaletteBlock[] = normalizedStructures.map((structure) => ({
+			id: `palette-level-structure-var-${structure.id}`,
+			kind: "var_read" as const,
+			color: structure.properties?.color ?? "#d8f3dc",
+			outputType: "none" as const,
+			valueType: null,
+			literalValue: null,
+			declaredTypeRef: { kind: "structure", structureKind: structure.kind },
+			variableSourceId: `__level_structure__${structure.id}`,
+			variableName: structure.id,
+			label: structure.id
+		}));
 		const firstLinearStructure = normalizedStructures.find(
 			(structure) =>
 				structure.kind === "stack" ||
@@ -33,6 +45,9 @@ export class PaletteDerivationService {
 		);
 		const variableDeclarations = collectVariableDeclarations(value);
 		const typeSignatures = listTypeSignatures(value);
+		const isActiveRoutineType = typeSignatures.some(
+			(signature) => signature.typeRoutineId === value.activeRoutineId
+		);
 		const typeSignatureById = new Map(typeSignatures.map((signature) => [signature.typeRoutineId, signature]));
 		const typeCreatedBlocks = typeSignatures.map((signature) => ({
 			id: `palette-type-instance-${signature.typeRoutineId}`,
@@ -166,19 +181,7 @@ export class PaletteDerivationService {
 		});
 
 		return [
-			...normalizedStructures.map((structure) => {
-				return {
-					id: `palette-${structure.id}`,
-					kind: "structure" as const,
-					color: structure.properties?.color,
-					structureId: structure.id,
-					structureKind: structure.kind,
-					outputType: "none" as const,
-					valueType: null,
-					literalValue: null,
-					label: structure.id
-				};
-			}),
+			...levelStructureVariableBlocks,
 			{
 				id: "palette-text-value",
 				kind: "value" as const,
@@ -305,36 +308,13 @@ export class PaletteDerivationService {
 			{
 				id: "palette-var-declaration",
 				kind: "var_declaration" as const,
-				color: "#b7e4c7",
+				color: isActiveRoutineType ? "#ffd6a5" : "#b7e4c7",
 				outputType: "none" as const,
 				valueType: null,
 				literalValue: null,
-				variableName: "variable",
-				label: "Declaration"
+				variableName: isActiveRoutineType ? "field" : "variable",
+				label: isActiveRoutineType ? "Field" : "Declaration"
 			},
-			...(variableDeclarations.length > 0
-				? [{
-					id: "palette-var-assign",
-					kind: "var_assign" as const,
-					color: "#b7e4c7",
-					outputType: "none" as const,
-					valueType: null,
-					literalValue: null,
-					variableName: "variable",
-					label: "Assignment"
-				},
-				{
-					id: "palette-var-reference",
-					kind: "var_reference" as const,
-					color: "#b7e4c7",
-					outputType: "value" as const,
-					valueType: "text" as const,
-					literalValue: null,
-					variableName: "target",
-					referenceTargetKind: "variable" as const,
-					label: "Reference"
-				}]
-				: []),
 			...variableDeclarations.map((variable) => ({
 				id: `palette-var-read-${variable.id}`,
 				kind: "var_read" as const,
@@ -346,6 +326,18 @@ export class PaletteDerivationService {
 				variableSourceId: variable.id,
 				variableName: variable.name,
 				label: variable.name
+			})),
+			...variableDeclarations.map((variable) => ({
+				id: `palette-var-assign-${variable.id}`,
+				kind: "var_assign" as const,
+				color: variable.color ?? "#b7e4c7",
+				outputType: "none" as const,
+				valueType: null,
+				literalValue: null,
+				declaredTypeRef: variable.declaredTypeRef ?? null,
+				variableSourceId: variable.id,
+				variableName: variable.name,
+				label: `${variable.name} =`
 			})),
 			...typedFieldBlocks,
 			...typeCreatedBlocks,

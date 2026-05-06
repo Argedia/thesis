@@ -1,4 +1,9 @@
-import type { LevelDefinition } from "@thesis/game-system";
+import {
+  LEVEL_OPERATIONS,
+  createOperationPolicy,
+  type LevelDefinition,
+  type LevelOperationPolicy
+} from "@thesis/game-system";
 import { z } from "zod";
 
 export interface ProgressData {
@@ -42,6 +47,32 @@ const levelSourceSchema = z.enum(["community", "my-levels"]);
 const structureTagSchema = z.enum(["stack", "queue", "list"]);
 const levelDifficultySchema = z.enum(["easy", "medium", "hard"]);
 const dataValueSchema = z.union([z.string(), z.number(), z.boolean()]);
+const levelOperationStateSchema = z.enum(["forbidden", "permitted", "required"]);
+const operationPolicySchema = z.object({
+  POP: levelOperationStateSchema,
+  PUSH: levelOperationStateSchema,
+  DEQUEUE: levelOperationStateSchema,
+  ENQUEUE: levelOperationStateSchema,
+  APPEND: levelOperationStateSchema,
+  PREPEND: levelOperationStateSchema,
+  REMOVE_FIRST: levelOperationStateSchema,
+  REMOVE_LAST: levelOperationStateSchema,
+  GET_HEAD: levelOperationStateSchema,
+  GET_TAIL: levelOperationStateSchema,
+  SIZE: levelOperationStateSchema
+});
+const levelValueDomainSchema = z.object({
+  numericOnly: z.boolean().optional(),
+  min: z.number().optional(),
+  max: z.number().optional()
+});
+const levelNoLargerOnSmallerSchema = z.object({
+  enabled: z.boolean()
+});
+const structureConstraintOverrideSchema = z.object({
+  noLargerOnSmaller: levelNoLargerOnSmallerSchema.optional(),
+  valueDomain: levelValueDomainSchema.optional()
+});
 
 const dataNodeSchema = z.object({
   value: dataValueSchema,
@@ -64,9 +95,14 @@ const structureSnapshotSchema = z.object({
 });
 
 const levelConstraintsSchema = z.object({
-  allowedOperations: z.array(z.string()),
+  operationPolicy: operationPolicySchema,
   forbiddenBlocks: z.array(z.string()),
-  maxSteps: z.number().int().nonnegative()
+  blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
+  maxSteps: z.number().int().nonnegative(),
+  structureCapacities: z.record(z.string(), z.number().int().nonnegative()).optional(),
+  noLargerOnSmaller: levelNoLargerOnSmallerSchema.optional(),
+  valueDomain: levelValueDomainSchema.optional(),
+  structureConstraints: z.record(z.string().min(1), structureConstraintOverrideSchema).optional()
 });
 
 const playLayoutSchema = z.object({
@@ -107,12 +143,33 @@ const levelDefinitionSchema = z.object({
   tooling: editorToolingSchema.optional()
 });
 
+const importedLevelConstraintsSchema = z
+  .object({
+    operationPolicy: operationPolicySchema.optional(),
+    allowedOperations: z.array(z.string()).optional(),
+    requiredOperations: z.array(z.string()).optional(),
+    forbiddenOperations: z.array(z.string()).optional(),
+    forbiddenBlocks: z.array(z.string()).optional(),
+    blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
+    maxSteps: z.number().int().nonnegative().optional(),
+    structureCapacities: z.record(z.string(), z.number().int().nonnegative()).optional(),
+    noLargerOnSmaller: z
+      .object({
+        enabled: z.boolean().optional(),
+        structureIds: z.array(z.string().min(1)).optional()
+      })
+      .optional(),
+    valueDomain: levelValueDomainSchema.optional(),
+    structureConstraints: z.record(z.string().min(1), structureConstraintOverrideSchema).optional()
+  })
+  .passthrough();
+
 const importedLevelCandidateSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   initialState: z.array(structureSnapshotSchema),
   goalState: z.array(structureSnapshotSchema),
-  constraints: levelConstraintsSchema,
+  constraints: importedLevelConstraintsSchema,
   playLayout: playLayoutSchema.optional(),
   editorLayout: editorLayoutSchema.optional(),
   metadata: z
@@ -152,6 +209,30 @@ const uiPreferencesDataSchema = z.object({
 
 type ImportedLevelCandidate = z.infer<typeof importedLevelCandidateSchema>;
 
+const normalizeOperationToken = (operation: string): string =>
+  operation.trim().toUpperCase();
+
+const normalizeOperationPolicy = (
+  constraints: z.infer<typeof importedLevelConstraintsSchema>
+): LevelOperationPolicy => {
+  if (constraints.operationPolicy) {
+    return constraints.operationPolicy;
+  }
+  const policy = createOperationPolicy("forbidden");
+  const setState = (operations: string[] | undefined, state: "forbidden" | "permitted" | "required") => {
+    operations?.forEach((operation) => {
+      const normalized = normalizeOperationToken(operation);
+      if (LEVEL_OPERATIONS.includes(normalized as (typeof LEVEL_OPERATIONS)[number])) {
+        policy[normalized as (typeof LEVEL_OPERATIONS)[number]] = state;
+      }
+    });
+  };
+  setState(constraints.allowedOperations, "permitted");
+  setState(constraints.forbiddenOperations, "forbidden");
+  setState(constraints.requiredOperations, "required");
+  return policy;
+};
+
 const formatSchemaError = (label: string, error: z.ZodError): string => {
   const issue = error.issues[0];
   if (!issue) {
@@ -189,12 +270,44 @@ const inferStructures = (level: Pick<LevelDefinition, "initialState">): Array<"s
 };
 
 const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition => {
+  const legacyNoLargerStructureIds = level.constraints.noLargerOnSmaller?.structureIds ?? [];
+  const baseStructureConstraints = { ...(level.constraints.structureConstraints ?? {}) };
+  if (legacyNoLargerStructureIds.length > 0) {
+    legacyNoLargerStructureIds.forEach((structureId) => {
+      const previous = baseStructureConstraints[structureId] ?? {};
+      baseStructureConstraints[structureId] = {
+        ...previous,
+        noLargerOnSmaller: { enabled: true }
+      };
+    });
+  }
+
+  const normalizedNoLargerOnSmaller =
+    level.constraints.noLargerOnSmaller?.enabled === true && legacyNoLargerStructureIds.length === 0
+      ? { enabled: true }
+      : level.constraints.noLargerOnSmaller?.enabled === false
+        ? { enabled: false }
+        : undefined;
+
+  const normalizedConstraints: LevelDefinition["constraints"] = {
+    operationPolicy: normalizeOperationPolicy(level.constraints),
+    forbiddenBlocks: level.constraints.forbiddenBlocks ?? [],
+    blockLimits: level.constraints.blockLimits,
+    maxSteps: level.constraints.maxSteps ?? 99,
+    structureCapacities: level.constraints.structureCapacities,
+    ...(normalizedNoLargerOnSmaller ? { noLargerOnSmaller: normalizedNoLargerOnSmaller } : {}),
+    ...(level.constraints.valueDomain ? { valueDomain: level.constraints.valueDomain } : {}),
+    ...(Object.keys(baseStructureConstraints).length > 0
+      ? { structureConstraints: baseStructureConstraints }
+      : {})
+  };
+
   const normalizedBase: LevelDefinition = {
     id: level.id,
     title: level.title,
     initialState: level.initialState,
     goalState: level.goalState,
-    constraints: level.constraints,
+    constraints: normalizedConstraints,
     playLayout: level.playLayout ?? {
       panelOrder: ["board", "steps", "timeline"],
       initialPanel: "board"
@@ -238,8 +351,11 @@ const parsePersistedLevelDefinitions = (raw: string): LevelDefinition[] => {
   }
 
   return parsed.flatMap((candidate) => {
-    const result = levelDefinitionSchema.safeParse(candidate);
-    return result.success ? [result.data] : [];
+    try {
+      return [parseImportedLevelDefinition(candidate)];
+    } catch {
+      return [];
+    }
   });
 };
 

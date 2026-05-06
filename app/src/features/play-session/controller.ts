@@ -18,10 +18,17 @@ import type {
   PlaySessionState
 } from "./types";
 import { goalMatches } from "./runtime/progress";
-import { getVisibleVariableSnapshots, type RuntimeFrame, type RuntimeObjectInstance } from "./runtime/runtime-memory";
+import {
+  getVisibleVariableSnapshots,
+  setLocalValue,
+  type RuntimeFrame,
+  type RuntimeObjectInstance
+} from "./runtime/runtime-memory";
 import { getCurrentExecutionPoint, executeVisibleInstruction, executeInstruction } from "./runtime/instruction-executor";
 import { evaluateExpression, getObjectInstance, type InterpreterContext } from "./runtime/interpreter";
+import type { RuntimeStoredValue } from "./runtime/runtime-values";
 import { setActiveRoutineId as setRoutineId } from "../program-editor-core";
+import { getMissingRequiredOperations } from "./runtime/constraints";
 
 const createInitialState = (): PlaySessionState => {
   const document = createEditorDocument();
@@ -53,6 +60,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private runtimeFrames: RuntimeFrame[] = [];
   private runtimeObjectInstances = new Map<string, RuntimeObjectInstance>();
   private routineSelectionBeforeRun: string | null = null;
+  private runtimeVisibleStepCount = 0;
+  private runtimeOperationUsage = new Map<string, number>();
 
   public constructor(deps: PlaySessionDependencies) {
     this.deps = deps;
@@ -141,6 +150,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     try {
       while (!this.runAbort) {
+        this.assertRuntimeStepBudget();
         const currentPoint = getCurrentExecutionPoint(this.runtimeFrames, prepared);
         if (!currentPoint) break;
 
@@ -154,6 +164,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
         const executedInstruction = executeVisibleInstruction(this.buildCtx(prepared), prepared);
         if (!executedInstruction) break;
+        this.runtimeVisibleStepCount += 1;
 
         await new Promise((resolve) => window.setTimeout(resolve, 340));
       }
@@ -177,12 +188,14 @@ export class DefaultPlaySessionController implements PlaySessionController {
     if (!prepared || !this.engine) return;
 
     try {
+      this.assertRuntimeStepBudget();
       const executedInstruction = executeVisibleInstruction(this.buildCtx(prepared), prepared);
       if (!executedInstruction) {
         this.finishExecution();
         await this.evaluateProgress();
         return;
       }
+      this.runtimeVisibleStepCount += 1;
       this.patchState({
         status:
           executedInstruction.kind === "eval-condition"
@@ -260,13 +273,15 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private buildCtx(compiled: CompileResult): InterpreterContext {
     return {
       engine: this.engine!,
+      levelConstraints: this.state.level?.constraints ?? null,
       document: this.state.document,
       compiled,
       runtimeFrames: this.runtimeFrames,
       runtimeObjectInstances: this.runtimeObjectInstances,
       loopIterationCounts: this.loopIterationCounts,
       lastConditionResult: this.lastConditionResult,
-      syncFromEngine: () => this.syncFromEngine()
+      syncFromEngine: () => this.syncFromEngine(),
+      onOperationExecuted: (operationType) => this.recordOperationUsage(operationType)
     };
   }
 
@@ -297,10 +312,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.engine.reset();
       this.syncFromEngine();
       this.routineSelectionBeforeRun = this.state.document.activeRoutineId;
+      const initialLocals = new Map<string, RuntimeStoredValue>();
+      this.seedLevelStructurePointers(initialLocals);
       this.runtimeFrames = [{
         routineId: activeRoutine.id,
         ip: 0,
-        locals: new Map(),
+        locals: initialLocals,
         forEachContexts: new Map()
       }];
       this.updateExecutionFocus(this.state.compiledProgram);
@@ -325,6 +342,17 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
   private async evaluateProgress(): Promise<void> {
     if (!this.state.level || !this.engine) return;
+
+    const missingRequiredOperations = getMissingRequiredOperations({
+      constraints: this.state.level.constraints,
+      operationUsage: this.runtimeOperationUsage
+    });
+    if (missingRequiredOperations.length > 0) {
+      this.patchState({
+        status: `Missing required operations: ${missingRequiredOperations.join(", ")}.`
+      });
+      return;
+    }
 
     const nextStructures = Object.values(this.engine.getState().structures);
     if (goalMatches(nextStructures, this.state.level.goalState)) {
@@ -372,12 +400,46 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.patchState({ structures: Object.values(nextState.structures) });
   }
 
+  private seedLevelStructurePointers(locals: Map<string, RuntimeStoredValue>): void {
+    const level = this.state.level;
+    if (!level) {
+      return;
+    }
+
+    level.initialState.forEach((structure) => {
+      const pointer = {
+        kind: "pointer" as const,
+        targetKind: "structure" as const,
+        targetId: structure.id,
+        targetName: structure.id
+      };
+      setLocalValue(locals, `__level_structure__${structure.id}`, structure.id, pointer);
+    });
+  }
+
   private resetRuntimeState(): void {
     this.lastConditionResult = null;
     this.loopIterationCounts.clear();
     this.runtimeFrames = [];
     this.runtimeObjectInstances.clear();
     this.routineSelectionBeforeRun = null;
+    this.runtimeVisibleStepCount = 0;
+    this.runtimeOperationUsage.clear();
+  }
+
+  private assertRuntimeStepBudget(): void {
+    const level = this.state.level;
+    if (!level) {
+      return;
+    }
+    if (this.runtimeVisibleStepCount >= level.constraints.maxSteps) {
+      throw new Error(`Step limit reached (${level.constraints.maxSteps}).`);
+    }
+  }
+
+  private recordOperationUsage(operationType: string): void {
+    const key = operationType.trim().toUpperCase();
+    this.runtimeOperationUsage.set(key, (this.runtimeOperationUsage.get(key) ?? 0) + 1);
   }
 
   private restoreSelectedRoutine(document: EditorDocument): EditorDocument {
