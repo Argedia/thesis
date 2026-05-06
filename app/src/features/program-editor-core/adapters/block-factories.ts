@@ -245,7 +245,7 @@ export const createVariableReadBlock = (
 	declaredTypeRef?: EditorBlock["declaredTypeRef"]
 ): EditorBlock => ({
 	id: `var-read-${crypto.randomUUID()}`,
-	kind: "var_read",
+	kind: "var",
 	color,
 	operation: null,
 	outputType: "value",

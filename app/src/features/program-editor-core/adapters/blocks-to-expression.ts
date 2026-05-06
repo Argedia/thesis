@@ -94,14 +94,18 @@ const variableBinaryBlockToExpression = (block: EditorBlock): ExpressionNode => 
 export const editorBlockToExpression = (block: EditorBlock): ExpressionNode => {
 	if (block.kind === "value") return literalToExpression(block);
 
-	if (block.kind === "var_read") {
+	if (block.kind === "var") {
 		if (block.declaredTypeRef?.kind === "structure" && block.operation) {
+			const isLevelStructure = block.variableSourceId?.startsWith("__level_structure__");
+			const resolvedStructureId = isLevelStructure
+				? block.variableSourceId!.slice("__level_structure__".length)
+				: block.variableName?.trim() || "structure";
 			return {
 				id: block.id,
 				kind: "structure",
-				structureId: block.variableName?.trim() || "structure",
+				structureId: resolvedStructureId,
 				structureKind: block.declaredTypeRef.structureKind,
-				targetDeclarationId: block.variableSourceId ?? block.id,
+				targetDeclarationId: isLevelStructure ? null : (block.variableSourceId ?? block.id),
 				targetName: block.variableName?.trim() || "structure",
 				operation: block.operation,
 				args: block.inputBlock ? [editorBlockToExpression(block.inputBlock)] : [],

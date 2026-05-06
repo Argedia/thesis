@@ -27,7 +27,7 @@ export class PaletteDerivationService {
 		);
 		const levelStructureVariableBlocks: PaletteBlock[] = normalizedStructures.map((structure) => ({
 			id: `palette-level-structure-var-${structure.id}`,
-			kind: "var_read" as const,
+			kind: "var" as const,
 			color: structure.properties?.color ?? "#d8f3dc",
 			outputType: "none" as const,
 			valueType: null,
@@ -48,7 +48,6 @@ export class PaletteDerivationService {
 		const isActiveRoutineType = typeSignatures.some(
 			(signature) => signature.typeRoutineId === value.activeRoutineId
 		);
-		const typeSignatureById = new Map(typeSignatures.map((signature) => [signature.typeRoutineId, signature]));
 		const typeCreatedBlocks = typeSignatures.map((signature) => ({
 			id: `palette-type-instance-${signature.typeRoutineId}`,
 			kind: "type_instance_new" as const,
@@ -60,48 +59,6 @@ export class PaletteDerivationService {
 			typeName: signature.typeName,
 			label: `new ${signature.typeName}`
 		}));
-		const typedFieldBlocks = variableDeclarations.flatMap((variable) => {
-			const declaredType = variable.declaredTypeRef;
-			if (!declaredType || declaredType.kind !== "user") {
-				return [];
-			}
-			const typeSignature = typeSignatureById.get(declaredType.typeRoutineId);
-			if (!typeSignature) {
-				return [];
-			}
-			return typeSignature.fieldDeclarations.flatMap((field) => {
-				const fieldName = field.name?.trim();
-				if (!fieldName) {
-					return [];
-				}
-				const base = {
-					color: "#ffd6a5",
-					valueType: "text" as const,
-					literalValue: null,
-					variableSourceId: variable.id,
-					variableName: variable.name,
-					typeRoutineId: typeSignature.typeRoutineId,
-					typeName: typeSignature.typeName,
-					typeFieldName: fieldName
-				};
-				return [
-					{
-						id: `palette-type-field-read-${variable.id}-${fieldName}`,
-						kind: "type_field_read" as const,
-						outputType: "value" as const,
-						...base,
-						label: `${variable.name}.${fieldName}`
-					},
-					{
-						id: `palette-type-field-assign-${variable.id}-${fieldName}`,
-						kind: "type_field_assign" as const,
-						outputType: "none" as const,
-						...base,
-						label: `${variable.name}.${fieldName} =`
-					}
-				];
-			});
-		});
 		const publishedRoutineBlocks = listPublishedRoutineSignatures(value).map((signature) => ({
 			id: `palette-routine-${signature.routineId}`,
 			kind: "routine_call" as const,
@@ -317,7 +274,7 @@ export class PaletteDerivationService {
 			},
 			...variableDeclarations.map((variable) => ({
 				id: `palette-var-read-${variable.id}`,
-				kind: "var_read" as const,
+				kind: "var" as const,
 				color: variable.color ?? "#d8f3dc",
 				outputType: "value" as const,
 				valueType: null,
@@ -339,7 +296,6 @@ export class PaletteDerivationService {
 				variableName: variable.name,
 				label: `${variable.name} =`
 			})),
-			...typedFieldBlocks,
 			...typeCreatedBlocks,
 			...publishedRoutineBlocks,
 			...exportedObjectBlocks

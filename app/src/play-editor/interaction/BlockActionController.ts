@@ -13,6 +13,8 @@ import {
   applyRoutineCallModeToBlock,
   applyVariableOperationModeToBlock,
   convertVariableBlock,
+  convertVarBlockToFieldAssign,
+  convertVarBlockToFieldRead,
   retargetTypedFieldBlock,
   retargetVariableBlock
 } from "./blockActionTransforms";
@@ -92,13 +94,23 @@ export class BlockActionController {
 
   public convertVariableBlockKind(
     blockId: string,
-    nextKind: "var_read" | "var_assign" | "var_reference"
+    nextKind: "var" | "var_assign" | "var_reference"
   ): void {
     if (this.ctx.isLocked()) {
       return;
     }
 
     this.applyBlockUpdate(blockId, (currentBlock) => convertVariableBlock(currentBlock, nextKind));
+  }
+
+  public convertToFieldRead(blockId: string, fieldName: string): void {
+    if (this.ctx.isLocked()) return;
+    this.applyBlockUpdate(blockId, (block) => convertVarBlockToFieldRead(block, fieldName));
+  }
+
+  public convertToFieldAssign(blockId: string, fieldName: string): void {
+    if (this.ctx.isLocked()) return;
+    this.applyBlockUpdate(blockId, (block) => convertVarBlockToFieldAssign(block, fieldName));
   }
 
   public updateRoutineCallMode(
@@ -133,11 +145,11 @@ export class BlockActionController {
     if (
       block?.kind === "var_reference" ||
       block?.kind === "var_assign" ||
-      block?.kind === "var_read" ||
+      block?.kind === "var" ||
       block?.kind === "var_operation"
     ) {
       if (
-        block.kind === "var_read" &&
+        block.kind === "var" &&
         block.variableSourceId?.startsWith("__level_structure__") &&
         block.declaredTypeRef?.kind === "structure"
       ) {

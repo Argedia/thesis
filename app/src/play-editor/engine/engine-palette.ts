@@ -97,7 +97,7 @@ export const createBlockFromPalette = async (options: {
 	if (block.kind === "var_assign") {
 		return createVariableAssignBlock(block.variableSourceId, block.variableName ?? "variable", block.color);
 	}
-	if (block.kind === "var_read") {
+	if (block.kind === "var") {
 		return createVariableReadBlock(
 			block.variableSourceId,
 			block.variableName ?? "variable",

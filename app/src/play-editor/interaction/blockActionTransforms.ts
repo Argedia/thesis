@@ -7,6 +7,8 @@ import type {
 import type { DataValue } from "@thesis/core-engine";
 import {
 	createBooleanValueBlock,
+	createTypeFieldAssignBlock,
+	createTypeFieldReadBlock,
 	createValueBlock,
 	inferExpressionFamilyFromOperationMode,
 	normalizeBinaryOperationModeForExpressionFamily,
@@ -90,10 +92,10 @@ export const applyDeclarationBindingKindToBlock = (
 
 export const convertVariableBlock = (
 	currentBlock: EditorBlock,
-	nextKind: "var_read" | "var_assign" | "var_reference"
+	nextKind: "var" | "var_assign" | "var_reference"
 ): EditorBlock => {
 	if (
-		currentBlock.kind !== "var_read" &&
+		currentBlock.kind !== "var" &&
 		currentBlock.kind !== "var_assign" &&
 		currentBlock.kind !== "var_reference"
 	) {
@@ -135,7 +137,7 @@ export const convertVariableBlock = (
 
 	return {
 		...currentBlock,
-		kind: "var_read",
+		kind: "var",
 		operation: null,
 		outputType: "value",
 		variableName,
@@ -237,3 +239,33 @@ export const applyLiteralValueToBlock = (
 	outputType: typeof normalizedValue === "boolean" ? "boolean" : "value",
 	valueType: typeof normalizedValue === "boolean" ? "boolean" : "text"
 });
+
+export const convertVarBlockToFieldRead = (
+	currentBlock: EditorBlock,
+	fieldName: string
+): EditorBlock => {
+	if (currentBlock.kind !== "var" && currentBlock.kind !== "var_reference") {
+		return currentBlock;
+	}
+	const sourceId = currentBlock.variableSourceId ?? currentBlock.id;
+	const varName = currentBlock.variableName ?? "variable";
+	return {
+		...createTypeFieldReadBlock(sourceId, varName, fieldName, currentBlock.color),
+		id: currentBlock.id
+	};
+};
+
+export const convertVarBlockToFieldAssign = (
+	currentBlock: EditorBlock,
+	fieldName: string
+): EditorBlock => {
+	if (currentBlock.kind !== "var" && currentBlock.kind !== "var_reference") {
+		return currentBlock;
+	}
+	const sourceId = currentBlock.variableSourceId ?? currentBlock.id;
+	const varName = currentBlock.variableName ?? "variable";
+	return {
+		...createTypeFieldAssignBlock(sourceId, varName, fieldName, currentBlock.color),
+		id: currentBlock.id
+	};
+};

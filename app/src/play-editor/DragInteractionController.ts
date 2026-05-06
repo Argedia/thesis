@@ -405,9 +405,9 @@ export class DragInteractionController {
             (block.variableSourceId === dragState.variableSourceId ||
               dragState.variableSourceId == null)
           );
-        case "var_read":
+        case "var":
           return (
-            block.kind === "var_read" &&
+            block.kind === "var" &&
             (block.variableSourceId === dragState.variableSourceId ||
               dragState.variableSourceId == null)
           );

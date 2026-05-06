@@ -14,7 +14,7 @@ export const getOutputType = (block: EditorBlock): OutputType => {
 	}
 
 	if (
-		block.kind === "var_read" &&
+		block.kind === "var" &&
 		block.declaredTypeRef?.kind === "structure" &&
 		block.operation
 	) {
@@ -32,7 +32,7 @@ export const getOutputType = (block: EditorBlock): OutputType => {
 	}
 
 	if (
-		block.kind === "var_read" ||
+		block.kind === "var" ||
 		block.kind === "var_reference" ||
 		block.kind === "type_instance_new" ||
 		block.kind === "type_field_read"
@@ -114,7 +114,7 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 	}
 
 	if (
-		block.kind === "var_read" &&
+		block.kind === "var" &&
 		block.declaredTypeRef?.kind === "structure" &&
 		operationNeedsValue(block.operation)
 	) {

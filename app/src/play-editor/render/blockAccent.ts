@@ -57,7 +57,7 @@ export const getBlockAccentClass = (block: AccentBlock): string | null => {
 				: "accent-variable-declaration";
 		case "var_assign":
 			return "accent-variable-assign";
-		case "var_read":
+		case "var":
 			return "accent-variable-read";
 		case "var_reference":
 			return "accent-variable-reference";

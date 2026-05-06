@@ -25,6 +25,7 @@ export interface RenderDeps {
 	resolveBaseDocumentForDrop: () => PlayEditorSurfaceProps["value"];
 	createPreviewBlockFromDragState: () => EditorBlock | null;
 	getGeometryService: () => import("../DragDropGeometry").DragDropGeometryService;
+	getBlocks: () => EditorBlock[];
 	registry: EngineServiceRegistry;
 }
 
@@ -51,7 +52,7 @@ export const render = (deps: RenderDeps): void => {
 
 	const wheelState = deps.getWheelState();
 	if (wheelState) {
-		const blocks = projectDocumentToEditorBlocks(deps.getProps().value);
+		const blocks = deps.getBlocks();
 		const block = deps.registry.getTreeService().findBlockById(blocks, wheelState.blockId);
 		if (block) {
 			const options = deps.registry.getWheelInteraction().getOptionsForBlock(block);

@@ -4,6 +4,7 @@ import type {
   VariableOperationMode,
   RoutineBindingKind
 } from "../model";
+import type { TypeSignature } from "../model";
 import {
   buildVariableBinaryOperationWheelOptions,
   buildConditionalWheelOptions,
@@ -25,8 +26,11 @@ export interface WheelInteractionContext {
   updateDeclarationBindingKind(blockId: string, bindingKind: RoutineBindingKind): void;
   convertVariableBlockKind(
     blockId: string,
-    kind: "var_read" | "var_reference"
+    kind: "var" | "var_reference"
   ): void;
+  convertBlockToFieldRead(blockId: string, fieldName: string): void;
+  convertBlockToFieldAssign(blockId: string, fieldName: string): void;
+  getTypeSignatures(): TypeSignature[];
   updateRoutineCallMode(
     blockId: string,
     mode: NonNullable<EditorBlock["routineCallMode"]>
@@ -47,7 +51,7 @@ export class WheelInteractionController {
     if (block.kind === "var_binary_operation") {
       return this.getVarBinaryOperationWheelOptions(block);
     }
-    if (block.kind === "var_read" || block.kind === "var_reference") {
+    if (block.kind === "var" || block.kind === "var_reference") {
       return this.getVariableKindWheelOptions(block);
     }
     if (this.ctx.canShowDeclarationBindingWheel(block)) {
@@ -130,14 +134,17 @@ export class WheelInteractionController {
   private getVariableKindWheelOptions(
     block: EditorBlock
   ): WheelOption[] {
-    if (block.kind !== "var_read" && block.kind !== "var_reference") {
+    if (block.kind !== "var" && block.kind !== "var_reference") {
       return [];
     }
     const variableName = block.variableName ?? "variable";
-    const modes: Array<{ kind: "var_read" | "var_reference"; label: string }> = [
-      { kind: "var_read", label: variableName },
-      { kind: "var_reference", label: `ref ${variableName}` }
-    ];
+    const isLevelStructure = block.variableSourceId?.startsWith("__level_structure__");
+    const modes: Array<{ kind: "var" | "var_reference"; label: string }> = isLevelStructure
+      ? [{ kind: "var", label: variableName }]
+      : [
+          { kind: "var", label: variableName },
+          { kind: "var_reference", label: `ref ${variableName}` }
+        ];
 
     const baseOptions = modes.map((option) => ({
       label: option.label,
@@ -150,6 +157,41 @@ export class WheelInteractionController {
         this.ctx.emitStatus("Variable block updated.");
       }
     }));
+
+    if (block.declaredTypeRef?.kind === "user") {
+      const userTypeRef = block.declaredTypeRef;
+      const typeSignature = this.ctx.getTypeSignatures().find(
+        (sig) => sig.typeRoutineId === userTypeRef.typeRoutineId
+      );
+      const fields = typeSignature?.fieldDeclarations ?? [];
+      const fieldOptions: WheelOption[] = fields.flatMap((field) => {
+        const fieldName = field.name?.trim();
+        if (!fieldName) return [];
+        return [
+          {
+            label: `${variableName}.${fieldName}`,
+            className: "peach",
+            onSelect: () => {
+              this.ctx.convertBlockToFieldRead(block.id, fieldName);
+              this.ctx.closeWheel();
+              this.ctx.rerender();
+              this.ctx.emitStatus(`Reading field ${fieldName}.`);
+            }
+          },
+          {
+            label: `${variableName}.${fieldName} =`,
+            className: "peach",
+            onSelect: () => {
+              this.ctx.convertBlockToFieldAssign(block.id, fieldName);
+              this.ctx.closeWheel();
+              this.ctx.rerender();
+              this.ctx.emitStatus(`Assigning field ${fieldName}.`);
+            }
+          }
+        ];
+      });
+      return [...baseOptions, ...fieldOptions];
+    }
 
     if (block.declaredTypeRef?.kind !== "structure") {
       return baseOptions;
@@ -165,12 +207,12 @@ export class WheelInteractionController {
         label: option.label,
         disabled: option.disabled,
         className:
-          block.kind === "var_read" && block.operation === option.operation
+          block.kind === "var" && block.operation === option.operation
             ? `${option.className} selected`
             : option.className,
         onSelect: () => {
-          if (block.kind !== "var_read") {
-            this.ctx.convertVariableBlockKind(block.id, "var_read");
+          if (block.kind !== "var") {
+            this.ctx.convertVariableBlockKind(block.id, "var");
           }
           this.ctx.updateBlockOperation(block.id, option.operation);
           this.ctx.closeWheel();

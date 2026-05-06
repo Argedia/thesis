@@ -1,12 +1,14 @@
 import type { EditorDocument, RoutineSignature, StatementNode } from "../../program-editor-core";
-import type { RuntimeVariableSnapshot } from "../types";
+import type { HeapObjectSnapshot, RuntimeVariableSnapshot } from "../types";
 import {
   formatRuntimeValue,
+  isHeapRefValue,
   isPointerValue,
   isPrimitiveValue,
   isRoutineReferenceValue,
   isTypedObjectValue,
-  type RuntimeStoredValue
+  type RuntimeStoredValue,
+  type RuntimeTypedObjectValue
 } from "./runtime-values";
 
 export interface RuntimeFrame {
@@ -81,7 +83,8 @@ export const getDeclarationLookup = (
 
 export const buildRuntimeVariableSnapshot = (
   declaration: DeclarationLookupEntry,
-  value: RuntimeStoredValue
+  value: RuntimeStoredValue,
+  heap?: Map<string, RuntimeTypedObjectValue>
 ): RuntimeVariableSnapshot => {
   if (isPrimitiveValue(value)) {
     return {
@@ -130,8 +133,43 @@ export const buildRuntimeVariableSnapshot = (
         .sort((left, right) => left[0].localeCompare(right[0]))
         .map(([fieldName, fieldValue]) => ({
           name: fieldName,
-          displayValue: formatRuntimeValue(fieldValue)
+          displayValue: formatRuntimeValue(fieldValue),
+          isRef: false
         }))
+    };
+  }
+
+  if (isHeapRefValue(value)) {
+    if (value.heapId === "null") {
+      return {
+        id: declaration.id,
+        name: declaration.name,
+        scope: declaration.routineName,
+        declaredTypeRef: declaration.declaredTypeRef ?? null,
+        valueKind: "typed-object",
+        displayValue: "null",
+        objectFields: []
+      };
+    }
+    const obj = heap?.get(value.heapId);
+    return {
+      id: declaration.id,
+      name: declaration.name,
+      scope: declaration.routineName,
+      declaredTypeRef: declaration.declaredTypeRef ?? null,
+      valueKind: "typed-object",
+      displayValue: `[${value.typeName}]`,
+      heapRefId: value.heapId,
+      objectFields: obj
+        ? Object.entries(obj.fields)
+            .sort((left, right) => left[0].localeCompare(right[0]))
+            .map(([fieldName, fieldValue]) => ({
+              name: fieldName,
+              displayValue: formatRuntimeValue(fieldValue),
+              isRef: isHeapRefValue(fieldValue),
+              refHeapId: isHeapRefValue(fieldValue) ? fieldValue.heapId : undefined
+            }))
+        : []
     };
   }
 
@@ -147,7 +185,8 @@ export const buildRuntimeVariableSnapshot = (
 
 export const getVisibleVariableSnapshots = (
   document: EditorDocument,
-  runtimeFrames: RuntimeFrame[]
+  runtimeFrames: RuntimeFrame[],
+  heap?: Map<string, RuntimeTypedObjectValue>
 ): RuntimeVariableSnapshot[] => {
   if (runtimeFrames.length === 0) {
     return [];
@@ -162,7 +201,7 @@ export const getVisibleVariableSnapshots = (
       if (!declaration) {
         return;
       }
-      variables.set(declaration.id, buildRuntimeVariableSnapshot(declaration, value));
+      variables.set(declaration.id, buildRuntimeVariableSnapshot(declaration, value, heap));
     });
   });
 
@@ -171,6 +210,23 @@ export const getVisibleVariableSnapshots = (
       left.scope.localeCompare(right.scope) || left.name.localeCompare(right.name)
   );
 };
+
+export const getHeapSnapshots = (
+  heap: Map<string, RuntimeTypedObjectValue>
+): HeapObjectSnapshot[] =>
+  [...heap.entries()].map(([heapId, obj]) => ({
+    heapId,
+    typeName: obj.typeName,
+    typeRoutineId: obj.typeRoutineId,
+    fields: Object.entries(obj.fields)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, val]) => ({
+        name,
+        displayValue: formatRuntimeValue(val),
+        isRef: isHeapRefValue(val),
+        refHeapId: isHeapRefValue(val) ? val.heapId : undefined
+      }))
+  }));
 
 export const setLocalValue = (
   locals: Map<string, RuntimeStoredValue>,

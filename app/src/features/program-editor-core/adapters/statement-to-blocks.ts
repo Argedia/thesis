@@ -70,7 +70,7 @@ const statementToEditorBlock = (
 		if (statement.targetDeclarationId || statement.targetName) {
 			return {
 				id: statement.id,
-				kind: "var_read",
+				kind: "var",
 				color: statement.visual?.color ?? "#b7e4c7",
 				operation: statement.operation,
 				outputType:

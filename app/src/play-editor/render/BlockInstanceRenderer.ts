@@ -92,15 +92,15 @@ export class BlockInstanceRenderer {
 		if (block.declaredTypeRef?.kind === "primitive") {
 			switch (block.declaredTypeRef.primitive) {
 				case "boolean":
-					return "bool";
+					return t("blocks.boolean");
 				case "text":
-					return "string";
+					return t("blocks.text");
 				case "value":
 				default:
-					return "double";
+					return t("blocks.value");
 			}
 		}
-		return "double";
+		return t("blocks.value");
 	}
 
 	private getVariableOperationToken(mode: EditorBlock["variableOperationMode"]): string {
@@ -189,7 +189,7 @@ export class BlockInstanceRenderer {
 		const element = document.createElement("div");
 		element.className = `editor-block sequence editor-block-instance ${nested ? "editor-block-instance-nested " : ""
 			}${blockColorClass(block.operation)}${isPendingStructure ? " pending" : ""}${getBlockInputSlots(block).length > 0 ? " has-input-slot" : ""
-			}${this.ctx.isControlBlock(block) ? " conditional-block" : ""}${block.kind === "var_declaration" || block.kind === "var_assign" || block.kind === "var_read" || block.kind === "var_reference" || block.kind === "var_operation" || block.kind === "var_binary_operation" || block.kind === "type_definition" || block.kind === "type_instance_new" || block.kind === "type_field_read" || block.kind === "type_field_assign" ? " variable-block" : ""
+			}${this.ctx.isControlBlock(block) ? " conditional-block" : ""}${block.kind === "var_declaration" || block.kind === "var_assign" || block.kind === "var" || block.kind === "var_reference" || block.kind === "var_operation" || block.kind === "var_binary_operation" || block.kind === "type_definition" || block.kind === "type_instance_new" || block.kind === "type_field_read" || block.kind === "type_field_assign" ? " variable-block" : ""
 			}${nested && getOutputType(block) !== "value" ? " invalid" : ""}${preview ? " editor-block-preview" : ""}${ghost ? " drag-ghost-block-instance" : ""
 			}${accentClass ? ` ${accentClass}` : ""}${declarationTypeClass ? ` ${declarationTypeClass}` : ""}
       }`.trim();
@@ -203,7 +203,7 @@ export class BlockInstanceRenderer {
 		if (
 			block.kind === "structure" ||
 			block.kind === "conditional" ||
-			block.kind === "var_read" ||
+			block.kind === "var" ||
 			block.kind === "var_assign" ||
 			block.kind === "var_reference" ||
 			block.kind === "var_operation" ||
@@ -272,7 +272,7 @@ export class BlockInstanceRenderer {
 				void this.ctx.editVariableName(block.id, block.routineName ?? block.typeName);
 			});
 		} else if (
-			block.kind === "var_read" ||
+			block.kind === "var" ||
 			block.kind === "var_assign" ||
 			block.kind === "var_reference" ||
 			block.kind === "type_field_read" ||
@@ -416,7 +416,7 @@ export class BlockInstanceRenderer {
 			return;
 		}
 
-		if (block.kind === "var_read" && block.declaredTypeRef?.kind === "structure" && block.operation) {
+		if (block.kind === "var" && block.declaredTypeRef?.kind === "structure" && block.operation) {
 			const label = document.createElement("strong");
 			label.className = "editor-block-instance-label";
 			label.textContent = describeBlock(block);
@@ -601,7 +601,7 @@ export class BlockInstanceRenderer {
 		if (
 			block.kind !== "structure" &&
 			block.kind !== "conditional" &&
-			block.kind !== "var_read" &&
+			block.kind !== "var" &&
 			block.kind !== "var_reference" &&
 			block.kind !== "var_operation" &&
 			block.kind !== "var_binary_operation" &&

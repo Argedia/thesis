@@ -19,6 +19,15 @@ export type RuntimeVariableKind =
 export interface RuntimeVariableFieldSnapshot {
   name: string;
   displayValue: string | number | boolean;
+  isRef: boolean;
+  refHeapId?: string;
+}
+
+export interface HeapObjectSnapshot {
+  heapId: string;
+  typeName: string;
+  typeRoutineId: string;
+  fields: RuntimeVariableFieldSnapshot[];
 }
 
 export interface RuntimeVariableSnapshot {
@@ -31,12 +40,14 @@ export interface RuntimeVariableSnapshot {
   objectFields?: RuntimeVariableFieldSnapshot[];
   referenceTargetId?: string;
   referenceTargetName?: string;
+  heapRefId?: string;
 }
 
 export interface PlaySessionState {
   level: LevelDefinition | null;
   structures: StructureSnapshot[];
   variableSnapshots: RuntimeVariableSnapshot[];
+  heapSnapshots: HeapObjectSnapshot[];
   events: EngineEvent[];
   runState: PlayRunState;
   stepCursor: number;

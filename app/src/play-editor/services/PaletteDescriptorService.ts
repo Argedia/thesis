@@ -77,7 +77,7 @@ export class PaletteDescriptorService {
       };
     }
 
-    if (block.kind === "var_read") {
+    if (block.kind === "var") {
       return {
         chip: block.variableName?.slice(0, 3).toUpperCase() ?? "VAR",
         label: block.variableName ?? translate("blocks.variable")

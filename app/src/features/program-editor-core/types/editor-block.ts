@@ -29,7 +29,7 @@ export type EditorBlockKind =
 	| "break"
 	| "var_declaration"
 	| "var_assign"
-	| "var_read"
+	| "var"
 	| "var_reference"
 	| "var_operation"
 	| "var_binary_operation"

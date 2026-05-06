@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { Panel, PuzzleBoard } from "@thesis/ui-editor";
 import type { StructureSnapshot } from "@thesis/core-engine";
-import type { RuntimeVariableSnapshot } from "../play-session/types";
+import type { HeapObjectSnapshot, RuntimeVariableSnapshot } from "../play-session/types";
 import type { StructureConfigClickPayload } from "@thesis/ui-editor";
 
 interface BoardPanelProps {
@@ -11,6 +11,7 @@ interface BoardPanelProps {
   structures: StructureSnapshot[];
   goalState: StructureSnapshot[];
   variableSnapshots: RuntimeVariableSnapshot[];
+  heapSnapshots: HeapObjectSnapshot[];
   events: Array<{ stepId: string; type: string; structureId: string; value?: unknown }>;
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
@@ -23,6 +24,7 @@ export function BoardPanel({
   structures,
   goalState,
   variableSnapshots,
+  heapSnapshots,
   events,
   showStructureConfigActions = false,
   onStructureConfigClick
@@ -43,6 +45,7 @@ export function BoardPanel({
             <PuzzleBoard
               structures={isShowingGoalPreview ? goalState : structures}
               variables={isShowingGoalPreview ? [] : variableSnapshots}
+              heapObjects={isShowingGoalPreview ? [] : heapSnapshots}
               showStructureConfigActions={showStructureConfigActions}
               onStructureConfigClick={onStructureConfigClick}
             />

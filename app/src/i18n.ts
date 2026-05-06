@@ -30,6 +30,7 @@ const resources = {
 				hideLevelInfo: "Hide level info",
 				solvePuzzle: "Solve the puzzle.",
 				variables: "Variables",
+				object: "Object",
 				empty: "Empty",
 				noVariables: "No variables yet",
 				items: "items",
@@ -167,7 +168,7 @@ const resources = {
 				referenceTo: "reference to",
 				variable: "Variable",
 				operation: "Operation",
-				value: "Value",
+				value: "Number",
 				text: "Text",
 				boolean: "Boolean",
 				function: "Function"
@@ -231,6 +232,7 @@ const resources = {
 				hideLevelInfo: "Ocultar información del nivel",
 				solvePuzzle: "Resuelve el desafío.",
 				variables: "Variables",
+				object: "Objeto",
 				empty: "Vacío",
 				noVariables: "Aún no hay variables",
 				items: "elementos",
@@ -368,7 +370,7 @@ const resources = {
 				referenceTo: "referencia a",
 				variable: "Variable",
 				operation: "Operación",
-				value: "Valor",
+				value: "Número",
 				text: "Texto",
 				boolean: "Booleano",
 				function: "Función"

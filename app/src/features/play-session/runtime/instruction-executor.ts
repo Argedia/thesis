@@ -12,6 +12,7 @@ import { findNode } from "../../program-editor-core";
 import {
   assertPrimitiveValue,
   asBoolean,
+  isPointerValue,
   isRuntimeValueCompatibleWithDeclaredType,
   isTypedObjectValue,
   type RuntimeStoredValue
@@ -37,6 +38,8 @@ import {
   type InterpreterContext
 } from "./interpreter";
 import { executeOperationWithLevelConstraints } from "./constraints";
+import { createTypedObjectValue, resolveHeapObject } from "./typed-objects";
+import { isHeapRefValue } from "./runtime-values";
 
 const MAX_WHILE_ITERATIONS = 20;
 const MAX_FUNCTION_CALL_DEPTH = 20;
@@ -121,7 +124,11 @@ export const executeInstruction = (
 
     case "declare":
       if (statement?.kind === "declare" && !frame.locals.has(statement.id)) {
-        setLocalValue(frame.locals, statement.id, statement.variableName, false);
+        const initialValue =
+          statement.declaredTypeRef?.kind === "user"
+            ? createTypedObjectValue(ctx.document, statement.declaredTypeRef.typeRoutineId, ctx.typedObjectHeap)
+            : false;
+        setLocalValue(frame.locals, statement.id, statement.variableName, initialValue);
       }
       frame.ip += 1;
       return;
@@ -139,11 +146,28 @@ export const executeInstruction = (
 
     case "type-field-assign": {
       if (!statement || statement.kind !== "type-field-assign") throw new Error("Type field assignment target is missing.");
-      const current = readVariableValue(ctx.runtimeFrames, statement.targetDeclarationId, statement.targetName);
+      let current = readVariableValue(ctx.runtimeFrames, statement.targetDeclarationId, statement.targetName);
+      let resolvedDeclarationId = statement.targetDeclarationId;
+      let resolvedName = statement.targetName;
+      if (isPointerValue(current) && current.targetKind === "variable") {
+        resolvedDeclarationId = current.targetId;
+        resolvedName = current.targetName;
+        current = readVariableValue(ctx.runtimeFrames, resolvedDeclarationId, resolvedName);
+      }
+      const newFieldValue = evaluateExpression(statement.value, ctx).value;
+      if (isHeapRefValue(current)) {
+        if (current.heapId === "null") throw new Error(`Null pointer: "${statement.targetName}" is null.`);
+        const obj = resolveHeapObject(current, ctx.typedObjectHeap);
+        if (!obj) throw new Error(`Object "${statement.targetName}" no longer exists.`);
+        if (!(statement.fieldName in obj.fields)) throw new Error("unknown_type_field");
+        obj.fields[statement.fieldName] = newFieldValue;
+        frame.ip += 1;
+        return;
+      }
       if (!isTypedObjectValue(current)) throw new Error(`Variable "${statement.targetName}" is not a typed object.`);
       if (!(statement.fieldName in current.fields)) throw new Error("unknown_type_field");
-      current.fields[statement.fieldName] = evaluateExpression(statement.value, ctx).value;
-      setLocalValue(frame.locals, statement.targetDeclarationId, statement.targetName, current);
+      current.fields[statement.fieldName] = newFieldValue;
+      setLocalValue(frame.locals, resolvedDeclarationId, resolvedName, current);
       frame.ip += 1;
       return;
     }

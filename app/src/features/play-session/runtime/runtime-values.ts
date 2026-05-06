@@ -27,12 +27,20 @@ export interface RuntimeTypedObjectValue {
   fields: Record<string, RuntimeStoredValue>;
 }
 
+export interface RuntimeHeapRefValue {
+  kind: "heap-ref";
+  heapId: string;
+  typeRoutineId: string;
+  typeName: string;
+}
+
 export type RuntimeStoredValue =
   | DataValue
   | RuntimeFunctionReferenceValue
   | RuntimeObjectValue
   | RuntimePointerValue
-  | RuntimeTypedObjectValue;
+  | RuntimeTypedObjectValue
+  | RuntimeHeapRefValue;
 
 export const isPrimitiveValue = (value: RuntimeStoredValue): value is DataValue =>
   typeof value === "string" || typeof value === "number" || typeof value === "boolean";
@@ -51,6 +59,9 @@ export const isPointerValue = (value: RuntimeStoredValue): value is RuntimePoint
 export const isTypedObjectValue = (value: RuntimeStoredValue): value is RuntimeTypedObjectValue =>
   typeof value === "object" && value !== null && value.kind === "typed-object";
 
+export const isHeapRefValue = (value: RuntimeStoredValue): value is RuntimeHeapRefValue =>
+  typeof value === "object" && value !== null && value.kind === "heap-ref";
+
 export const formatRuntimeValue = (value: RuntimeStoredValue): string | number | boolean => {
   if (isPrimitiveValue(value)) {
     return value;
@@ -66,6 +77,10 @@ export const formatRuntimeValue = (value: RuntimeStoredValue): string | number |
 
   if (isTypedObjectValue(value)) {
     return `[${value.typeName}]`;
+  }
+
+  if (isHeapRefValue(value)) {
+    return value.heapId === "null" ? "null" : `[${value.typeName}]`;
   }
 
   return `[object ${value.routineName}]`;
@@ -90,7 +105,11 @@ export const isRuntimeValueCompatibleWithDeclaredType = (
   if (expected.kind === "structure") {
     return isPointerValue(value) && value.targetKind === "structure";
   }
-  return isTypedObjectValue(value) && value.typeRoutineId === expected.typeRoutineId;
+  if (isHeapRefValue(value) && value.heapId === "null") return true;
+  return (
+    (isTypedObjectValue(value) || isHeapRefValue(value)) &&
+    value.typeRoutineId === expected.typeRoutineId
+  );
 };
 
 export const assertPrimitiveValue = (value: RuntimeStoredValue): DataValue => {

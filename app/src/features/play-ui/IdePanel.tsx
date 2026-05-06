@@ -40,7 +40,14 @@ interface IdePanelProps {
 function RunIconButton({ icon, label, onClick, disabled }: { icon: string; label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <TooltipTrigger delay={200} closeDelay={80}>
-      <Button className="ide-run-icon-button" aria-label={label} onPress={onClick} isDisabled={disabled}>{icon}</Button>
+      <Button
+        className={`ide-run-icon-button${disabled ? " is-disabled" : ""}`}
+        aria-label={label}
+        onPress={disabled ? undefined : onClick}
+        isDisabled={disabled}
+      >
+        {icon}
+      </Button>
       <Tooltip className="app-tooltip">{label}</Tooltip>
     </TooltipTrigger>
   );

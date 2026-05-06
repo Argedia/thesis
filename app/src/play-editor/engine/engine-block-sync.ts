@@ -18,7 +18,7 @@ export const synchronizeVariableLabels = (options: {
 	const syncBlock = (block: EditorBlock): EditorBlock => {
 		let nextBlock = block;
 		if (
-			(block.kind === "var_read" ||
+			(block.kind === "var" ||
 				block.kind === "var_assign" ||
 				block.kind === "var_operation" ||
 				block.kind === "type_field_read" ||

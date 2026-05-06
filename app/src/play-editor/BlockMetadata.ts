@@ -78,7 +78,7 @@ export const BLOCK_METADATA: Record<EditorBlock["kind"], BlockMetadata> = {
 		paletteGroup: "variables",
 		labelI18nKey: "blocks.assign"
 	},
-	var_read: {
+	var: {
 		paletteGroup: "variables",
 		labelI18nKey: "blocks.read"
 	},

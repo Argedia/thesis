@@ -167,14 +167,18 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 		};
 	}
 
-	if (block.kind === "var_read" && block.declaredTypeRef?.kind === "structure" && block.operation) {
+	if (block.kind === "var" && block.declaredTypeRef?.kind === "structure" && block.operation) {
+		const isLevelStructure = block.variableSourceId?.startsWith("__level_structure__");
+		const resolvedStructureId = isLevelStructure
+			? block.variableSourceId!.slice("__level_structure__".length)
+			: block.variableName?.trim() || "structure";
 		return {
 			id: block.id,
 			kind: "call",
 			calleeKind: "structure",
-			structureId: block.variableName?.trim() || "structure",
+			structureId: resolvedStructureId,
 			structureKind: block.declaredTypeRef.structureKind,
-			targetDeclarationId: block.variableSourceId ?? block.id,
+			targetDeclarationId: isLevelStructure ? null : (block.variableSourceId ?? block.id),
 			targetName: block.variableName?.trim() || "structure",
 			operation: block.operation,
 			args: block.inputBlock ? [editorBlockToExpression(block.inputBlock)] : [],
@@ -184,7 +188,7 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 
 	if (
 		block.kind === "var_operation" ||
-		block.kind === "var_read" ||
+		block.kind === "var" ||
 		block.kind === "var_reference" ||
 		block.kind === "var_binary_operation" ||
 		block.kind === "type_instance_new" ||
@@ -214,7 +218,7 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 const normalizeEditorBlock = (block: EditorBlock): EditorBlock => {
 	if (block.kind === "var_operation") {
 		const mode = block.variableOperationMode ?? "value";
-		return { ...block, kind: mode === "assign" ? "var_assign" : "var_read" };
+		return { ...block, kind: mode === "assign" ? "var_assign" : "var" };
 	}
 	return block;
 };

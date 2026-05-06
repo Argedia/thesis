@@ -90,7 +90,7 @@ export class PaletteRenderer {
     ) {
       return "created";
     }
-    if (block.kind === "var_read") {
+    if (block.kind === "var") {
       return "scope";
     }
     return "base";
@@ -226,8 +226,8 @@ export class PaletteRenderer {
           : this.ctx.getEmptyPaletteLaneText();
         list.appendChild(emptyGroup);
       } else if (groupId === "variables") {
-        const declaredVariableBlocks = groupBlocks.filter((block) => block.kind === "var_read");
-        const variableToolBlocks = groupBlocks.filter((block) => block.kind !== "var_read");
+        const declaredVariableBlocks = groupBlocks.filter((block) => block.kind === "var");
+        const variableToolBlocks = groupBlocks.filter((block) => block.kind !== "var");
 
         if (lane === "scope") {
           const globalScopeBlocks = declaredVariableBlocks.filter(

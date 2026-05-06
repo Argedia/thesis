@@ -409,6 +409,12 @@ export class EngineServiceRegistry {
 					this.getBlockActionController().updateDeclarationBindingKind(blockId, bindingKind),
 				convertVariableBlockKind: (blockId, kind) =>
 					this.getBlockActionController().convertVariableBlockKind(blockId, kind),
+				convertBlockToFieldRead: (blockId, fieldName) =>
+					this.getBlockActionController().convertToFieldRead(blockId, fieldName),
+				convertBlockToFieldAssign: (blockId, fieldName) =>
+					this.getBlockActionController().convertToFieldAssign(blockId, fieldName),
+				getTypeSignatures: () =>
+					listTypeSignatures(this.deps.getProps().value),
 				updateRoutineCallMode: (blockId, mode) =>
 					this.getBlockActionController().updateRoutineCallMode(blockId, mode),
 				updateBlockOperation: (blockId, operation) =>

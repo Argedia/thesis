@@ -19,6 +19,7 @@ import type {
 } from "./types";
 import { goalMatches } from "./runtime/progress";
 import {
+  getHeapSnapshots,
   getVisibleVariableSnapshots,
   setLocalValue,
   type RuntimeFrame,
@@ -36,6 +37,7 @@ const createInitialState = (): PlaySessionState => {
     level: null,
     structures: [],
     variableSnapshots: [],
+    heapSnapshots: [],
     events: [],
     runState: "idle",
     stepCursor: 0,
@@ -59,6 +61,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private loopIterationCounts = new Map<string, number>();
   private runtimeFrames: RuntimeFrame[] = [];
   private runtimeObjectInstances = new Map<string, RuntimeObjectInstance>();
+  private typedObjectHeap = new Map<string, import("./runtime/runtime-values").RuntimeTypedObjectValue>();
   private routineSelectionBeforeRun: string | null = null;
   private runtimeVisibleStepCount = 0;
   private runtimeOperationUsage = new Map<string, number>();
@@ -278,6 +281,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       compiled,
       runtimeFrames: this.runtimeFrames,
       runtimeObjectInstances: this.runtimeObjectInstances,
+      typedObjectHeap: this.typedObjectHeap,
       loopIterationCounts: this.loopIterationCounts,
       lastConditionResult: this.lastConditionResult,
       syncFromEngine: () => this.syncFromEngine(),
@@ -389,7 +393,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       ...this.state,
       ...partial,
       variableSnapshots:
-        partial.variableSnapshots ?? getVisibleVariableSnapshots(nextDocument, this.runtimeFrames)
+        partial.variableSnapshots ?? getVisibleVariableSnapshots(nextDocument, this.runtimeFrames, this.typedObjectHeap),
+      heapSnapshots:
+        partial.heapSnapshots ?? getHeapSnapshots(this.typedObjectHeap)
     };
     this.listeners.forEach((listener) => listener(this.state));
   }
@@ -422,6 +428,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.loopIterationCounts.clear();
     this.runtimeFrames = [];
     this.runtimeObjectInstances.clear();
+    this.typedObjectHeap.clear();
     this.routineSelectionBeforeRun = null;
     this.runtimeVisibleStepCount = 0;
     this.runtimeOperationUsage.clear();

@@ -593,7 +593,7 @@ export function EditorShell(_props: EditorShellProps) {
             breakpointNodeIds={breakpointNodeIds}
             events={[]}
             structures={draftLevel.initialState}
-            allowedOperations={getPermittedOperationsFromPolicy(draftLevel.constraints.operationPolicy)}
+            allowedOperations={[...LEVEL_OPERATIONS]}
             blockLimits={blockLimits}
             onSetBlockLimit={(limitKey, nextValue) => {
               const normalized = Math.max(0, Math.floor(nextValue));
@@ -639,6 +639,7 @@ export function EditorShell(_props: EditorShellProps) {
               structures={draftLevel.initialState}
               goalState={draftLevel.goalState}
               variableSnapshots={isGoalPreview ? [] : previewVariables}
+              heapSnapshots={[]}
               events={[]}
               showStructureConfigActions
               onStructureConfigClick={handleStructureConfigClick}

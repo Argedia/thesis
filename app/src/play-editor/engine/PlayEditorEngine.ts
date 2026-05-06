@@ -231,7 +231,8 @@ export class PlayEditorEngine {
 			getActiveRoutineName: () => this.getActiveRoutineName(),
 			setDocument: (doc) => this.props.onChange(doc),
 			getMutationService: () => this.registry.getMutationService(),
-			getTreeService: () => this.registry.getTreeService()
+			getTreeService: () => this.registry.getTreeService(),
+			getRehydratedBlocks: () => this.getBlocks()
 		};
 	}
 
@@ -280,6 +281,7 @@ export class PlayEditorEngine {
 					this.dragState,
 					(blockId) => this.registry.getTreeService().findBlockById(this.getBlocks(), blockId)
 				),
+			getBlocks: () => this.getBlocks(),
 			getGeometryService: () => this.registry.getGeometryService(),
 			registry: this.registry
 		});
@@ -317,7 +319,76 @@ export class PlayEditorEngine {
 	// ---------------------------------------------------------------------------
 
 	private getBlocks(): EditorBlock[] {
-		return projectDocumentToEditorBlocks(this.props.value);
+		const projectedBlocks = projectDocumentToEditorBlocks(this.props.value);
+		return this.rehydrateLevelStructureTypeRefs(projectedBlocks);
+	}
+
+	private rehydrateLevelStructureTypeRefs(blocks: EditorBlock[]): EditorBlock[] {
+		const prefix = "__level_structure__";
+		const structureKinds = new Map(
+			this.props.structures.map((structure) => [structure.id.trim(), structure.kind] as const)
+		);
+
+		const syncBlock = (block: EditorBlock): EditorBlock => {
+			let nextBlock = block;
+			if (
+				(block.kind === "var" ||
+					block.kind === "var_assign" ||
+					block.kind === "var_operation" ||
+					block.kind === "type_field_read" ||
+					block.kind === "type_field_assign") &&
+				block.variableSourceId?.startsWith(prefix)
+			) {
+				const structureId = block.variableSourceId.slice(prefix.length).trim();
+				const structureKind =
+					structureKinds.get(structureId) ??
+					(block.declaredTypeRef?.kind === "structure"
+						? block.declaredTypeRef.structureKind
+						: null);
+				const nextDeclaredTypeRef =
+					structureKind !== null ? { kind: "structure" as const, structureKind } : null;
+				const mustSyncType =
+					!!nextDeclaredTypeRef &&
+					(block.declaredTypeRef?.kind !== "structure" ||
+						block.declaredTypeRef.structureKind !== nextDeclaredTypeRef.structureKind);
+				const mustSyncName = (!block.variableName || block.variableName.trim().length === 0) && structureId.length > 0;
+				if (mustSyncType || mustSyncName) {
+					nextBlock = {
+						...nextBlock,
+						declaredTypeRef: nextDeclaredTypeRef ?? nextBlock.declaredTypeRef,
+						variableName: block.variableName?.trim().length
+							? block.variableName
+							: structureId
+					};
+				}
+			}
+
+			const syncedInputBlock = nextBlock.inputBlock ? syncBlock(nextBlock.inputBlock) : nextBlock.inputBlock;
+			const syncedInputBlocks = nextBlock.inputBlocks?.map((inputBlock) =>
+				inputBlock ? syncBlock(inputBlock) : inputBlock
+			);
+			const syncedBodyBlocks = nextBlock.bodyBlocks?.map(syncBlock);
+			const syncedAlternateBodyBlocks = nextBlock.alternateBodyBlocks?.map(syncBlock);
+
+			if (
+				syncedInputBlock !== nextBlock.inputBlock ||
+				syncedInputBlocks !== nextBlock.inputBlocks ||
+				syncedBodyBlocks !== nextBlock.bodyBlocks ||
+				syncedAlternateBodyBlocks !== nextBlock.alternateBodyBlocks
+			) {
+				nextBlock = {
+					...nextBlock,
+					inputBlock: syncedInputBlock,
+					inputBlocks: syncedInputBlocks,
+					bodyBlocks: syncedBodyBlocks,
+					alternateBodyBlocks: syncedAlternateBodyBlocks
+				};
+			}
+
+			return nextBlock;
+		};
+
+		return blocks.map(syncBlock);
 	}
 
 	private getRoutineSignatures(): Record<string, RoutineSignature> {

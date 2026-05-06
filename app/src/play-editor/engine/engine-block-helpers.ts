@@ -29,6 +29,7 @@ export interface BlockHelperDeps {
 	setDocument: (doc: PlayEditorSurfaceProps["value"]) => void;
 	getMutationService: () => import("../BlockMutationService").BlockMutationService;
 	getTreeService: () => import("../BlockTreeService").BlockTreeService;
+	getRehydratedBlocks?: () => EditorBlock[];
 }
 
 export const updateActiveProgram = (
@@ -44,7 +45,7 @@ export const replaceProjectedBlockById = (
 	blockId: string,
 	updater: (block: EditorBlock) => EditorBlock
 ): void => {
-	const blocks = projectDocumentToEditorBlocks(deps.getProps().value);
+	const blocks = deps.getRehydratedBlocks?.() ?? projectDocumentToEditorBlocks(deps.getProps().value);
 	const currentBlock = deps.getTreeService().findBlockById(blocks, blockId);
 	if (!currentBlock) return;
 

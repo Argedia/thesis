@@ -73,7 +73,7 @@ export const describeBlock = (block: EditorBlock): string => {
 		return `${block.variableName?.trim() || t("blocks.variable").toLowerCase()} =`;
 	}
 
-	if (block.kind === "var_read") {
+	if (block.kind === "var") {
 		if (block.declaredTypeRef?.kind === "structure" && block.operation) {
 			return describeOperation(block.operation, block.variableName?.trim() || t("blocks.variable"));
 		}

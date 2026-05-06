@@ -16,10 +16,22 @@ const cardStyle: CSSProperties = {
   background: "#fff4dc"
 };
 
+export interface BoardHeapObjectSnapshot {
+  heapId: string;
+  typeName: string;
+  fields: Array<{
+    name: string;
+    displayValue: string | number | boolean;
+    isRef: boolean;
+    refHeapId?: string;
+  }>;
+}
+
 export interface StructuresBoardProps {
   structures: StructureSnapshot[];
   handValue?: string | number | null;
   variables?: BoardVariableSnapshot[];
+  heapObjects?: BoardHeapObjectSnapshot[];
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 }
@@ -47,6 +59,7 @@ export interface BoardVariableSnapshot {
   }>;
   referenceTargetId?: string;
   referenceTargetName?: string;
+  heapRefId?: string;
 }
 
 const t = (key: string, options?: Record<string, unknown>) =>
@@ -97,6 +110,7 @@ const drawRoundedRect = (
 export function StructuresBoard({
   structures,
   variables = [],
+  heapObjects = [],
   showStructureConfigActions = false,
   onStructureConfigClick
 }: StructuresBoardProps) {
@@ -117,7 +131,9 @@ export function StructuresBoard({
       const normalizedStructures = structures.map((structure) => normalizeStructureSnapshot(structure));
       const width = Math.max(host.clientWidth, 320);
       const availableHeight = Math.max(host.clientHeight, 360);
-      const cardCount = normalizedStructures.length + variables.length;
+
+      // --- main grid (structures + variables) ---
+      const mainCardCount = normalizedStructures.length + variables.length;
       const baseHorizontalPadding = width < 520 ? 10 : width < 900 ? 14 : 22;
       const baseVerticalPadding = width < 520 ? 10 : width < 900 ? 14 : 20;
       const baseGutter = width < 520 ? 10 : width < 900 ? 16 : 24;
@@ -126,11 +142,21 @@ export function StructuresBoard({
         1,
         Math.min(2, Math.floor((width - baseHorizontalPadding * 2 + baseGutter) / (minCardWidth + baseGutter)))
       );
-      const rowCount = Math.max(1, Math.ceil(cardCount / columns));
+      const rowCount = Math.max(1, Math.ceil(mainCardCount / columns));
       const cellWidth = (width - baseHorizontalPadding * 2 - baseGutter * (columns - 1)) / columns;
       const naturalCellHeight = Math.max(176, Math.min(220, Math.round(148 + cellWidth * 0.18)));
+
+      // --- heap strip layout ---
+      const heapCardW = Math.max(110, Math.round(width < 520 ? 100 : 130));
+      const heapCardH = 52;
+      const heapGutter = 6;
+      const heapPad = baseHorizontalPadding;
+      const heapCols = Math.max(1, Math.floor((width - heapPad * 2 + heapGutter) / (heapCardW + heapGutter)));
+      const heapRows = heapObjects.length > 0 ? Math.ceil(heapObjects.length / heapCols) : 0;
+      const heapStripH = heapRows > 0 ? heapRows * heapCardH + (heapRows - 1) * heapGutter + heapGutter * 2 : 0;
+
       const naturalContentHeight =
-        baseVerticalPadding * 2 + rowCount * naturalCellHeight + baseGutter * (rowCount - 1);
+        baseVerticalPadding * 2 + rowCount * naturalCellHeight + baseGutter * (rowCount - 1) + heapStripH;
       const fitScale =
         naturalContentHeight > availableHeight ? availableHeight / naturalContentHeight : 1;
       const layoutScale = Math.max(0.58, Math.min(1, cellWidth / 420, fitScale));
@@ -138,8 +164,9 @@ export function StructuresBoard({
       const verticalPadding = Math.max(8, Math.round(baseVerticalPadding * layoutScale));
       const gutter = Math.max(8, Math.round(baseGutter * layoutScale));
       const cellHeight = Math.max(132, Math.round(naturalCellHeight * layoutScale));
-      const contentHeight =
+      const mainContentHeight =
         verticalPadding * 2 + rowCount * cellHeight + gutter * (rowCount - 1);
+      const contentHeight = mainContentHeight + heapStripH;
       const height = Math.max(Math.min(availableHeight, Math.max(contentHeight, 220)), 220);
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.floor(width * dpr);
@@ -586,6 +613,109 @@ export function StructuresBoard({
         ctx.fill();
       });
 
+      const heapAnchors = new Map<string, { leftX: number; rightX: number; midY: number }>();
+
+      // heap strip starts below main grid
+      const heapStripTop = mainContentHeight;
+
+      if (heapObjects.length > 0) {
+        // section label
+        ctx.font = `800 10px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#c07020";
+        ctx.fillText("HEAP", heapPad, heapStripTop + 13);
+      }
+
+      heapObjects.forEach((obj, heapIndex) => {
+        const hCol = heapIndex % heapCols;
+        const hRow = Math.floor(heapIndex / heapCols);
+        const frameX = heapPad + hCol * (heapCardW + heapGutter);
+        const frameY = heapStripTop + heapGutter + hRow * (heapCardH + heapGutter);
+        const frameWidth = heapCardW;
+        const frameHeight = heapCardH;
+
+        ctx.fillStyle = "rgba(255, 245, 225, 0.97)";
+        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, 8);
+        ctx.fill();
+        ctx.strokeStyle = "#d4821e";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // type name
+        ctx.font = `800 11px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#7a4010";
+        ctx.textAlign = "start";
+        ctx.fillText(obj.typeName, frameX + 7, frameY + 14);
+
+        // short id
+        ctx.font = `600 9px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#b08050";
+        ctx.textAlign = "right";
+        ctx.fillText(`#${obj.heapId.slice(0, 6)}`, frameX + frameWidth - 5, frameY + 14);
+        ctx.textAlign = "start";
+
+        // fields — one per line, compact
+        const maxFields = Math.min(obj.fields.length, 3);
+        for (let fi = 0; fi < maxFields; fi += 1) {
+          const field = obj.fields[fi]!;
+          const fy = frameY + 24 + fi * 11;
+          ctx.font = `700 9px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+          ctx.fillStyle = field.isRef ? "#b06a10" : "#4f6a8a";
+          ctx.textAlign = "start";
+          ctx.fillText(`${field.name}:`, frameX + 7, fy);
+          ctx.textAlign = "right";
+          ctx.fillText(
+            field.isRef ? `→#${String(field.refHeapId ?? "").slice(0, 6)}` : String(field.displayValue),
+            frameX + frameWidth - 5,
+            fy
+          );
+          ctx.textAlign = "start";
+        }
+
+        heapAnchors.set(obj.heapId, {
+          leftX: frameX,
+          rightX: frameX + frameWidth,
+          midY: frameY + frameHeight * 0.5
+        });
+      });
+
+      const drawArrow = (
+        startX: number, startY: number, endX: number, endY: number, color: string
+      ) => {
+        const controlOffset = Math.max(26, Math.abs(endX - startX) * 0.32);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(1.5, Math.round(2 * layoutScale));
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.bezierCurveTo(startX + controlOffset, startY, endX - controlOffset, endY, endX, endY);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - Math.round(8 * layoutScale), endY - Math.round(5 * layoutScale));
+        ctx.lineTo(endX - Math.round(8 * layoutScale), endY + Math.round(5 * layoutScale));
+        ctx.closePath();
+        ctx.fill();
+      };
+
+      variables.forEach((variable) => {
+        if (variable.valueKind !== "typed-object" || !variable.heapRefId) return;
+        const source = variableAnchors.get(variable.id);
+        const target = heapAnchors.get(variable.heapRefId);
+        if (!source || !target) return;
+        drawArrow(source.rightX, source.midY, target.leftX, target.midY, "#e08c3a");
+      });
+
+      heapObjects.forEach((obj) => {
+        const source = heapAnchors.get(obj.heapId);
+        if (!source) return;
+        obj.fields.forEach((field) => {
+          if (!field.isRef || !field.refHeapId) return;
+          const target = heapAnchors.get(field.refHeapId);
+          if (!target) return;
+          drawArrow(source.rightX, source.midY + Math.round(10 * layoutScale), target.leftX, target.midY - Math.round(10 * layoutScale), "#c07830");
+        });
+      });
+
       structureConfigHitboxesRef.current = structureConfigHitboxes;
     };
 
@@ -655,7 +785,7 @@ export function StructuresBoard({
       canvas.style.cursor = "default";
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [onStructureConfigClick, showStructureConfigActions, structures, variables]);
+  }, [onStructureConfigClick, showStructureConfigActions, structures, variables, heapObjects]);
 
   return (
     <section style={boardWrapperStyle}>
@@ -974,6 +1104,7 @@ export interface PuzzleBoardProps {
   structures: StructureSnapshot[];
   handValue?: string | number | null;
   variables?: BoardVariableSnapshot[];
+  heapObjects?: BoardHeapObjectSnapshot[];
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 }
@@ -981,6 +1112,7 @@ export interface PuzzleBoardProps {
 export function PuzzleBoard({
   structures,
   variables,
+  heapObjects,
   showStructureConfigActions,
   onStructureConfigClick
 }: PuzzleBoardProps) {
@@ -988,6 +1120,7 @@ export function PuzzleBoard({
     <StructuresBoard
       structures={structures}
       variables={variables}
+      heapObjects={heapObjects}
       showStructureConfigActions={showStructureConfigActions}
       onStructureConfigClick={onStructureConfigClick}
     />

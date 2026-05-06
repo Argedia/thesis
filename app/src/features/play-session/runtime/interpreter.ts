@@ -11,6 +11,8 @@ import {
   applyVariableOperator,
   asBoolean,
   assertPrimitiveValue,
+  isHeapRefValue,
+  isPointerValue,
   isRoutineReferenceValue,
   isRuntimeValueCompatibleWithDeclaredType,
   isTypedObjectValue,
@@ -35,7 +37,7 @@ import {
   resolveStructureTargetId,
   resolveStructureTargetIdFromFrames
 } from "./structure-ops";
-import { createTypedObjectValue } from "./typed-objects";
+import { createTypedObjectValue, resolveHeapObject } from "./typed-objects";
 import type { StructureCallStatement } from "../../program-editor-core";
 import { executeOperationWithLevelConstraints } from "./constraints";
 
@@ -51,6 +53,7 @@ export interface InterpreterContext {
   compiled: CompileResult;
   runtimeFrames: RuntimeFrame[];
   runtimeObjectInstances: Map<string, RuntimeObjectInstance>;
+  typedObjectHeap: Map<string, import("./runtime-values").RuntimeTypedObjectValue>;
   loopIterationCounts: Map<string, number>;
   lastConditionResult: boolean | null;
   syncFromEngine: () => void;
@@ -108,8 +111,13 @@ export const evaluateExpression = (
   }
 
   switch (expression.kind) {
-    case "literal":
-      return { kind: "literal", value: expression.value };
+    case "literal": {
+      const literalVal = expression.value;
+      if (typeof literalVal === "string" && literalVal.trim().toLowerCase() === "null") {
+        return { kind: "literal", value: { kind: "heap-ref", heapId: "null", typeRoutineId: "", typeName: "null" } };
+      }
+      return { kind: "literal", value: literalVal };
+    }
 
     case "structure": {
       if (!expression.operation || !isSourceOperation(expression.operation)) {
@@ -189,10 +197,20 @@ export const evaluateExpression = (
       };
 
     case "type-instance":
-      return { kind: "literal", value: createTypedObjectValue(ctx.document, expression.typeRoutineId) };
+      return { kind: "literal", value: createTypedObjectValue(ctx.document, expression.typeRoutineId, ctx.typedObjectHeap) };
 
     case "type-field-read": {
-      const value = readVariableValue(ctx.runtimeFrames, expression.targetDeclarationId, expression.targetName);
+      let value = readVariableValue(ctx.runtimeFrames, expression.targetDeclarationId, expression.targetName);
+      if (isPointerValue(value) && value.targetKind === "variable") {
+        value = readVariableValue(ctx.runtimeFrames, value.targetId, value.targetName);
+      }
+      if (isHeapRefValue(value)) {
+        if (value.heapId === "null") throw new Error(`Null pointer: "${expression.targetName}" is null.`);
+        const obj = resolveHeapObject(value, ctx.typedObjectHeap);
+        if (!obj) throw new Error(`Object "${expression.targetName}" no longer exists.`);
+        if (!(expression.fieldName in obj.fields)) throw new Error("unknown_type_field");
+        return { kind: "literal", value: obj.fields[expression.fieldName]! };
+      }
       if (!isTypedObjectValue(value)) throw new Error(`Variable "${expression.targetName}" is not a typed object.`);
       if (!(expression.fieldName in value.fields)) throw new Error("unknown_type_field");
       return { kind: "literal", value: value.fields[expression.fieldName]! };
@@ -215,8 +233,13 @@ export const evaluateExpressionDirect = (
   }
 
   switch (expression.kind) {
-    case "literal":
-      return { kind: "literal", value: expression.value };
+    case "literal": {
+      const literalValD = expression.value;
+      if (typeof literalValD === "string" && literalValD.trim().toLowerCase() === "null") {
+        return { kind: "literal", value: { kind: "heap-ref", heapId: "null", typeRoutineId: "", typeName: "null" } };
+      }
+      return { kind: "literal", value: literalValD };
+    }
 
     case "structure": {
       if (!expression.operation || !isSourceOperation(expression.operation)) {
@@ -296,10 +319,20 @@ export const evaluateExpressionDirect = (
       };
 
     case "type-instance":
-      return { kind: "literal", value: createTypedObjectValue(ctx.document, expression.typeRoutineId) };
+      return { kind: "literal", value: createTypedObjectValue(ctx.document, expression.typeRoutineId, ctx.typedObjectHeap) };
 
     case "type-field-read": {
-      const scopedValue = readVariableValueFromFrames(frames, expression.targetDeclarationId, expression.targetName);
+      let scopedValue = readVariableValueFromFrames(frames, expression.targetDeclarationId, expression.targetName);
+      if (isPointerValue(scopedValue) && scopedValue.targetKind === "variable") {
+        scopedValue = readVariableValueFromFrames(frames, scopedValue.targetId, scopedValue.targetName);
+      }
+      if (isHeapRefValue(scopedValue)) {
+        if (scopedValue.heapId === "null") throw new Error(`Null pointer: "${expression.targetName}" is null.`);
+        const obj = resolveHeapObject(scopedValue, ctx.typedObjectHeap);
+        if (!obj) throw new Error(`Object "${expression.targetName}" no longer exists.`);
+        if (!(expression.fieldName in obj.fields)) throw new Error("unknown_type_field");
+        return { kind: "literal", value: obj.fields[expression.fieldName]! };
+      }
       if (!isTypedObjectValue(scopedValue)) throw new Error(`Variable "${expression.targetName}" is not a typed object.`);
       if (!(expression.fieldName in scopedValue.fields)) throw new Error("unknown_type_field");
       return { kind: "literal", value: scopedValue.fields[expression.fieldName]! };

@@ -40,7 +40,7 @@ export const expressionToEditorBlock = (
 		if (expression.mode === "value" && !expression.operand) {
 			return {
 				id: expression.id,
-				kind: "var_read",
+				kind: "var",
 				color: expression.visual?.color ?? declaration?.visual?.color,
 				operation: null,
 				outputType: "value",
@@ -72,7 +72,7 @@ export const expressionToEditorBlock = (
 		if (expression.targetDeclarationId || expression.targetName) {
 			return {
 				id: expression.id,
-				kind: "var_read",
+				kind: "var",
 				color: expression.visual?.color ?? "#b7e4c7",
 				operation: expression.operation,
 				outputType: expression.outputType,

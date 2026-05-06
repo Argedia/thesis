@@ -69,7 +69,7 @@ export class DragPreviewBlockFactory {
                     dragState.variableOperationMode === "or"
                     ? "boolean"
                     : "value"
-                : dragState.blockKind === "var_read" || dragState.blockKind === "var_reference"
+                : dragState.blockKind === "var" || dragState.blockKind === "var_reference"
                   ? "value"
                 : "none",
       valueType:
@@ -227,7 +227,7 @@ export class DragPreviewBlockFactory {
             dragState.color
           );
           break;
-        case "var_read":
+        case "var":
           previewBlock = createVariableReadBlock(
             dragState.variableSourceId,
             dragState.variableName?.trim() || "variable",

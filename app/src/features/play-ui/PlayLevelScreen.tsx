@@ -29,6 +29,7 @@ const initialSessionState = (): PlaySessionState => ({
   level: null,
   structures: [],
   variableSnapshots: [],
+  heapSnapshots: [],
   events: [],
   runState: "idle",
   stepCursor: 0,
@@ -269,6 +270,7 @@ export function PlayLevelScreen() {
             structures={sessionState.structures}
             goalState={level.goalState}
             variableSnapshots={sessionState.variableSnapshots}
+            heapSnapshots={sessionState.heapSnapshots}
             events={sessionState.events}
           />
         </section>
