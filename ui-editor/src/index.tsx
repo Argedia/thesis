@@ -120,6 +120,53 @@ export function StructuresBoard({
     Array<{ id: string; x: number; y: number; width: number; height: number }>
   >([]);
 
+  // pan/zoom state — mutable refs to avoid re-render on every drag
+  const panRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const scaleRef = useRef<number>(1);
+  const isPanningRef = useRef<boolean>(false);
+  const panStartRef = useRef<{ px: number; py: number; ox: number; oy: number }>({ px: 0, py: 0, ox: 0, oy: 0 });
+  // per-card free positions (card-id → {x,y} in content space)
+  const cardPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // per-card custom sizes (card-id → {w,h} in content space)
+  const cardSizesRef = useRef<Map<string, { w: number; h: number }>>(new Map());
+  // card drag state
+  const cardDragRef = useRef<{ id: string; startCx: number; startCy: number; startCardX: number; startCardY: number } | null>(null);
+  // card resize state
+  const cardResizeRef = useRef<{ id: string; startCx: number; startCy: number; startW: number; startH: number; minW: number; minH: number } | null>(null);
+  // all card hitboxes in content space (rebuilt each draw)
+  const cardHitboxesRef = useRef<Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number }>>([]);
+  // content bounds for fit-to-view
+  const contentBoundsRef = useRef<{ w: number; h: number }>({ w: 600, h: 400 });
+  // trigger redraw
+  const redrawRef = useRef<(() => void) | null>(null);
+
+  const fitToView = () => {
+    const host = hostRef.current;
+    if (!host) return;
+    const vw = host.clientWidth;
+    const vh = host.clientHeight;
+    const hitboxes = cardHitboxesRef.current;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    if (hitboxes.length > 0) {
+      for (const hb of hitboxes) {
+        minX = Math.min(minX, hb.x);
+        minY = Math.min(minY, hb.y);
+        maxX = Math.max(maxX, hb.x + hb.w);
+        maxY = Math.max(maxY, hb.y + hb.h);
+      }
+    } else {
+      const { w, h } = contentBoundsRef.current;
+      minX = 0; minY = 0; maxX = w; maxY = h;
+    }
+    const cw = maxX - minX;
+    const ch = maxY - minY;
+    const pad = 32;
+    const s = Math.min(1, (vw - pad * 2) / Math.max(cw, 1), (vh - pad * 2) / Math.max(ch, 1));
+    scaleRef.current = s;
+    panRef.current = { x: (vw - cw * s) / 2 - minX * s, y: (vh - ch * s) / 2 - minY * s };
+    redrawRef.current?.();
+  };
+
   useEffect(() => {
     const host = hostRef.current;
     const canvas = canvasRef.current;
@@ -129,78 +176,81 @@ export function StructuresBoard({
 
     const draw = () => {
       const normalizedStructures = structures.map((structure) => normalizeStructureSnapshot(structure));
-      const width = Math.max(host.clientWidth, 320);
-      const availableHeight = Math.max(host.clientHeight, 360);
 
-      // --- main grid (structures + variables) ---
+      // remove stale card positions/sizes for cards that no longer exist
+      const validIds = new Set<string>([
+        ...normalizedStructures.map((s) => `structure:${s.id}`),
+        ...variables.map((v) => `variable:${v.id}`),
+        ...heapObjects.map((o) => `heap:${o.heapId}`)
+      ]);
+      for (const key of cardPositionsRef.current.keys()) {
+        if (!validIds.has(key)) cardPositionsRef.current.delete(key);
+      }
+      for (const key of cardSizesRef.current.keys()) {
+        if (!validIds.has(key)) cardSizesRef.current.delete(key);
+      }
+
+      const vw = Math.max(host.clientWidth, 320);
+      const vh = Math.max(host.clientHeight, 360);
+
+      // --- layout in content-space (scale=1) ---
+      const CARD_W = 280;
+      const CARD_H = 196;
+      const GUTTER = 20;
+      const PAD = 20;
+      const HEAP_CARD_W = 150;
+      const HEAP_CARD_H = 56;
+      const HEAP_GUTTER = 8;
+
       const mainCardCount = normalizedStructures.length + variables.length;
-      const baseHorizontalPadding = width < 520 ? 10 : width < 900 ? 14 : 22;
-      const baseVerticalPadding = width < 520 ? 10 : width < 900 ? 14 : 20;
-      const baseGutter = width < 520 ? 10 : width < 900 ? 16 : 24;
-      const minCardWidth = width < 520 ? 220 : 300;
-      const columns = Math.max(
-        1,
-        Math.min(2, Math.floor((width - baseHorizontalPadding * 2 + baseGutter) / (minCardWidth + baseGutter)))
-      );
-      const rowCount = Math.max(1, Math.ceil(mainCardCount / columns));
-      const cellWidth = (width - baseHorizontalPadding * 2 - baseGutter * (columns - 1)) / columns;
-      const naturalCellHeight = Math.max(176, Math.min(220, Math.round(148 + cellWidth * 0.18)));
+      const columns = Math.max(1, Math.min(3, Math.ceil(Math.sqrt(mainCardCount))));
+      const mainRows = Math.max(1, Math.ceil(mainCardCount / columns));
+      const mainW = columns * CARD_W + (columns - 1) * GUTTER + PAD * 2;
+      const mainH = mainRows * CARD_H + (mainRows - 1) * GUTTER + PAD * 2;
 
-      // --- heap strip layout ---
-      const heapCardW = Math.max(110, Math.round(width < 520 ? 100 : 130));
-      const heapCardH = 52;
-      const heapGutter = 6;
-      const heapPad = baseHorizontalPadding;
-      const heapCols = Math.max(1, Math.floor((width - heapPad * 2 + heapGutter) / (heapCardW + heapGutter)));
-      const heapRows = heapObjects.length > 0 ? Math.ceil(heapObjects.length / heapCols) : 0;
-      const heapStripH = heapRows > 0 ? heapRows * heapCardH + (heapRows - 1) * heapGutter + heapGutter * 2 : 0;
+      const heapCols = Math.max(1, Math.min(6, heapObjects.length));
+      const heapRows2 = heapObjects.length > 0 ? Math.ceil(heapObjects.length / heapCols) : 0;
+      const heapStripH = heapRows2 > 0 ? heapRows2 * HEAP_CARD_H + (heapRows2 - 1) * HEAP_GUTTER + HEAP_GUTTER * 2 + 18 : 0;
 
-      const naturalContentHeight =
-        baseVerticalPadding * 2 + rowCount * naturalCellHeight + baseGutter * (rowCount - 1) + heapStripH;
-      const fitScale =
-        naturalContentHeight > availableHeight ? availableHeight / naturalContentHeight : 1;
-      const layoutScale = Math.max(0.58, Math.min(1, cellWidth / 420, fitScale));
-      const horizontalPadding = Math.max(8, Math.round(baseHorizontalPadding * layoutScale));
-      const verticalPadding = Math.max(8, Math.round(baseVerticalPadding * layoutScale));
-      const gutter = Math.max(8, Math.round(baseGutter * layoutScale));
-      const cellHeight = Math.max(132, Math.round(naturalCellHeight * layoutScale));
-      const mainContentHeight =
-        verticalPadding * 2 + rowCount * cellHeight + gutter * (rowCount - 1);
-      const contentHeight = mainContentHeight + heapStripH;
-      const height = Math.max(Math.min(availableHeight, Math.max(contentHeight, 220)), 220);
+      const contentW = Math.max(mainW, PAD * 2 + heapCols * HEAP_CARD_W + (heapCols - 1) * HEAP_GUTTER);
+      const contentH = mainH + heapStripH;
+      contentBoundsRef.current = { w: contentW, h: contentH };
+
+      // viewport transform
+      const scale = scaleRef.current;
+      const pan = panRef.current;
+
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      canvas.width = Math.floor(vw * dpr);
+      canvas.height = Math.floor(vh * dpr);
+      canvas.style.width = `${vw}px`;
+      canvas.style.height = `${vh}px`;
 
       const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return;
-      }
+      if (!ctx) return;
 
+      // background + grid (screen space)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-
+      ctx.clearRect(0, 0, vw, vh);
       ctx.fillStyle = "#dbeeff";
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, vw, vh);
 
+      const gridStep = Math.max(20, Math.round(40 * scale));
+      const gridOffX = ((pan.x % gridStep) + gridStep) % gridStep;
+      const gridOffY = ((pan.y % gridStep) + gridStep) % gridStep;
       ctx.strokeStyle = "rgba(74, 109, 145, 0.16)";
       ctx.lineWidth = 1;
-      const gridStep = Math.max(28, Math.round(40 * layoutScale));
-      const gridOffset = Math.max(12, Math.round(20 * layoutScale));
-      for (let x = gridOffset; x < width; x += gridStep) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
+      for (let gx = gridOffX; gx < vw; gx += gridStep) {
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, vh); ctx.stroke();
       }
-      for (let y = gridOffset; y < height; y += gridStep) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
+      for (let gy = gridOffY; gy < vh; gy += gridStep) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(vw, gy); ctx.stroke();
       }
+
+      // apply pan/zoom transform for content
+      ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * pan.x, dpr * pan.y);
+
+      const layoutScale = 1; // content is always drawn at scale=1, canvas transform handles zoom
 
       const structureConfigHitboxes: Array<{
         id: string;
@@ -210,13 +260,60 @@ export function StructuresBoard({
         height: number;
       }> = [];
 
+      const cellWidth = CARD_W;
+      const cellHeight = CARD_H;
+      const horizontalPadding = PAD;
+      const verticalPadding = PAD;
+      const gutter = GUTTER;
+      const mainContentHeight = mainH;
+
+      const HANDLE = 12; // resize handle size px
+
+      // helper: get card position, seeding default from grid layout if not yet placed
+      const getCardPos = (id: string, defaultX: number, defaultY: number): { x: number; y: number } => {
+        if (!cardPositionsRef.current.has(id)) {
+          cardPositionsRef.current.set(id, { x: defaultX, y: defaultY });
+        }
+        return cardPositionsRef.current.get(id)!;
+      };
+
+      // helper: get card size, seeding from default if not yet resized
+      const getCardSize = (id: string, defaultW: number, defaultH: number): { w: number; h: number } => {
+        if (!cardSizesRef.current.has(id)) {
+          cardSizesRef.current.set(id, { w: defaultW, h: defaultH });
+        }
+        return cardSizesRef.current.get(id)!;
+      };
+
+      const drawResizeHandle = (fx: number, fy: number, fw: number, fh: number) => {
+        const hx = fx + fw - HANDLE;
+        const hy = fy + fh - HANDLE;
+        ctx.fillStyle = "rgba(100,140,180,0.25)";
+        ctx.beginPath();
+        ctx.moveTo(hx + HANDLE, hy);
+        ctx.lineTo(hx + HANDLE, hy + HANDLE);
+        ctx.lineTo(hx, hy + HANDLE);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(80,120,160,0.5)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      };
+
+      const newHitboxes: Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number }> = [];
+
       normalizedStructures.forEach((structure, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
-        const frameX = horizontalPadding + column * (cellWidth + gutter);
-        const frameY = verticalPadding + row * (cellHeight + gutter);
-        const frameWidth = cellWidth;
-        const frameHeight = cellHeight;
+        const defX = horizontalPadding + column * (cellWidth + gutter);
+        const defY = verticalPadding + row * (cellHeight + gutter);
+        const pos = getCardPos(`structure:${structure.id}`, defX, defY);
+        const sz = getCardSize(`structure:${structure.id}`, cellWidth, cellHeight);
+        const frameX = pos.x;
+        const frameY = pos.y;
+        const frameWidth = sz.w;
+        const frameHeight = sz.h;
+        newHitboxes.push({ id: `structure:${structure.id}`, x: frameX, y: frameY, w: frameWidth, h: frameHeight, minW: 180, minH: 140 });
         const structureColor =
           structure.properties?.color ??
           (structure.kind === "stack"
@@ -461,6 +558,8 @@ export function StructuresBoard({
           );
           ctx.textAlign = "start";
         }
+
+        drawResizeHandle(frameX, frameY, frameWidth, frameHeight);
       });
 
       const variableAnchors = new Map<
@@ -472,10 +571,15 @@ export function StructuresBoard({
         const index = normalizedStructures.length + variableIndex;
         const column = index % columns;
         const row = Math.floor(index / columns);
-        const frameX = horizontalPadding + column * (cellWidth + gutter);
-        const frameY = verticalPadding + row * (cellHeight + gutter);
-        const frameWidth = cellWidth;
-        const frameHeight = cellHeight;
+        const defX = horizontalPadding + column * (cellWidth + gutter);
+        const defY = verticalPadding + row * (cellHeight + gutter);
+        const pos = getCardPos(`variable:${variable.id}`, defX, defY);
+        const sz = getCardSize(`variable:${variable.id}`, cellWidth, cellHeight);
+        const frameX = pos.x;
+        const frameY = pos.y;
+        const frameWidth = sz.w;
+        const frameHeight = sz.h;
+        newHitboxes.push({ id: `variable:${variable.id}`, x: frameX, y: frameY, w: frameWidth, h: frameHeight, minW: 180, minH: 140 });
         const accent =
           variable.valueKind === "pointer"
             ? "#a58ad5"
@@ -572,6 +676,7 @@ export function StructuresBoard({
           rightX: frameX + frameWidth - 6,
           midY: frameY + frameHeight * 0.5
         });
+        drawResizeHandle(frameX, frameY, frameWidth, frameHeight);
       });
 
       variables.forEach((variable) => {
@@ -617,9 +722,9 @@ export function StructuresBoard({
 
       // heap strip starts below main grid
       const heapStripTop = mainContentHeight;
+      const heapPad = PAD;
 
       if (heapObjects.length > 0) {
-        // section label
         ctx.font = `800 10px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
         ctx.fillStyle = "#c07020";
         ctx.fillText("HEAP", heapPad, heapStripTop + 13);
@@ -628,10 +733,15 @@ export function StructuresBoard({
       heapObjects.forEach((obj, heapIndex) => {
         const hCol = heapIndex % heapCols;
         const hRow = Math.floor(heapIndex / heapCols);
-        const frameX = heapPad + hCol * (heapCardW + heapGutter);
-        const frameY = heapStripTop + heapGutter + hRow * (heapCardH + heapGutter);
-        const frameWidth = heapCardW;
-        const frameHeight = heapCardH;
+        const defX = heapPad + hCol * (HEAP_CARD_W + HEAP_GUTTER);
+        const defY = heapStripTop + HEAP_GUTTER + 18 + hRow * (HEAP_CARD_H + HEAP_GUTTER);
+        const pos = getCardPos(`heap:${obj.heapId}`, defX, defY);
+        const sz = getCardSize(`heap:${obj.heapId}`, HEAP_CARD_W, HEAP_CARD_H);
+        const frameX = pos.x;
+        const frameY = pos.y;
+        const frameWidth = sz.w;
+        const frameHeight = sz.h;
+        newHitboxes.push({ id: `heap:${obj.heapId}`, x: frameX, y: frameY, w: frameWidth, h: frameHeight, minW: 110, minH: 48 });
 
         ctx.fillStyle = "rgba(255, 245, 225, 0.97)";
         drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, 8);
@@ -676,6 +786,7 @@ export function StructuresBoard({
           rightX: frameX + frameWidth,
           midY: frameY + frameHeight * 0.5
         });
+        drawResizeHandle(frameX, frameY, frameWidth, frameHeight);
       });
 
       const drawArrow = (
@@ -717,63 +828,193 @@ export function StructuresBoard({
       });
 
       structureConfigHitboxesRef.current = structureConfigHitboxes;
+      cardHitboxesRef.current = newHitboxes;
     };
 
+    redrawRef.current = draw;
     draw();
 
-    const resizeObserver = new ResizeObserver(() => {
-      draw();
-    });
+    const resizeObserver = new ResizeObserver(() => { draw(); });
     resizeObserver.observe(host);
 
-    const handleViewportResize = () => {
-      draw();
-    };
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!onStructureConfigClick || !showStructureConfigActions) {
-        return;
-      }
+    const handleViewportResize = () => { draw(); };
+
+    // --- pointer events: card drag + pan + config click ---
+    const toContent = (clientX: number, clientY: number) => {
       const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const hitbox = structureConfigHitboxesRef.current.find(
-        (item) =>
-          x >= item.x &&
-          x <= item.x + item.width &&
-          y >= item.y &&
-          y <= item.y + item.height
-      );
-      if (!hitbox) {
+      const cx = (clientX - rect.left - panRef.current.x) / scaleRef.current;
+      const cy = (clientY - rect.top - panRef.current.y) / scaleRef.current;
+      return { cx, cy };
+    };
+
+    const HANDLE_PX = 12;
+
+    const hitTestCards = (cx: number, cy: number) =>
+      cardHitboxesRef.current.find(
+        (hb) => cx >= hb.x && cx <= hb.x + hb.w && cy >= hb.y && cy <= hb.y + hb.h
+      ) ?? null;
+
+    const hitTestResizeHandle = (cx: number, cy: number) =>
+      cardHitboxesRef.current.find(
+        (hb) =>
+          cx >= hb.x + hb.w - HANDLE_PX && cx <= hb.x + hb.w &&
+          cy >= hb.y + hb.h - HANDLE_PX && cy <= hb.y + hb.h
+      ) ?? null;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const px = event.clientX - rect.left;
+      const py = event.clientY - rect.top;
+      const { cx, cy } = toContent(event.clientX, event.clientY);
+
+      // config gear click
+      if (onStructureConfigClick && showStructureConfigActions) {
+        const hitbox = structureConfigHitboxesRef.current.find(
+          (item) => cx >= item.x && cx <= item.x + item.width && cy >= item.y && cy <= item.y + item.height
+        );
+        if (hitbox) {
+          event.preventDefault();
+          onStructureConfigClick({ structureId: hitbox.id, clientX: event.clientX, clientY: event.clientY });
+          return;
+        }
+      }
+
+      // resize handle check first
+      const resizeCard = hitTestResizeHandle(cx, cy);
+      if (resizeCard) {
+        const sz = cardSizesRef.current.get(resizeCard.id) ?? { w: resizeCard.w, h: resizeCard.h };
+        cardResizeRef.current = { id: resizeCard.id, startCx: cx, startCy: cy, startW: sz.w, startH: sz.h, minW: resizeCard.minW, minH: resizeCard.minH };
+        canvas.setPointerCapture(event.pointerId);
+        canvas.style.cursor = "se-resize";
+        event.preventDefault();
         return;
       }
+
+      // card drag
+      const card = hitTestCards(cx, cy);
+      if (card) {
+        const cardPos = cardPositionsRef.current.get(card.id) ?? { x: card.x, y: card.y };
+        cardDragRef.current = { id: card.id, startCx: cx, startCy: cy, startCardX: cardPos.x, startCardY: cardPos.y };
+        canvas.setPointerCapture(event.pointerId);
+        canvas.style.cursor = "grabbing";
+        event.preventDefault();
+        return;
+      }
+
+      // pan
+      isPanningRef.current = true;
+      panStartRef.current = { px, py, ox: panRef.current.x, oy: panRef.current.y };
+      canvas.setPointerCapture(event.pointerId);
+      canvas.style.cursor = "grabbing";
       event.preventDefault();
-      onStructureConfigClick({
-        structureId: hitbox.id,
-        clientX: event.clientX,
-        clientY: event.clientY
-      });
     };
+
     const handlePointerMove = (event: PointerEvent) => {
-      if (!showStructureConfigActions) {
+      // card resize
+      if (cardResizeRef.current) {
+        const { cx, cy } = toContent(event.clientX, event.clientY);
+        const r = cardResizeRef.current;
+        cardSizesRef.current.set(r.id, {
+          w: Math.max(r.minW, r.startW + (cx - r.startCx)),
+          h: Math.max(r.minH, r.startH + (cy - r.startCy))
+        });
+        draw();
+        return;
+      }
+
+      // card drag
+      if (cardDragRef.current) {
+        const { cx, cy } = toContent(event.clientX, event.clientY);
+        const drag = cardDragRef.current;
+        cardPositionsRef.current.set(drag.id, {
+          x: drag.startCardX + (cx - drag.startCx),
+          y: drag.startCardY + (cy - drag.startCy)
+        });
+        draw();
+        return;
+      }
+
+      // pan
+      if (isPanningRef.current) {
+        const rect = canvas.getBoundingClientRect();
+        const px = event.clientX - rect.left;
+        const py = event.clientY - rect.top;
+        panRef.current = {
+          x: panStartRef.current.ox + (px - panStartRef.current.px),
+          y: panStartRef.current.oy + (py - panStartRef.current.py)
+        };
+        draw();
+        return;
+      }
+
+      // cursor hint
+      const { cx, cy } = toContent(event.clientX, event.clientY);
+      const overHandle = hitTestResizeHandle(cx, cy);
+      if (overHandle) {
+        canvas.style.cursor = "se-resize";
+      } else {
+        const overCard = hitTestCards(cx, cy);
+        if (overCard) {
+          canvas.style.cursor = "grab";
+        } else if (showStructureConfigActions) {
+          const hit = structureConfigHitboxesRef.current.some(
+            (item) => cx >= item.x && cx <= item.x + item.width && cy >= item.y && cy <= item.y + item.height
+          );
+          canvas.style.cursor = hit ? "pointer" : "default";
+        } else {
+          canvas.style.cursor = "default";
+        }
+      }
+    };
+
+    const handlePointerUp = (event: PointerEvent) => {
+      if (cardResizeRef.current) {
+        cardResizeRef.current = null;
+        canvas.releasePointerCapture(event.pointerId);
         canvas.style.cursor = "default";
         return;
       }
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const hit = structureConfigHitboxesRef.current.some(
-        (item) =>
-          x >= item.x &&
-          x <= item.x + item.width &&
-          y >= item.y &&
-          y <= item.y + item.height
-      );
-      canvas.style.cursor = hit ? "pointer" : "default";
+      if (cardDragRef.current) {
+        cardDragRef.current = null;
+        canvas.releasePointerCapture(event.pointerId);
+        canvas.style.cursor = "default";
+        return;
+      }
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
+        canvas.releasePointerCapture(event.pointerId);
+        canvas.style.cursor = "default";
+      }
     };
+
+    // --- wheel: zoom centered on cursor ---
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const cx = event.clientX - rect.left;
+      const cy = event.clientY - rect.top;
+      const delta = event.deltaY > 0 ? 0.9 : 1 / 0.9;
+      const nextScale = Math.max(0.2, Math.min(4, scaleRef.current * delta));
+      const ratio = nextScale / scaleRef.current;
+      panRef.current = {
+        x: cx - ratio * (cx - panRef.current.x),
+        y: cy - ratio * (cy - panRef.current.y)
+      };
+      scaleRef.current = nextScale;
+      draw();
+    };
+
     window.addEventListener("resize", handleViewportResize);
     window.visualViewport?.addEventListener("resize", handleViewportResize);
     canvas.addEventListener("pointerdown", handlePointerDown);
     canvas.addEventListener("pointermove", handlePointerMove);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    canvas.style.cursor = "grab";
+
+    // fit on first render
+    fitToView();
+
     const animationFrame = window.requestAnimationFrame(draw);
 
     return () => {
@@ -782,6 +1023,8 @@ export function StructuresBoard({
       window.visualViewport?.removeEventListener("resize", handleViewportResize);
       canvas.removeEventListener("pointerdown", handlePointerDown);
       canvas.removeEventListener("pointermove", handlePointerMove);
+      canvas.removeEventListener("pointerup", handlePointerUp);
+      canvas.removeEventListener("wheel", handleWheel);
       canvas.style.cursor = "default";
       window.cancelAnimationFrame(animationFrame);
     };
@@ -789,8 +1032,29 @@ export function StructuresBoard({
 
   return (
     <section style={boardWrapperStyle}>
-      <div ref={hostRef} style={boardCanvasFrameStyle}>
+      <div ref={hostRef} style={{ ...boardCanvasFrameStyle, position: "relative" }}>
         <canvas ref={canvasRef} />
+        <button
+          type="button"
+          onClick={fitToView}
+          title="Fit to view"
+          style={{
+            position: "absolute",
+            bottom: 10,
+            right: 10,
+            border: "2px solid #b8d4ee",
+            borderRadius: 10,
+            background: "rgba(255,255,255,0.88)",
+            color: "#355070",
+            fontWeight: 800,
+            fontSize: 12,
+            padding: "4px 10px",
+            cursor: "pointer",
+            backdropFilter: "blur(4px)"
+          }}
+        >
+          ⊡ fit
+        </button>
       </div>
     </section>
   );
