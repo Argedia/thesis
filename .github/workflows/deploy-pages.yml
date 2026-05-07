@@ -33,6 +33,7 @@ jobs:
       - name: Build workspace
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: npm run build
 
       - name: Configure Pages
