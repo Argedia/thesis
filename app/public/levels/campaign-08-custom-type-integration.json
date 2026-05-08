@@ -1,0 +1,86 @@
+{
+  "id": "campaign-08-custom-type-integration",
+  "title": "Campaign 08 · Integrate Custom Type + Default DS",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2, 3],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    },
+    {
+      "id": "Q",
+      "kind": "queue",
+      "values": [],
+      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [3, 2, 1],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    },
+    {
+      "id": "Q",
+      "kind": "queue",
+      "values": [],
+      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "required",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "maxSteps": 14,
+    "valueDomain": {
+      "numericOnly": true
+    }
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B", "Q"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack", "queue"],
+    "difficulty": "hard",
+    "author": "Core Team",
+    "description": "Final challenge: solve with default structures and optionally model helper data using a custom type."
+  },
+  "tooling": {
+    "availableStructures": ["stack", "queue", "list"],
+    "advancedToolsEnabled": true
+  }
+}

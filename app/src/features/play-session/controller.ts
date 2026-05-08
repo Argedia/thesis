@@ -31,6 +31,8 @@ import type { RuntimeStoredValue } from "./runtime/runtime-values";
 import { setActiveRoutineId as setRoutineId } from "../program-editor-core";
 import { getMissingRequiredOperations } from "./runtime/constraints";
 
+const RUN_LINE_DELAY_MS = 1000;
+
 const createInitialState = (): PlaySessionState => {
   const document = createEditorDocument();
   return {
@@ -156,6 +158,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         this.assertRuntimeStepBudget();
         const currentPoint = getCurrentExecutionPoint(this.runtimeFrames, prepared);
         if (!currentPoint) break;
+        this.updateExecutionFocus(prepared);
 
         if (
           currentPoint.instruction.breakpointable &&
@@ -169,7 +172,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!executedInstruction) break;
         this.runtimeVisibleStepCount += 1;
 
-        await new Promise((resolve) => window.setTimeout(resolve, 340));
+        await new Promise((resolve) => window.setTimeout(resolve, RUN_LINE_DELAY_MS));
       }
 
       if (this.runAbort) {
@@ -177,8 +180,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
         return;
       }
 
+      const operationUsageSnapshot = new Map(this.runtimeOperationUsage);
       this.finishExecution();
-      await this.evaluateProgress();
+      await this.evaluateProgress(operationUsageSnapshot);
     } catch (error) {
       this.finishExecution(error instanceof Error ? error.message : "The program could not run.");
     }
@@ -194,11 +198,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.assertRuntimeStepBudget();
       const executedInstruction = executeVisibleInstruction(this.buildCtx(prepared), prepared);
       if (!executedInstruction) {
+        const operationUsageSnapshot = new Map(this.runtimeOperationUsage);
         this.finishExecution();
-        await this.evaluateProgress();
+        await this.evaluateProgress(operationUsageSnapshot);
         return;
       }
       this.runtimeVisibleStepCount += 1;
+      this.updateExecutionFocus(prepared);
       this.patchState({
         status:
           executedInstruction.kind === "eval-condition"
@@ -344,12 +350,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.resetRuntimeState();
   }
 
-  private async evaluateProgress(): Promise<void> {
+  private async evaluateProgress(operationUsage: ReadonlyMap<string, number>): Promise<void> {
     if (!this.state.level || !this.engine) return;
 
     const missingRequiredOperations = getMissingRequiredOperations({
       constraints: this.state.level.constraints,
-      operationUsage: this.runtimeOperationUsage
+      operationUsage
     });
     if (missingRequiredOperations.length > 0) {
       this.patchState({

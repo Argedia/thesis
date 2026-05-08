@@ -131,7 +131,12 @@ export interface EngineRegistryDeps {
 	assignLiteralExpressionIntoSlot: (slotKey: string, rawValue: string, expectedType: "value" | "boolean" | "any") => void;
 	getPaletteBlocks: () => PaletteBlock[];
 	getDefinitionDescriptor: (block: PaletteBlock) => { chip?: string; label: string };
-	getBlockLimitForPaletteBlock: (block: PaletteBlock) => number | null;
+	getPaletteBlockLimitState: (block: PaletteBlock) => {
+		limit: number;
+		remaining: number;
+		editable: boolean;
+		hide: boolean;
+	} | null;
 	adjustBlockLimitForPaletteBlock: (block: PaletteBlock, delta: number) => void;
 	getPaletteGroupId: (block: PaletteBlock) => PaletteGroupId;
 	getPaletteGroupLabel: (groupId: PaletteGroupId) => string;
@@ -335,7 +340,7 @@ export class EngineServiceRegistry {
 						? t("editor.groupScopeGlobal")
 						: t("editor.groupScopeRoutine"),
 				getDefinitionDescriptor: (block) => this.deps.getDefinitionDescriptor(block),
-				getBlockLimitForPaletteBlock: (block) => this.deps.getBlockLimitForPaletteBlock(block),
+				getPaletteBlockLimitState: (block) => this.deps.getPaletteBlockLimitState(block),
 				adjustBlockLimitForPaletteBlock: (block, delta) =>
 					this.deps.adjustBlockLimitForPaletteBlock(block, delta),
 				getBlocksHeadingText: () => t("editor.blocks"),

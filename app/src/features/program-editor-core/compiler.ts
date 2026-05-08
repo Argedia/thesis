@@ -86,8 +86,7 @@ const compileRoutine = (
 		operationNodeIds: context.operationNodeIds,
 		isComplete:
 			uniqueDiagnostics.length === 0 &&
-			context.unsupportedFeatures.size === 0 &&
-			context.instructions.every((ins) => ins.kind !== "call" || !!ins.operation),
+			context.unsupportedFeatures.size === 0,
 		unsupportedFeatures: Array.from(context.unsupportedFeatures),
 		diagnostics: uniqueDiagnostics,
 		nodeInstructionMap: context.nodeInstructionMap,

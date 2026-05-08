@@ -1,0 +1,76 @@
+{
+  "id": "campaign-04-list-trim-edges",
+  "title": "Campaign 04 · List Edge Operations",
+  "initialState": [
+    {
+      "id": "L",
+      "kind": "list",
+      "values": [1, 2, 3, 4, 5],
+      "properties": { "color": "#c6a8ff", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "L",
+      "kind": "list",
+      "values": [2, 3, 4],
+      "properties": { "color": "#c6a8ff", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "forbidden",
+      "PUSH": "forbidden",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "required",
+      "REMOVE_LAST": "required",
+      "GET_HEAD": "permitted",
+      "GET_TAIL": "permitted",
+      "SIZE": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 6
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["L"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["list"],
+    "difficulty": "medium",
+    "author": "Core Team",
+    "description": "Learn list edge operations: trim exactly one item from each side of L."
+  },
+  "tooling": {
+    "availableStructures": ["list"],
+    "advancedToolsEnabled": true
+  }
+}

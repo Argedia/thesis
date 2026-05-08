@@ -171,16 +171,7 @@ export class PlayEditorEngine {
 			getPaletteBlocks: () => this.paletteBlocks,
 			getDefinitionDescriptor: (block) =>
 				this.registry.getPaletteDescriptorService().getDefinitionDescriptor(block, (key) => t(key as never)),
-			getBlockLimitForPaletteBlock: (block) => {
-				if (!this.props.onSetBlockLimit) {
-					return null;
-				}
-				const key = resolveBlockLimitKeyForPaletteBlock(block);
-				if (!key) {
-					return null;
-				}
-				return this.getBlockLimitValue(key);
-			},
+			getPaletteBlockLimitState: (block) => this.getPaletteBlockLimitState(block),
 			adjustBlockLimitForPaletteBlock: (block, delta) => {
 				if (!this.props.onSetBlockLimit) {
 					return;
@@ -251,6 +242,40 @@ export class PlayEditorEngine {
 			return this.props.onSetBlockLimit ? 0 : Number.MAX_SAFE_INTEGER;
 		}
 		return Math.max(0, Math.floor(value));
+	}
+
+	private getPaletteBlockLimitState(block: PaletteBlock): {
+		limit: number;
+		remaining: number;
+		editable: boolean;
+		hide: boolean;
+	} | null {
+		const key = resolveBlockLimitKeyForPaletteBlock(block);
+		if (!key) {
+			return null;
+		}
+		const limit = this.getBlockLimitValue(key);
+		// Unlimited or unconstrained blocks don't need badges/locking in play mode.
+		if (limit >= Number.MAX_SAFE_INTEGER / 2) {
+			return null;
+		}
+		const editable = !!this.props.onSetBlockLimit;
+		if (editable) {
+			return {
+				limit,
+				remaining: limit,
+				editable: true,
+				hide: false
+			};
+		}
+		const used = countBlockLimitUsageFromBlocks(this.getBlocks(), key);
+		const remaining = Math.max(0, limit - used);
+		return {
+			limit,
+			remaining,
+			editable: false,
+			hide: limit <= 0 && used <= 0
+		};
 	}
 
 	// ---------------------------------------------------------------------------

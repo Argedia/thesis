@@ -18,6 +18,7 @@ import {
   addRoutine,
   compileEditorDocument,
   createEditorDocument,
+  projectDocumentToEditorBlocks,
   renameRoutine,
   setActiveRoutineId
 } from "../features/program-editor-core";
@@ -35,6 +36,7 @@ import {
   toLegacyForbiddenBlocks,
   type BlockLimitKey
 } from "../play-editor/block-limits";
+import { countEditorBlocks } from "../play-editor/block-count";
 
 const levelRepository = new JsonLevelRepository();
 
@@ -480,12 +482,10 @@ export function EditorShell(_props: EditorShellProps) {
   const compiledProgram = useMemo(() => compileEditorDocument(document), [document]);
   const activeRoutineCompiled =
     compiledProgram.routines[document.activeRoutineId] ?? compiledProgram;
-  const visibleRoutine =
-    document.routines.find((routine) => routine.id === document.activeRoutineId) ??
-    document.routines[0];
-  const visibleRoutineOperations =
-    (visibleRoutine && compiledProgram.routines[visibleRoutine.id]?.operations.length) ??
-    compiledProgram.operations.length;
+  const visibleRoutineOperations = useMemo(
+    () => countEditorBlocks(projectDocumentToEditorBlocks(document)),
+    [document]
+  );
 
   const handleSave = async () => {
     if (!canSave || isSaving) {

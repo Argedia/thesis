@@ -3,6 +3,12 @@ import type { PaletteGroupId } from "../BlockMetadata";
 import { getBlockAccentClass } from "./blockAccent";
 
 export type PaletteLaneId = "base" | "scope" | "created";
+type PaletteBlockLimitState = {
+  limit: number;
+  remaining: number;
+  editable: boolean;
+  hide: boolean;
+};
 
 export interface PaletteRendererContext {
   getPaletteBlocks(): PaletteBlock[];
@@ -26,7 +32,7 @@ export interface PaletteRendererContext {
   getVariableSubgroupLabel(kind: "declared" | "tools"): string;
   getVariableScopeLabel(kind: "global" | "routine"): string;
   getDefinitionDescriptor(block: PaletteBlock): { chip?: string; label: string };
-  getBlockLimitForPaletteBlock(block: PaletteBlock): number | null;
+  getPaletteBlockLimitState(block: PaletteBlock): PaletteBlockLimitState | null;
   adjustBlockLimitForPaletteBlock(block: PaletteBlock, delta: number): void;
   getBlocksHeadingText(): string;
   getDragHintText(): string;
@@ -101,6 +107,11 @@ export class PaletteRenderer {
   }
 
   private appendPaletteButton(list: HTMLElement, block: PaletteBlock): void {
+    const limitState = this.ctx.getPaletteBlockLimitState(block);
+    if (limitState?.hide) {
+      return;
+    }
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "editor-block palette sky";
@@ -124,55 +135,68 @@ export class PaletteRenderer {
     title.textContent = descriptor.label;
     button.appendChild(title);
 
-    const limit = this.ctx.getBlockLimitForPaletteBlock(block);
-    if (limit !== null) {
-      const controls = document.createElement("span");
-      controls.className = "palette-limit-controls";
+    if (limitState) {
+      if (limitState.editable) {
+        const controls = document.createElement("span");
+        controls.className = "palette-limit-controls";
 
-      const decrement = document.createElement("span");
-      decrement.className = "palette-limit-step";
-      decrement.textContent = "-";
-      if (limit <= 0 || this.ctx.getIsLocked()) {
-        decrement.classList.add("disabled");
-      }
-      decrement.addEventListener("pointerdown", (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        if (this.ctx.getIsLocked() || limit <= 0) {
-          return;
+        const decrement = document.createElement("span");
+        decrement.className = "palette-limit-step";
+        decrement.textContent = "-";
+        if (limitState.limit <= 0 || this.ctx.getIsLocked()) {
+          decrement.classList.add("disabled");
         }
-        this.ctx.adjustBlockLimitForPaletteBlock(block, -1);
-      });
-      controls.appendChild(decrement);
+        decrement.addEventListener("pointerdown", (event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          if (this.ctx.getIsLocked() || limitState.limit <= 0) {
+            return;
+          }
+          this.ctx.adjustBlockLimitForPaletteBlock(block, -1);
+        });
+        controls.appendChild(decrement);
 
-      const value = document.createElement("span");
-      value.className = "palette-limit-value";
-      value.textContent = String(limit);
-      controls.appendChild(value);
+        const value = document.createElement("span");
+        value.className = "palette-limit-value";
+        value.textContent = String(limitState.limit);
+        controls.appendChild(value);
 
-      const increment = document.createElement("span");
-      increment.className = "palette-limit-step";
-      increment.textContent = "+";
-      if (this.ctx.getIsLocked()) {
-        increment.classList.add("disabled");
-      }
-      increment.addEventListener("pointerdown", (event) => {
-        event.stopPropagation();
-        event.preventDefault();
+        const increment = document.createElement("span");
+        increment.className = "palette-limit-step";
+        increment.textContent = "+";
         if (this.ctx.getIsLocked()) {
-          return;
+          increment.classList.add("disabled");
         }
-        this.ctx.adjustBlockLimitForPaletteBlock(block, 1);
-      });
-      controls.appendChild(increment);
+        increment.addEventListener("pointerdown", (event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          if (this.ctx.getIsLocked()) {
+            return;
+          }
+          this.ctx.adjustBlockLimitForPaletteBlock(block, 1);
+        });
+        controls.appendChild(increment);
 
-      button.appendChild(controls);
+        button.appendChild(controls);
+      } else {
+        const badge = document.createElement("span");
+        badge.className = "palette-limit-badge";
+        badge.textContent = String(limitState.remaining);
+        button.appendChild(badge);
+      }
     }
 
-    if (this.ctx.getIsLocked()) {
+    const isLevelLocked = !!limitState && !limitState.editable && limitState.remaining <= 0;
+    if (isLevelLocked) {
+      button.classList.add("palette-limit-locked");
+    }
+    if (this.ctx.getIsLocked() || isLevelLocked) {
       button.disabled = true;
     }
     button.addEventListener("pointerdown", (event) => {
+      if (this.ctx.getIsLocked() || isLevelLocked) {
+        return;
+      }
       const rect = button.getBoundingClientRect();
       this.ctx.onStartPaletteDrag(event, block, rect);
     });
@@ -190,7 +214,14 @@ export class PaletteRenderer {
 
     let hasVisibleGroup = false;
     groupOrder.forEach((groupId) => {
-      const groupBlocks = laneBlocks.filter((block) => this.ctx.getPaletteGroupId(block) === groupId);
+      const groupBlocks = laneBlocks.filter(
+        (block) =>
+          this.ctx.getPaletteGroupId(block) === groupId &&
+          !this.ctx.getPaletteBlockLimitState(block)?.hide
+      );
+      if (groupBlocks.length === 0) {
+        return;
+      }
       hasVisibleGroup = true;
 
       const section = document.createElement("section");
@@ -214,18 +245,7 @@ export class PaletteRenderer {
         section.classList.add("collapsed");
       }
 
-      if (groupBlocks.length === 0) {
-        const emptyGroup = document.createElement("div");
-        emptyGroup.className = "palette-empty-state";
-        const hasDefinitionConflict =
-          lane === "base" &&
-          (groupId === "functions" || groupId === "types") &&
-          (this.ctx.getHasFunctionDefinition() || this.ctx.getHasTypeDefinition());
-        emptyGroup.textContent = hasDefinitionConflict
-          ? this.ctx.getFunctionTypeExclusiveHintText()
-          : this.ctx.getEmptyPaletteLaneText();
-        list.appendChild(emptyGroup);
-      } else if (groupId === "variables") {
+      if (groupId === "variables") {
         const declaredVariableBlocks = groupBlocks.filter((block) => block.kind === "var");
         const variableToolBlocks = groupBlocks.filter((block) => block.kind !== "var");
 
@@ -344,28 +364,34 @@ export class PaletteRenderer {
     );
 
     const body = document.createElement("div");
-    body.className = "palette-panel-body";
-    if (!isCollapsed) {
-      const sideStack = document.createElement("div");
-      sideStack.className = "palette-side-stack";
+      body.className = "palette-panel-body";
+      if (!isCollapsed) {
+        const sideStack = document.createElement("div");
+        sideStack.className = "palette-side-stack";
 
-      const scopeSection = document.createElement("section");
-      scopeSection.className = "palette-side-section";
-      const scopeHeading = document.createElement("h4");
-      scopeHeading.className = "palette-side-heading";
-      scopeHeading.textContent = this.ctx.getPaletteLaneLabel("scope");
-      scopeSection.appendChild(scopeHeading);
-      scopeSection.appendChild(this.createLaneGroupsContainer("scope", "palette-groups palette-side-groups"));
-      sideStack.appendChild(scopeSection);
+      const scopeGroups = this.createLaneGroupsContainer("scope", "palette-groups palette-side-groups");
+      if (scopeGroups.childElementCount > 0) {
+        const scopeSection = document.createElement("section");
+        scopeSection.className = "palette-side-section";
+        const scopeHeading = document.createElement("h4");
+        scopeHeading.className = "palette-side-heading";
+        scopeHeading.textContent = this.ctx.getPaletteLaneLabel("scope");
+        scopeSection.appendChild(scopeHeading);
+        scopeSection.appendChild(scopeGroups);
+        sideStack.appendChild(scopeSection);
+      }
 
-      const createdSection = document.createElement("section");
-      createdSection.className = "palette-side-section";
-      const createdHeading = document.createElement("h4");
-      createdHeading.className = "palette-side-heading";
-      createdHeading.textContent = this.ctx.getPaletteLaneLabel("created");
-      createdSection.appendChild(createdHeading);
-      createdSection.appendChild(this.createLaneGroupsContainer("created", "palette-groups palette-side-groups"));
-      sideStack.appendChild(createdSection);
+      const createdGroups = this.createLaneGroupsContainer("created", "palette-groups palette-side-groups");
+      if (createdGroups.childElementCount > 0) {
+        const createdSection = document.createElement("section");
+        createdSection.className = "palette-side-section";
+        const createdHeading = document.createElement("h4");
+        createdHeading.className = "palette-side-heading";
+        createdHeading.textContent = this.ctx.getPaletteLaneLabel("created");
+        createdSection.appendChild(createdHeading);
+        createdSection.appendChild(createdGroups);
+        sideStack.appendChild(createdSection);
+      }
 
       body.appendChild(sideStack);
     }

@@ -59,7 +59,7 @@ const resources = {
 				executionFeed: "Execution Feed",
 				output: "Output",
 				blocksCount: "{{count}}/{{max}} blocks",
-				runHint: "Run your program to watch operations appear here.",
+				runHint: "Feedback here.",
 				feedHint: "Run your program to watch the data move."
 			},
 			preview: {
@@ -124,7 +124,7 @@ const resources = {
 				paletteLaneBase: "Base",
 				paletteLaneScope: "Vars",
 				paletteLaneCreated: "Definitions",
-				paletteLaneEmpty: "Nothing here yet.",
+				paletteLaneEmpty: "Nothing here.",
 				functionTypeExclusiveHint: "Only one type or function is allowed per routine.",
 				variableNamePrompt: "Variable name",
 				scopeVariablePrompt: "Choose variable",
@@ -182,6 +182,8 @@ const resources = {
 				variableNameExists: "Variable \"{{name}}\" already exists.",
 				valueEmpty: "Value cannot be empty.",
 				routineNameEmpty: "Routine name cannot be empty.",
+				levelSolvedTitle: "Level Complete",
+				levelSolvedBody: "You solved \"{{level}}\".",
 				functionTypeConflict: "A routine cannot be both a function and a type.",
 				returnInTypeRoutine: "Type routines cannot return values.",
 				unknownType: "Unknown type.",
@@ -261,7 +263,7 @@ const resources = {
 				executionFeed: "Registro de Ejecución",
 				output: "Salida",
 				blocksCount: "{{count}}/{{max}} bloques",
-				runHint: "Ejecuta tu programa para ver las operaciones aquí.",
+				runHint: "Feedback aquí.",
 				feedHint: "Ejecuta tu programa para ver cómo se mueven los datos."
 			},
 			preview: {
@@ -326,7 +328,7 @@ const resources = {
 				paletteLaneBase: "Base",
 				paletteLaneScope: "Vars",
 				paletteLaneCreated: "Definiciones",
-				paletteLaneEmpty: "Todavía no hay nada aquí.",
+				paletteLaneEmpty: "Nada aqui.",
 				functionTypeExclusiveHint: "Por viñeta solo puede haber 1 tipo o función",
 				variableNamePrompt: "Nombre de variable",
 				scopeVariablePrompt: "Elegir variable",
@@ -384,6 +386,8 @@ const resources = {
 				variableNameExists: "La variable \"{{name}}\" ya existe.",
 				valueEmpty: "El valor no puede estar vacío.",
 				routineNameEmpty: "El nombre de la viñeta no puede estar vacío.",
+				levelSolvedTitle: "Nivel completado",
+				levelSolvedBody: "Has resuelto \"{{level}}\".",
 				functionTypeConflict: "Una viñeta no puede ser función y tipo a la vez.",
 				returnInTypeRoutine: "Una viñeta de tipo no permite retornos.",
 				unknownType: "Tipo desconocido.",

@@ -1,0 +1,71 @@
+{
+  "id": "campaign-07-custom-type-intro",
+  "title": "Campaign 07 · Create A Custom Type",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [2],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [2],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "required",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "maxSteps": 8
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": "hard",
+    "author": "Core Team",
+    "description": "Create a custom type (example: Box), then solve the stack transfer using your own model objects if you want."
+  },
+  "tooling": {
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
+  }
+}

@@ -559,29 +559,16 @@ export class BlockInstanceRenderer {
 			textInput.className = "editor-block-instance-cavity-text";
 			textInput.setAttribute("aria-label", inputSlot.title);
 			textInput.setAttribute("spellcheck", "false");
-			if (inputSlot.allowDirectTextEntry) {
-				textInput.placeholder = "";
-			} else {
-				textInput.disabled = true;
-			}
+			// Literal creation via typing in slots is disabled:
+			// slots are now filled only by dropping/selecting blocks.
+			textInput.placeholder = "";
+			textInput.disabled = true;
+			textInput.readOnly = true;
 			textInput.addEventListener("pointerdown", (event) => {
 				event.stopPropagation();
 			});
 			textInput.addEventListener("click", (event) => {
 				event.stopPropagation();
-			});
-			textInput.addEventListener("keydown", (event) => {
-				event.stopPropagation();
-				if (event.key === "Enter") {
-					event.preventDefault();
-					this.ctx.assignLiteralIntoSlot(slotKey, textInput.value, inputSlot.expectedType);
-				} else if (event.key === "Escape") {
-					textInput.value = "";
-					textInput.blur();
-				}
-			});
-			textInput.addEventListener("blur", () => {
-				this.ctx.assignLiteralIntoSlot(slotKey, textInput.value, inputSlot.expectedType);
 			});
 			slot.appendChild(textInput);
 		}

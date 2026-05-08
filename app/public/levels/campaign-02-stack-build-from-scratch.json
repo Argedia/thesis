@@ -1,0 +1,88 @@
+{
+  "id": "campaign-02-stack-build-from-scratch",
+  "title": "Campaign 02 · Build Stack From Scratch",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2, 3, 4],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [4, 3, 2, 1],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "required",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 12
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": "easy",
+    "author": "Core Team",
+    "description": "Practice repetition: empty A with POP and build B from scratch using PUSH only."
+  },
+  "tooling": {
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
+  }
+}

@@ -8,6 +8,10 @@ interface BoardPanelProps {
   levelId: string;
   isCompleted: boolean;
   isShowingGoalPreview: boolean;
+  onPreviewPointerDown?: () => void;
+  onPreviewPointerUp?: () => void;
+  onPreviewPointerLeave?: () => void;
+  onPreviewPointerCancel?: () => void;
   structures: StructureSnapshot[];
   goalState: StructureSnapshot[];
   variableSnapshots: RuntimeVariableSnapshot[];
@@ -21,6 +25,10 @@ export function BoardPanel({
   levelId: _levelId,
   isCompleted,
   isShowingGoalPreview,
+  onPreviewPointerDown,
+  onPreviewPointerUp,
+  onPreviewPointerLeave,
+  onPreviewPointerCancel,
   structures,
   goalState,
   variableSnapshots,
@@ -35,7 +43,19 @@ export function BoardPanel({
     <section className="device-shell board-device">
       <div className="device-header board-header">
         <span className="device-label">{t("board.playBoard")}</span>
-        <span className="device-time">{isCompleted ? t("state.done") : t("state.live")}</span>
+        <div className="board-header-actions">
+          <button
+            type="button"
+            className="board-preview-action"
+            onPointerDown={onPreviewPointerDown}
+            onPointerUp={onPreviewPointerUp}
+            onPointerLeave={onPreviewPointerLeave}
+            onPointerCancel={onPreviewPointerCancel}
+          >
+            {t("common.previewResult")}
+          </button>
+          <span className="device-time">{isCompleted ? t("state.done") : t("state.live")}</span>
+        </div>
       </div>
 
       <div className="board-surface">

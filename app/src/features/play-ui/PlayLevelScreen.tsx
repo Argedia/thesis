@@ -5,7 +5,11 @@ import { Button, DialogTrigger } from "react-aria-components";
 import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import { Screen } from "@thesis/ui-editor";
 import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
-import { compileEditorDocument, createEditorDocument } from "../program-editor-core";
+import {
+  compileEditorDocument,
+  createEditorDocument,
+  projectDocumentToEditorBlocks
+} from "../program-editor-core";
 import {
   createPlaySessionController,
   type PlaySessionController,
@@ -20,6 +24,7 @@ import { AppDialogs } from "./AppDialogs";
 import { IdePanel } from "./IdePanel";
 import { BoardPanel } from "./BoardPanel";
 import { normalizeBlockLimits } from "../../play-editor/block-limits";
+import { countEditorBlocks } from "../../play-editor/block-count";
 
 const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
@@ -46,12 +51,13 @@ export function PlayLevelScreen() {
   const [sessionState, setSessionState] = useState<PlaySessionState>(initialSessionState);
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
   const [isLevelInfoOpen, setIsLevelInfoOpen] = useState(false);
-  const [outputMode, setOutputMode] = useState<"hidden" | "runtime" | "diagnostics">("hidden");
+  const [outputMode, setOutputMode] = useState<"hidden" | "runtime" | "diagnostics">("diagnostics");
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1280
   );
   const controllerRef = useRef<PlaySessionController | null>(null);
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
+  const previousStatusRef = useRef<string>("");
 
   const dialog = useDialogManager();
   const isCompactLayout = viewportWidth <= 640;
@@ -103,6 +109,27 @@ export function PlayLevelScreen() {
     if (isActive && outputMode !== "diagnostics") setOutputMode("runtime");
   }, [sessionState.runState, sessionState.events.length, outputMode]);
 
+  useEffect(() => {
+    if (!sessionState.level) return;
+    const successStatus = "Success! You solved the level.";
+    const previousStatus = previousStatusRef.current;
+    const currentStatus = sessionState.status;
+
+    if (previousStatus !== successStatus && currentStatus === successStatus) {
+      void dialog.showAlert({
+        title: t("messages.levelSolvedTitle"),
+        message: t("messages.levelSolvedBody", { level: sessionState.level.title })
+      });
+    }
+
+    previousStatusRef.current = currentStatus;
+  }, [dialog, sessionState.level, sessionState.status, t]);
+
+  const visibleRoutineOperations = useMemo(
+    () => countEditorBlocks(projectDocumentToEditorBlocks(sessionState.document)),
+    [sessionState.document]
+  );
+
   if (!sessionState.level) {
     return (
       <Screen mode="player">
@@ -128,12 +155,6 @@ export function PlayLevelScreen() {
   const activeRoutineCompiled =
     compiledProgram.routines[sessionState.document.activeRoutineId] ?? compiledProgram;
 
-  const visibleRoutine =
-    sessionState.document.routines.find((r) => r.id === sessionState.document.activeRoutineId) ??
-    sessionState.document.routines[0];
-  const visibleRoutineOperations =
-    (visibleRoutine && compiledProgram.routines[visibleRoutine.id]?.operations.length) ??
-    compiledProgram.operations.length;
   const permittedOperations = getPermittedOperationsFromPolicy(level.constraints.operationPolicy);
 
   const translateDiagnostic = (diagnostic: string): string => {
@@ -196,16 +217,6 @@ export function PlayLevelScreen() {
                 <div className="level-info-actions">
                   <span className="mini-tag">{t("common.goal")}</span>
                   <span className="mini-tag">{t("common.maxSteps")}: {level.constraints.maxSteps}</span>
-                  <button
-                    type="button"
-                    className="mini-action"
-                    onPointerDown={() => setIsShowingGoalPreview(true)}
-                    onPointerUp={() => setIsShowingGoalPreview(false)}
-                    onPointerLeave={() => setIsShowingGoalPreview(false)}
-                    onPointerCancel={() => setIsShowingGoalPreview(false)}
-                  >
-                    {t("common.previewResult")}
-                  </button>
                 </div>
                 <div className="level-info-actions">
                   {permittedOperations.map((op) => (
@@ -241,7 +252,7 @@ export function PlayLevelScreen() {
             dialog={dialog}
             status={sessionState.status}
             onToggleBreakpoint={(nodeId) => controller.toggleBreakpoint(nodeId)}
-            onChange={(doc) => { setOutputMode("hidden"); controller.setDocument(doc); }}
+            onChange={(doc) => { setOutputMode("diagnostics"); controller.setDocument(doc); }}
             onStatus={(msg) => controller.setStatus(msg)}
             onSelectRoutine={(id) => controller.selectRoutine(id)}
             onRenameRoutine={handleRenameRoutine}
@@ -267,6 +278,10 @@ export function PlayLevelScreen() {
             levelId={level.id}
             isCompleted={sessionState.completedLevelIds.includes(level.id)}
             isShowingGoalPreview={isShowingGoalPreview}
+            onPreviewPointerDown={() => setIsShowingGoalPreview(true)}
+            onPreviewPointerUp={() => setIsShowingGoalPreview(false)}
+            onPreviewPointerLeave={() => setIsShowingGoalPreview(false)}
+            onPreviewPointerCancel={() => setIsShowingGoalPreview(false)}
             structures={sessionState.structures}
             goalState={level.goalState}
             variableSnapshots={sessionState.variableSnapshots}

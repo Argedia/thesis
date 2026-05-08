@@ -1,0 +1,148 @@
+.campaign-shell {
+  min-height: 100%;
+}
+
+.campaign-topbar {
+  justify-content: flex-start;
+}
+
+.campaign-empty {
+  border: 2px solid #dbe8f5;
+  border-radius: 18px;
+  background: #f8fbff;
+  color: #4e6981;
+  font-weight: 700;
+  padding: 1rem;
+}
+
+.campaign-road {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  gap: 1.25rem;
+  padding: 0.5rem 0.4rem 2rem 0.2rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.campaign-road::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #d6e9fb 0%, #c8ddf2 100%);
+}
+
+.campaign-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 56px 1fr;
+  align-items: center;
+  min-height: 120px;
+}
+
+.campaign-step.left .campaign-card {
+  grid-column: 1;
+}
+
+.campaign-step.right .campaign-card {
+  grid-column: 3;
+}
+
+.campaign-node {
+  grid-column: 2;
+  justify-self: center;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 3px solid #ffffff;
+  background: #dcecff;
+  display: grid;
+  place-items: center;
+  color: #2f557c;
+  font-weight: 900;
+}
+
+.campaign-step.completed .campaign-node {
+  background: #bfe9cf;
+  color: #25664a;
+}
+
+.campaign-step.current .campaign-node {
+  background: #ffd36e;
+}
+
+.campaign-step.locked .campaign-node {
+  background: #e5ecf3;
+  color: #7f95ab;
+}
+
+.campaign-card {
+  z-index: 1;
+  border: 2px solid #dbe8f5;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 0.85rem 0.95rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.campaign-step.locked .campaign-card {
+  opacity: 0.7;
+}
+
+.campaign-card h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #24496d;
+}
+
+.campaign-card p {
+  margin: 0;
+  color: #55748b;
+}
+
+.campaign-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.campaign-play-link {
+  justify-self: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.campaign-play-link.is-locked {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+@media (max-width: 900px) {
+  .campaign-road::before {
+    left: 22px;
+    transform: none;
+  }
+
+  .campaign-step {
+    grid-template-columns: 44px 1fr;
+    gap: 0.8rem;
+  }
+
+  .campaign-step .campaign-node {
+    grid-column: 1;
+  }
+
+  .campaign-step .campaign-card,
+  .campaign-step.left .campaign-card,
+  .campaign-step.right .campaign-card {
+    grid-column: 2;
+  }
+}
