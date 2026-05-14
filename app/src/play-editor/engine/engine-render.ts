@@ -34,6 +34,7 @@ export const render = (deps: RenderDeps): void => {
 	ensureLayoutShell(deps);
 	const shell = deps.getShell()!;
 	const workbench = deps.getWorkbench()!;
+	const scrollSnapshot = captureWorkbenchScrollState(workbench);
 	shell.className = `scratch-shell${deps.isLocked() ? " is-locked" : ""}`;
 	removeChildrenBySelector(workbench, ".scratch-palette");
 	removeChildrenBySelector(workbench, ".scratch-editor");
@@ -49,6 +50,7 @@ export const render = (deps: RenderDeps): void => {
 
 	removeChildrenBySelector(shell, ".operation-wheel");
 	removeChildrenBySelector(shell, ".drag-ghost");
+	restoreWorkbenchScrollState(workbench, scrollSnapshot);
 
 	const wheelState = deps.getWheelState();
 	if (wheelState) {
@@ -63,6 +65,58 @@ export const render = (deps: RenderDeps): void => {
 	}
 
 	deps.registry.getGhostRenderer().render(shell);
+};
+
+type ScrollTargetKey =
+	| "editorLane"
+	| "leftPaletteGroups"
+	| "rightPaletteGroupsScope"
+	| "rightPaletteGroupsCreated";
+
+type ScrollSnapshot = Partial<Record<ScrollTargetKey, number>>;
+
+const getScrollTargets = (root: ParentNode): Partial<Record<ScrollTargetKey, HTMLElement>> => {
+	const leftPaletteGroups = root.querySelector(
+		".scratch-palette-left .palette-groups"
+	) as HTMLElement | null;
+	const rightPaletteGroups = root.querySelectorAll(
+		".scratch-palette-right .palette-groups"
+	) as NodeListOf<HTMLElement>;
+	const scopePaletteGroups = rightPaletteGroups[0] ?? null;
+	const createdPaletteGroups = rightPaletteGroups[1] ?? null;
+	const editorLane = root.querySelector(".scratch-editor .editor-lane") as HTMLElement | null;
+	return {
+		editorLane: editorLane ?? undefined,
+		leftPaletteGroups: leftPaletteGroups ?? undefined,
+		rightPaletteGroupsScope: scopePaletteGroups ?? undefined,
+		rightPaletteGroupsCreated: createdPaletteGroups ?? undefined
+	};
+};
+
+const captureWorkbenchScrollState = (workbench: HTMLElement): ScrollSnapshot => {
+	const targets = getScrollTargets(workbench);
+	const snapshot: ScrollSnapshot = {};
+	(Object.keys(targets) as ScrollTargetKey[]).forEach((key) => {
+		const node = targets[key];
+		if (!node) return;
+		snapshot[key] = node.scrollTop;
+	});
+	return snapshot;
+};
+
+const restoreWorkbenchScrollState = (
+	workbench: HTMLElement,
+	snapshot: ScrollSnapshot
+): void => {
+	requestAnimationFrame(() => {
+		const targets = getScrollTargets(workbench);
+		(Object.keys(snapshot) as ScrollTargetKey[]).forEach((key) => {
+			const node = targets[key];
+			const scrollTop = snapshot[key];
+			if (!node || typeof scrollTop !== "number") return;
+			node.scrollTop = scrollTop;
+		});
+	});
 };
 
 export const ensureLayoutShell = (deps: Pick<RenderDeps, "getShell" | "getWorkbench" | "setShell" | "setWorkbench" | "getHost" | "isLocked">): void => {

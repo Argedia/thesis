@@ -11,7 +11,9 @@ import type {
 
 export interface EditorCanvasRendererContext {
   getIsLocked(): boolean;
+  isBlockLocked(blockId: string): boolean;
   getIsActiveRoutineFunction(): boolean;
+  getIsActiveRoutineType(): boolean;
   getDragState(): EditorDragState | null;
   getBlocks(): EditorBlock[];
   getInlinePreviewBlocks(): EditorBlock[] | null;
@@ -58,7 +60,7 @@ export class EditorCanvasRenderer {
 
   public render(container: HTMLElement): void {
     const editor = document.createElement("div");
-    editor.className = `scratch-editor${this.ctx.getIsLocked() ? " locked" : ""}${this.ctx.getIsActiveRoutineFunction() ? " function-routine" : ""}`;
+    editor.className = `scratch-editor${this.ctx.getIsLocked() ? " locked" : ""}${this.ctx.getIsActiveRoutineFunction() ? " function-routine" : ""}${this.ctx.getIsActiveRoutineType() ? " type-routine" : ""}`;
 
     const lane = document.createElement("div");
     lane.className = "editor-lane";
@@ -243,18 +245,25 @@ export class EditorCanvasRenderer {
       blockId: block.id
     });
     const element = this.ctx.createBlockInstanceElement(block, { preview: isPreviewBlock });
+    const blockLocked = this.ctx.isBlockLocked(block.id);
 
-    element.addEventListener("pointerdown", (event) => {
-      const target = event.target as HTMLElement | null;
-      const cavity = target?.closest(".editor-block-instance-cavity") as HTMLElement | null;
-      if (cavity?.dataset.ownerBlockId === block.id) {
-        return;
-      }
-      const rect = element.getBoundingClientRect();
-      this.ctx.startProgramPress(event, block, rect);
-    });
+    if (!blockLocked) {
+      element.addEventListener("pointerdown", (event) => {
+        const target = event.target as HTMLElement | null;
+        const cavity = target?.closest(".editor-block-instance-cavity") as HTMLElement | null;
+        if (cavity?.dataset.ownerBlockId === block.id) {
+          return;
+        }
+        const rect = element.getBoundingClientRect();
+        this.ctx.startProgramPress(event, block, rect);
+      });
+    }
     element.addEventListener("contextmenu", (event) => {
       event.preventDefault();
+      if (blockLocked) {
+        this.ctx.emitStatus("This block is locked by level configuration.");
+        return;
+      }
       this.ctx.setBlocks(this.ctx.removeBlockById(this.ctx.getBlocks(), block.id));
       this.ctx.closeWheel();
       this.ctx.emitStatus("Block removed.");

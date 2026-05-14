@@ -45,6 +45,9 @@ Thumbs.db
 #Theory course folder
 Estructuras2025-2/
 
+# Thesis docs (local writing workspace)
+docs/tesis/
+
 .agents/
 .codex/
 plugins/

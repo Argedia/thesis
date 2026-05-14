@@ -14,7 +14,6 @@ export type BlockLimitKey =
   | "var_binary_operation:comparison"
   | "conditional"
   | "while"
-  | "for_each"
   | "break"
   | "function_definition"
   | "type_definition"
@@ -31,7 +30,6 @@ export const BLOCK_LIMIT_KEYS: BlockLimitKey[] = [
   "var_binary_operation:comparison",
   "conditional",
   "while",
-  "for_each",
   "break",
   "function_definition",
   "type_definition",
@@ -51,7 +49,6 @@ const LEGACY_KIND_TO_LIMIT_KEYS: Partial<Record<EditorBlockKind, BlockLimitKey[]
   ],
   conditional: ["conditional"],
   while: ["while"],
-  for_each: ["for_each"],
   break: ["break"],
   function_definition: ["function_definition"],
   type_definition: ["type_definition"],

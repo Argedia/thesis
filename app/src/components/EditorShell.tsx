@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Switch } from "react-aria-components";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Button, Input, Label, TextField, Tooltip, TooltipTrigger } from "react-aria-components";
 import type { BuilderOperation } from "../features/program-editor-core/types";
 import {
   LEVEL_OPERATIONS,
@@ -13,14 +13,17 @@ import {
   type LevelOperationState,
   type StructureTag
 } from "@thesis/game-system";
-import { JsonLevelRepository } from "@thesis/storage";
+import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
 import {
   addRoutine,
   compileEditorDocument,
+  deserializeProgramDocument,
   createEditorDocument,
   projectDocumentToEditorBlocks,
+  projectProgramToEditorBlocks,
   renameRoutine,
-  setActiveRoutineId
+  setActiveRoutineId,
+  serializeProgramDocument
 } from "../features/program-editor-core";
 import { Screen, type StructureConfigClickPayload } from "@thesis/ui-editor";
 import type { StructureSnapshot } from "@thesis/core-engine";
@@ -31,30 +34,32 @@ import { IdePanel } from "../features/play-ui/IdePanel";
 import { BoardPanel } from "../features/play-ui/BoardPanel";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
 import { AppDialogs } from "../features/play-ui/AppDialogs";
+import { usePanelResize } from "../features/play-ui/usePanelResize";
 import {
   createDefaultBlockLimits,
   toLegacyForbiddenBlocks,
   type BlockLimitKey
 } from "../play-editor/block-limits";
 import { countEditorBlocks } from "../play-editor/block-count";
+import type {
+  LevelEditorDraftSnapshot,
+  StructureDraft
+} from "../features/level-editor-drafts/types";
+import {
+  getEditorDraftRecord,
+  saveEditorDraftRecord
+} from "../features/level-editor-drafts/storage";
 
 const levelRepository = new JsonLevelRepository();
+const progressRepository = new LocalProgressRepository();
 
-interface StructureDraft {
-  id: string;
-  kind: StructureTag;
-  color: string;
-  initialValues: string;
-  goalValues: string;
-  capacityLimit: string;
-  overrideNoLargerOnSmaller: boolean;
-  noLargerOnSmallerEnabled: boolean;
-  overrideValueDomain: boolean;
-  valueDomainNumericOnly: boolean;
-  valueDomainMinRaw: string;
-  valueDomainMaxRaw: string;
-}
-
+const toDraftTestLevelId = (signature: string): string => {
+  let hash = 0;
+  for (let index = 0; index < signature.length; index += 1) {
+    hash = (Math.imul(31, hash) + signature.charCodeAt(index)) | 0;
+  }
+  return `__draft_test__${(hash >>> 0).toString(36)}`;
+};
 
 const STRUCTURE_COLORS: Record<StructureTag, string> = {
   stack: "#f6b457",
@@ -112,6 +117,10 @@ const buildLevelDefinition = (options: {
   author: string;
   difficulty: LevelDifficulty;
   maxSteps: number;
+  allowAdditionalRoutines: boolean;
+  maxRoutineCount: number;
+  maxBlocksGlobal: number;
+  maxBlocksByRoutine: Record<string, number>;
   drafts: StructureDraft[];
   operationPolicy: LevelOperationPolicy;
   blockLimits: Record<BlockLimitKey, number>;
@@ -119,6 +128,8 @@ const buildLevelDefinition = (options: {
   valueDomainNumericOnly: boolean;
   valueDomainMinRaw: string;
   valueDomainMaxRaw: string;
+  lockStarterBlocks: boolean;
+  document: ReturnType<typeof createEditorDocument>;
 }): LevelDefinition => {
   const initialState = buildSnapshots(options.drafts, "initial");
   const goalState = buildSnapshots(options.drafts, "goal");
@@ -197,6 +208,10 @@ const buildLevelDefinition = (options: {
       forbiddenBlocks: toLegacyForbiddenBlocks(options.blockLimits),
       blockLimits: options.blockLimits,
       maxSteps: options.maxSteps,
+      allowAdditionalRoutines: options.allowAdditionalRoutines,
+      maxRoutineCount: options.maxRoutineCount,
+      maxBlocksGlobal: options.maxBlocksGlobal,
+      maxBlocksByRoutine: options.maxBlocksByRoutine,
       ...(structureCapacities ? { structureCapacities } : {}),
       ...(options.noLargerOnSmallerEnabled
         ? {
@@ -228,20 +243,50 @@ const buildLevelDefinition = (options: {
     },
     tooling: {
       availableStructures: [...new Set(options.drafts.map((draft) => draft.kind))],
-      advancedToolsEnabled: false
+      advancedToolsEnabled: false,
+      starterDocumentJson: JSON.stringify(serializeProgramDocument(options.document)),
+      lockStarterBlocks: options.lockStarterBlocks
     }
   };
 };
 
 export interface EditorShellProps {}
 
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  ariaLabel: string;
+}
+
+function ToggleSwitch({ checked, onChange, ariaLabel }: ToggleSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      className={`toggle-switch-ra${checked ? " is-selected" : ""}`}
+      onClick={() => onChange(!checked)}
+    >
+      <span className="toggle-switch-ra-indicator" aria-hidden="true" />
+    </button>
+  );
+}
+
 export function EditorShell(_props: EditorShellProps) {
+  const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
   const dialog = useDialogManager();
+  const [draftName, setDraftName] = useState("Nivel sin nombre");
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [description, setDescription] = useState("");
   const [author, setAuthor] = useState("");
   const [difficulty, setDifficulty] = useState<LevelDifficulty>("easy");
   const [maxSteps, setMaxSteps] = useState(99);
+  const [allowAdditionalRoutines, setAllowAdditionalRoutines] = useState(false);
+  const [maxRoutineCount, setMaxRoutineCount] = useState(8);
+  const [maxBlocksGlobal, setMaxBlocksGlobal] = useState(99);
+  const [maxBlocksByRoutine, setMaxBlocksByRoutine] = useState<Record<string, number>>({});
   const [savedLevelId, setSavedLevelId] = useState("");
   const [savedLevelTitle, setSavedLevelTitle] = useState("");
   const [structureDrafts, setStructureDrafts] = useState<StructureDraft[]>([]);
@@ -255,6 +300,7 @@ export function EditorShell(_props: EditorShellProps) {
   const [valueDomainNumericOnly, setValueDomainNumericOnly] = useState(false);
   const [valueDomainMinRaw, setValueDomainMinRaw] = useState("");
   const [valueDomainMaxRaw, setValueDomainMaxRaw] = useState("");
+  const [lockStarterBlocks, setLockStarterBlocks] = useState(false);
   const [statusMessage, setStatusMessage] = useState("Editor listo. Todo desactivado por defecto.");
   const [isSaving, setIsSaving] = useState(false);
   const [isGoalPreview, setIsGoalPreview] = useState(false);
@@ -263,6 +309,7 @@ export function EditorShell(_props: EditorShellProps) {
   const [document, setDocument] = useState(createEditorDocument());
   const [breakpointNodeIds, setBreakpointNodeIds] = useState<string[]>([]);
   const [outputMode] = useState<"hidden" | "runtime" | "diagnostics">("diagnostics");
+  const [completedLevelIds, setCompletedLevelIds] = useState<string[]>([]);
   const previewVariables: RuntimeVariableSnapshot[] = [];
   const boardShellRef = useRef<HTMLElement | null>(null);
   const structureConfigOverlayRef = useRef<HTMLDivElement | null>(null);
@@ -275,6 +322,57 @@ export function EditorShell(_props: EditorShellProps) {
     left: number;
     top: number;
   } | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1280
+  );
+  const isCompactLayout = viewportWidth <= 640;
+  const { dualStageRef, dualStageStyle, isResizingPanels, startPanelResize } = usePanelResize(
+    isCompactLayout,
+    viewportWidth
+  );
+
+  const applySnapshot = (snapshot: LevelEditorDraftSnapshot) => {
+    setDescription(snapshot.description ?? "");
+    setAuthor(snapshot.author ?? "");
+    setDifficulty(snapshot.difficulty ?? "easy");
+    setMaxSteps(snapshot.maxSteps ?? 99);
+    setAllowAdditionalRoutines(snapshot.allowAdditionalRoutines ?? false);
+    setMaxRoutineCount(snapshot.maxRoutineCount ?? 8);
+    setMaxBlocksGlobal(snapshot.maxBlocksGlobal ?? 99);
+    setMaxBlocksByRoutine(snapshot.maxBlocksByRoutine ?? {});
+    setStructureDrafts(snapshot.structureDrafts ?? []);
+    setOperationPolicy(snapshot.operationPolicy ?? createOperationPolicy("forbidden"));
+    setBlockLimits(snapshot.blockLimits ?? createDefaultBlockLimits(0));
+    setNoLargerOnSmallerEnabled(snapshot.noLargerOnSmallerEnabled ?? false);
+    setValueDomainNumericOnly(snapshot.valueDomainNumericOnly ?? false);
+    setValueDomainMinRaw(snapshot.valueDomainMinRaw ?? "");
+    setValueDomainMaxRaw(snapshot.valueDomainMaxRaw ?? "");
+    setLockStarterBlocks(snapshot.lockStarterBlocks ?? false);
+    setBreakpointNodeIds([]);
+    try {
+      const parsedDocument = JSON.parse(snapshot.documentJson);
+      setDocument(deserializeProgramDocument(parsedDocument));
+    } catch {
+      setDocument(createEditorDocument());
+    }
+  };
+
+  useEffect(() => {
+    if (!draftId) {
+      navigate(APP_ROUTES.editor, { replace: true });
+      return;
+    }
+    const record = getEditorDraftRecord(draftId);
+    if (!record) {
+      navigate(APP_ROUTES.editor, { replace: true });
+      return;
+    }
+    setDraftName(record.name);
+    setSavedLevelId(record.publishedLevelId ?? "");
+    setSavedLevelTitle(record.name);
+    applySnapshot(record.snapshot);
+    setIsBootstrapped(true);
+  }, [draftId, navigate]);
 
   const setOperationState = (
     operation: LevelOperation,
@@ -332,6 +430,49 @@ export function EditorShell(_props: EditorShellProps) {
 
   const selectedStructureDraft =
     selectedStructureIndex !== null ? structureDrafts[selectedStructureIndex] ?? null : null;
+
+  const createLevelFromCurrentDraft = (id: string, title: string): LevelDefinition =>
+    buildLevelDefinition({
+      id,
+      title,
+      description: description.trim(),
+      author: author.trim(),
+      difficulty,
+      maxSteps,
+      allowAdditionalRoutines,
+      maxRoutineCount,
+      maxBlocksGlobal,
+      maxBlocksByRoutine,
+      drafts: structureDrafts,
+      operationPolicy,
+      blockLimits,
+      noLargerOnSmallerEnabled,
+      valueDomainNumericOnly,
+      valueDomainMinRaw,
+      valueDomainMaxRaw,
+      lockStarterBlocks,
+      document
+    });
+
+  const createSnapshotFromCurrentState = (): LevelEditorDraftSnapshot => ({
+    description,
+    author,
+    difficulty,
+    maxSteps,
+    allowAdditionalRoutines,
+    maxRoutineCount,
+    maxBlocksGlobal,
+    maxBlocksByRoutine,
+    structureDrafts,
+    operationPolicy,
+    blockLimits,
+    noLargerOnSmallerEnabled,
+    valueDomainNumericOnly,
+    valueDomainMinRaw,
+    valueDomainMaxRaw,
+    lockStarterBlocks,
+    documentJson: JSON.stringify(serializeProgramDocument(document))
+  });
 
   const calculateStructureConfigOverlayPosition = (anchor: {
     clientX: number;
@@ -417,6 +558,26 @@ export function EditorShell(_props: EditorShellProps) {
   }, [selectedStructureIndex]);
 
   useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    setMaxBlocksByRoutine((previous) => {
+      let changed = false;
+      const next: Record<string, number> = { ...previous };
+      document.routines.forEach((routine) => {
+        if (next[routine.id] === undefined) {
+          next[routine.id] = 99;
+          changed = true;
+        }
+      });
+      return changed ? next : previous;
+    });
+  }, [document.routines]);
+
+  useEffect(() => {
     if (selectedStructureIndex === null || !structureConfigAnchor) {
       return;
     }
@@ -442,28 +603,44 @@ export function EditorShell(_props: EditorShellProps) {
     };
   }, [selectedStructureIndex, structureConfigAnchor, selectedStructureDraft]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadProgress = async () => {
+      try {
+        const progress = await progressRepository.loadProgress();
+        if (!cancelled) {
+          setCompletedLevelIds(progress.completedLevelIds);
+        }
+      } catch {
+        if (!cancelled) {
+          setCompletedLevelIds([]);
+        }
+      }
+    };
+    void loadProgress();
+    const refresh = () => {
+      void loadProgress();
+    };
+    window.addEventListener("focus", refresh);
+    window.document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", refresh);
+      window.document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
+
   const draftLevel = useMemo(
-    () =>
-      buildLevelDefinition({
-        id: savedLevelId.trim() || "__draft_level__",
-        title: savedLevelTitle.trim() || "Nivel en edición",
-        description: description.trim(),
-        author: author.trim(),
-        difficulty,
-        maxSteps,
-        drafts: structureDrafts,
-        operationPolicy,
-        blockLimits,
-        noLargerOnSmallerEnabled,
-        valueDomainNumericOnly,
-        valueDomainMinRaw,
-        valueDomainMaxRaw
-      }),
+    () => createLevelFromCurrentDraft(savedLevelId.trim() || "__draft_level__", savedLevelTitle.trim() || "Nivel en edición"),
     [
       author,
       blockLimits,
       description,
       difficulty,
+      allowAdditionalRoutines,
+      maxBlocksByRoutine,
+      maxBlocksGlobal,
+      maxRoutineCount,
       maxSteps,
       noLargerOnSmallerEnabled,
       operationPolicy,
@@ -472,29 +649,101 @@ export function EditorShell(_props: EditorShellProps) {
       structureDrafts,
       valueDomainMaxRaw,
       valueDomainMinRaw,
-      valueDomainNumericOnly
+      valueDomainNumericOnly,
+      lockStarterBlocks,
+      document
     ]
   );
+  const draftTestSignature = useMemo(
+    () =>
+      JSON.stringify({
+        initialState: draftLevel.initialState,
+        goalState: draftLevel.goalState,
+        constraints: draftLevel.constraints,
+        tooling: draftLevel.tooling
+      }),
+    [draftLevel]
+  );
+  const draftTestLevelId = useMemo(() => toDraftTestLevelId(draftTestSignature), [draftTestSignature]);
+  const isDraftSolvedByCreator = completedLevelIds.includes(draftTestLevelId);
 
-  const canSave = !isSaving;
+  const canSave = !isSaving && isBootstrapped;
   const disabledRunButtons = true;
-  const canPlay = savedLevelId.trim().length > 0;
+  const canPlay = !isSaving && isBootstrapped;
   const compiledProgram = useMemo(() => compileEditorDocument(document), [document]);
   const activeRoutineCompiled =
     compiledProgram.routines[document.activeRoutineId] ?? compiledProgram;
+  const totalDocumentBlocks = useMemo(
+    () =>
+      document.routines.reduce(
+        (acc, routine) => acc + countEditorBlocks(projectProgramToEditorBlocks(routine.program)),
+        0
+      ),
+    [document]
+  );
   const visibleRoutineOperations = useMemo(
     () => countEditorBlocks(projectDocumentToEditorBlocks(document)),
     [document]
   );
+  const activeRoutineLimit = Math.max(
+    0,
+    Math.floor(maxBlocksByRoutine[document.activeRoutineId] ?? 99)
+  );
+  const otherRoutineBlocks = Math.max(0, totalDocumentBlocks - visibleRoutineOperations);
+  const effectiveActiveRoutineBlockLimit = allowAdditionalRoutines
+    ? Math.max(0, Math.floor(maxBlocksGlobal) - otherRoutineBlocks)
+    : activeRoutineLimit;
+  const effectiveDisplayBlockLimit = allowAdditionalRoutines
+    ? Math.max(0, Math.floor(maxBlocksGlobal))
+    : activeRoutineLimit;
+  const canCreateMoreRoutinesInEditor = allowAdditionalRoutines
+    ? document.routines.length < Math.max(1, Math.floor(maxRoutineCount))
+    : true;
 
-  const handleSave = async () => {
-    if (!canSave || isSaving) {
+  const persistDraft = (patch?: Partial<{
+    name: string;
+    publishedAt: string;
+    publishedLevelId: string;
+  }>) => {
+    if (!draftId) return;
+    const previous = getEditorDraftRecord(draftId);
+    const nextName = patch?.name ?? draftName ?? previous?.name ?? "Nivel sin nombre";
+    saveEditorDraftRecord({
+      id: draftId,
+      name: nextName,
+      updatedAt: new Date().toISOString(),
+      publishedAt: patch?.publishedAt ?? previous?.publishedAt,
+      publishedLevelId: patch?.publishedLevelId ?? previous?.publishedLevelId,
+      snapshot: createSnapshotFromCurrentState()
+    });
+    setDraftName(nextName);
+  };
+
+  const handleSaveDraft = async () => {
+    if (!canSave || isSaving || !draftId) {
       return;
     }
+    persistDraft();
+    setStatusMessage("Borrador guardado localmente.");
+  };
 
+  const handlePublish = async () => {
+    if (!canSave || isSaving || !draftId) return;
+    persistDraft();
+    if (!isDraftSolvedByCreator) {
+      const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, "Borrador de prueba");
+      try {
+        await levelRepository.importLevel(draftLevelToTest);
+        setStatusMessage("Debes resolver el nivel para publicarlo. Te llevo a Probar nivel.");
+        navigate(`${APP_ROUTES.play}/${draftTestLevelId}`);
+      } catch (error) {
+        setStatusMessage(error instanceof Error ? error.message : "No se pudo preparar el borrador para prueba.");
+      }
+      return;
+    }
     const requestedName = await dialog.requestTextInput({
       title: "Nombre del nivel",
-      initialValue: savedLevelTitle || "",
+      initialValue: savedLevelTitle || draftName || "",
       validate: (value) => (value.trim() ? null : "El nombre no puede estar vacío.")
     });
     if (requestedName === null) {
@@ -503,42 +752,61 @@ export function EditorShell(_props: EditorShellProps) {
 
     const title = requestedName.trim();
     const normalizedId = slugifyLevelId(title) || `nivel-${Date.now()}`;
-    const levelToSave = buildLevelDefinition({
-      id: normalizedId,
-      title,
-      description: description.trim(),
-      author: author.trim(),
-      difficulty,
-      maxSteps,
-      drafts: structureDrafts,
-      operationPolicy,
-      blockLimits,
-      noLargerOnSmallerEnabled,
-      valueDomainNumericOnly,
-      valueDomainMinRaw,
-      valueDomainMaxRaw
-    });
+    const levelToSave = createLevelFromCurrentDraft(normalizedId, title);
 
     setIsSaving(true);
     try {
       await levelRepository.importLevel(levelToSave);
       setSavedLevelId(levelToSave.id);
       setSavedLevelTitle(levelToSave.title);
-      setStatusMessage(`Guardado: ${levelToSave.id}`);
+      persistDraft({
+        name: title,
+        publishedAt: new Date().toISOString(),
+        publishedLevelId: levelToSave.id
+      });
+      setStatusMessage(`Publicado: ${levelToSave.id}`);
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "No se pudo guardar el nivel.");
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo publicar el nivel.");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handlePlayDraft = async () => {
+    if (isSaving || !isBootstrapped) {
+      return;
+    }
+    persistDraft();
+    const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, "Borrador de prueba");
+    try {
+      await levelRepository.importLevel(draftLevelToTest);
+      setStatusMessage("Borrador preparado. Resuélvelo para habilitar Publicar.");
+      navigate(`${APP_ROUTES.play}/${draftTestLevelId}`);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "No se pudo preparar el borrador para prueba.");
+    }
+  };
+
   const handleCreateRoutine = async () => {
+    if (!canCreateMoreRoutinesInEditor) {
+      setStatusMessage(`Límite de scripts alcanzado (${maxRoutineCount}).`);
+      return;
+    }
     const nextName = await dialog.requestTextInput({
       title: "Nombre de viñeta",
       initialValue: "viñeta"
     });
     if (nextName === null) return;
-    setDocument((previous) => addRoutine(previous, nextName.trim() || "viñeta"));
+    setDocument((previous) => {
+      const nextDocument = addRoutine(previous, nextName.trim() || "viñeta");
+      const newestRoutine = nextDocument.routines[nextDocument.routines.length - 1];
+      if (newestRoutine) {
+        setMaxBlocksByRoutine((prev) =>
+          prev[newestRoutine.id] !== undefined ? prev : { ...prev, [newestRoutine.id]: 99 }
+        );
+      }
+      return nextDocument;
+    });
   };
 
   const handleRenameRoutine = async (routineId: string, currentName: string) => {
@@ -558,33 +826,66 @@ export function EditorShell(_props: EditorShellProps) {
     );
   };
 
+  const handleExportJson = () => {
+    const filenameBase = slugifyLevelId(draftName || "nivel") || "nivel";
+    const payload = JSON.stringify(draftLevel, null, 2);
+    const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = window.document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${filenameBase}.json`;
+    window.document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setStatusMessage("Nivel exportado como JSON.");
+  };
+
   return (
     <Screen mode="editor">
       <div className="editor-shell">
-        <div className="level-editor-actions">
-          <Link className="back-link" to={APP_ROUTES.home}>Menu</Link>
-          <button
-            type="button"
-            onClick={() => setIsConfigOpen((previous) => !previous)}
-          >
-            {isConfigOpen ? "Ocultar config" : "Mostrar config"}
-          </button>
-          <button
-            type="button"
-            disabled={!canPlay}
-            onClick={() => {
-              if (!canPlay) return;
-              navigate(`${APP_ROUTES.play}/${savedLevelId}`);
-            }}
-          >
-            Probar
-          </button>
-          <button type="button" disabled={!canSave || isSaving} onClick={() => void handleSave()}>
-            {isSaving ? "Guardando..." : "Guardar"}
-          </button>
+        {!isBootstrapped ? (
+          <p className="level-editor-status">Cargando borrador...</p>
+        ) : null}
+        <div className="topbar primary-screen-topbar level-editor-actions">
+          <div className="level-editor-actions-left">
+            <Link className="back-link" to={APP_ROUTES.editor}>Mis niveles</Link>
+            <div className="level-editor-title-group">
+              <p className="eyebrow">Editor</p>
+              <h1>{draftName}</h1>
+            </div>
+          </div>
+          <div className="level-editor-actions-right">
+            <span className={`mini-tag ${savedLevelId ? "is-published" : "is-draft"}`}>
+              {savedLevelId ? "Publicado" : "Borrador"}
+            </span>
+            <button type="button" disabled={!isBootstrapped} onClick={handleExportJson}>
+              Exportar JSON
+            </button>
+            <button
+              type="button"
+              disabled={!canPlay}
+              onClick={() => {
+                if (!canPlay) return;
+                void handlePlayDraft();
+              }}
+            >
+              Probar nivel
+            </button>
+            <button type="button" disabled={!canSave || isSaving} onClick={() => void handleSaveDraft()}>
+              Guardar
+            </button>
+            <button type="button" disabled={!canSave || isSaving} onClick={() => void handlePublish()}>
+              {isSaving ? "Publicando..." : "Publicar"}
+            </button>
+          </div>
         </div>
 
-        <section className="play-dual-stage level-editor-stage">
+        <section
+          ref={dualStageRef}
+          className={`play-dual-stage level-editor-stage${isResizingPanels ? " is-resizing" : ""}`}
+          style={dualStageStyle}
+        >
           <IdePanel
             document={document}
             activeRoutineCompiled={activeRoutineCompiled}
@@ -600,6 +901,8 @@ export function EditorShell(_props: EditorShellProps) {
               setBlockLimits((previous) => ({ ...previous, [limitKey as BlockLimitKey]: normalized }));
             }}
             maxSteps={maxSteps}
+            maxBlocksForActiveRoutine={effectiveActiveRoutineBlockLimit}
+            maxBlocksForDisplay={effectiveDisplayBlockLimit}
             outputMode={outputMode}
             visibleRoutineOperations={visibleRoutineOperations}
             dialog={dialog}
@@ -612,6 +915,8 @@ export function EditorShell(_props: EditorShellProps) {
             }
             onRenameRoutine={handleRenameRoutine}
             onCreateRoutine={handleCreateRoutine}
+            disableCreateRoutine={!canCreateMoreRoutinesInEditor}
+            hideRunActions
             disabledRunButtons
             onRun={() => setStatusMessage("Modo editor: usa Probar para ejecutar la sesión de juego.")}
             onStep={() => setStatusMessage("Modo editor: usa Probar para validación paso a paso.")}
@@ -627,53 +932,101 @@ export function EditorShell(_props: EditorShellProps) {
               setStatusMessage("Programa limpiado.");
             }}
             translateDiagnostic={(diagnostic) => diagnostic}
+            hideOutputBlocksCounter
+            topbarControls={
+              <div className="script-limit-controls-inline">
+                <div className="script-limit-inline-toggle">
+                  <span>Scripts libres</span>
+                  <ToggleSwitch
+                    ariaLabel="Permitir scripts adicionales"
+                    checked={allowAdditionalRoutines}
+                    onChange={setAllowAdditionalRoutines}
+                  />
+                </div>
+                {allowAdditionalRoutines ? (
+                  <TextField className="script-limit-inline-field">
+                    <Label>Max scripts</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={maxRoutineCount}
+                      onChange={(event) =>
+                        setMaxRoutineCount(Math.max(1, Number(event.target.value) || 1))
+                      }
+                    />
+                  </TextField>
+                ) : null}
+                <div className="script-limit-inline-toggle">
+                  <span>Bloques iniciales bloqueados</span>
+                  <ToggleSwitch
+                    ariaLabel="Bloquear bloques iniciales"
+                    checked={lockStarterBlocks}
+                    onChange={setLockStarterBlocks}
+                  />
+                </div>
+              </div>
+            }
+            outputMetaControl={
+              allowAdditionalRoutines ? (
+                <TextField className="script-limit-inline-field script-limit-output-field">
+                  <Label>Bloques global</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={maxBlocksGlobal}
+                    onChange={(event) =>
+                      setMaxBlocksGlobal(Math.max(0, Number(event.target.value) || 0))
+                    }
+                  />
+                </TextField>
+              ) : (
+                <TextField className="script-limit-inline-field script-limit-output-field">
+                  <Label>Bloques script</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={activeRoutineLimit}
+                    onChange={(event) => {
+                      const nextValue = Math.max(0, Number(event.target.value) || 0);
+                      setMaxBlocksByRoutine((previous) => ({
+                        ...previous,
+                        [document.activeRoutineId]: nextValue
+                      }));
+                    }}
+                  />
+                </TextField>
+              )
+            }
           />
 
-          <div className="play-stage-divider level-editor-stage-divider" aria-hidden="true" />
+          {!isCompactLayout ? (
+            <div
+              className="play-stage-divider level-editor-stage-divider"
+              role="separator"
+              aria-orientation="vertical"
+              onPointerDown={startPanelResize}
+            />
+          ) : null}
 
           <section className="level-editor-board-shell" ref={boardShellRef}>
             <BoardPanel
               levelId={draftLevel.id}
               isCompleted={false}
               isShowingGoalPreview={isGoalPreview}
+              onPreviewPointerDown={() => setIsGoalPreview(true)}
+              onPreviewPointerUp={() => setIsGoalPreview(false)}
+              onPreviewPointerLeave={() => setIsGoalPreview(false)}
+              onPreviewPointerCancel={() => setIsGoalPreview(false)}
               structures={draftLevel.initialState}
               goalState={draftLevel.goalState}
               variableSnapshots={isGoalPreview ? [] : previewVariables}
               heapSnapshots={[]}
-              events={[]}
               showStructureConfigActions
               onStructureConfigClick={handleStructureConfigClick}
+              onAddStructure={addStructure}
+              isConfigOpen={isConfigOpen}
+              onToggleConfig={() => setIsConfigOpen((previous) => !previous)}
             />
-            <div className="level-preview-actions level-preview-actions-overlay">
-              <button
-                type="button"
-                className="routine-chip"
-                onClick={addStructure}
-              >
-                + estructura
-              </button>
-              <button
-                type="button"
-                className={`routine-chip${!isGoalPreview ? " active" : ""}`}
-                onClick={() => setIsGoalPreview(false)}
-              >
-                Inicial
-              </button>
-              <button
-                type="button"
-                className={`routine-chip${isGoalPreview ? " active" : ""}`}
-                onClick={() => setIsGoalPreview(true)}
-              >
-                Objetivo
-              </button>
-              <button
-                type="button"
-                className={`routine-chip${isConfigOpen ? " active" : ""}`}
-                onClick={() => setIsConfigOpen((previous) => !previous)}
-              >
-                Config
-              </button>
-            </div>
             {selectedStructureDraft ? (
               <aside
                 className="level-editor-structure-config-overlay"
@@ -688,15 +1041,16 @@ export function EditorShell(_props: EditorShellProps) {
                     <div className="structure-draft-header">
                       <strong>{selectedStructureDraft.id || `Estructura ${selectedStructureIndex! + 1}`}</strong>
                       <div className="level-editor-inline-actions">
-                        <button
-                          type="button"
-                          className="icon-only-button icon-only-button-danger"
-                          aria-label="Eliminar estructura"
-                          title="Eliminar estructura"
-                          onClick={() => removeStructure(selectedStructureIndex!)}
-                        >
-                          🗑
-                        </button>
+                        <TooltipTrigger delay={200} closeDelay={80}>
+                          <Button
+                            className="icon-only-button icon-only-button-danger"
+                            aria-label="Eliminar estructura"
+                            onPress={() => removeStructure(selectedStructureIndex!)}
+                          >
+                            🗑
+                          </Button>
+                          <Tooltip className="app-tooltip">Eliminar estructura</Tooltip>
+                        </TooltipTrigger>
                       </div>
                     </div>
                     <div className="structure-draft-fields">
@@ -764,10 +1118,9 @@ export function EditorShell(_props: EditorShellProps) {
                     <div className="permissions-block-list">
                       <div className="switch-line">
                         <span>Override: no larger on smaller</span>
-                        <Switch
-                          aria-label="Override no larger on smaller"
-                          className="toggle-switch-ra"
-                          isSelected={selectedStructureDraft.overrideNoLargerOnSmaller}
+                        <ToggleSwitch
+                          ariaLabel="Override no larger on smaller"
+                          checked={selectedStructureDraft.overrideNoLargerOnSmaller}
                           onChange={(isSelected) =>
                             updateStructure(selectedStructureIndex!, {
                               overrideNoLargerOnSmaller: isSelected
@@ -776,25 +1129,24 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </div>
                       {selectedStructureDraft.overrideNoLargerOnSmaller ? (
-                        <label className="switch-line">
+                        <div className="switch-line">
                           <span>Regla activa en esta estructura</span>
-                          <input
-                            type="checkbox"
+                          <ToggleSwitch
+                            ariaLabel="Regla activa en esta estructura"
                             checked={selectedStructureDraft.noLargerOnSmallerEnabled}
-                            onChange={(event) =>
+                            onChange={(isSelected) =>
                               updateStructure(selectedStructureIndex!, {
-                                noLargerOnSmallerEnabled: event.target.checked
+                                noLargerOnSmallerEnabled: isSelected
                               })
                             }
                           />
-                        </label>
+                        </div>
                       ) : null}
                       <div className="switch-line">
                         <span>Override: dominio de valores</span>
-                        <Switch
-                          aria-label="Override dominio de valores"
-                          className="toggle-switch-ra"
-                          isSelected={selectedStructureDraft.overrideValueDomain}
+                        <ToggleSwitch
+                          ariaLabel="Override dominio de valores"
+                          checked={selectedStructureDraft.overrideValueDomain}
                           onChange={(isSelected) =>
                             updateStructure(selectedStructureIndex!, {
                               overrideValueDomain: isSelected
@@ -804,18 +1156,18 @@ export function EditorShell(_props: EditorShellProps) {
                       </div>
                       {selectedStructureDraft.overrideValueDomain ? (
                         <>
-                          <label className="switch-line">
+                          <div className="switch-line">
                             <span>Solo valores numéricos</span>
-                            <input
-                              type="checkbox"
+                            <ToggleSwitch
+                              ariaLabel="Solo valores numéricos local"
                               checked={selectedStructureDraft.valueDomainNumericOnly}
-                              onChange={(event) =>
+                              onChange={(isSelected) =>
                                 updateStructure(selectedStructureIndex!, {
-                                  valueDomainNumericOnly: event.target.checked
+                                  valueDomainNumericOnly: isSelected
                                 })
                               }
                             />
-                          </label>
+                          </div>
                           <label>
                             Min local
                             <input
@@ -885,22 +1237,22 @@ export function EditorShell(_props: EditorShellProps) {
                   <details className="level-editor-details">
                     <summary>Constraints de ejecución</summary>
                     <div className="permissions-block-list">
-                      <label className="switch-line">
+                      <div className="switch-line">
                         <span>No larger on smaller (Hanoi)</span>
-                        <input
-                          type="checkbox"
+                        <ToggleSwitch
+                          ariaLabel="No larger on smaller global"
                           checked={noLargerOnSmallerEnabled}
-                          onChange={(event) => setNoLargerOnSmallerEnabled(event.target.checked)}
+                          onChange={setNoLargerOnSmallerEnabled}
                         />
-                      </label>
-                      <label className="switch-line">
+                      </div>
+                      <div className="switch-line">
                         <span>Solo valores numéricos</span>
-                        <input
-                          type="checkbox"
+                        <ToggleSwitch
+                          ariaLabel="Solo valores numéricos global"
                           checked={valueDomainNumericOnly}
-                          onChange={(event) => setValueDomainNumericOnly(event.target.checked)}
+                          onChange={setValueDomainNumericOnly}
                         />
-                      </label>
+                      </div>
                       <label>
                         Valor mínimo permitido
                         <input
@@ -960,12 +1312,6 @@ export function EditorShell(_props: EditorShellProps) {
             ) : null}
           </section>
         </section>
-        <details className="level-editor-details">
-          <summary>JSON preview</summary>
-          <pre className="level-json-preview">
-            {JSON.stringify(draftLevel, null, 2)}
-          </pre>
-        </details>
         <AppDialogs dialog={dialog} />
       </div>
     </Screen>

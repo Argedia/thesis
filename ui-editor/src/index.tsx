@@ -32,6 +32,7 @@ export interface StructuresBoardProps {
   handValue?: string | number | null;
   variables?: BoardVariableSnapshot[];
   heapObjects?: BoardHeapObjectSnapshot[];
+  events?: EngineEvent[];
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 }
@@ -81,7 +82,7 @@ const boardCanvasFrameStyle: CSSProperties = {
   height: "100%",
   minHeight: 0,
   borderRadius: "22px",
-  border: "2px solid #d3e4f4",
+  border: "0",
   background: "#ecf6ff",
   overflow: "hidden"
 };
@@ -107,10 +108,54 @@ const drawRoundedRect = (
   ctx.closePath();
 };
 
+type ListTransitionKind =
+  | "none"
+  | "append"
+  | "prepend"
+  | "remove_first"
+  | "remove_last"
+  | "other";
+
+const nodeEquals = (left: DataNode, right: DataNode): boolean =>
+  left.value === right.value && (left.color ?? "") === (right.color ?? "");
+
+const detectListTransitionKind = (previous: DataNode[], current: DataNode[]): ListTransitionKind => {
+  if (previous.length === current.length) {
+    return previous.every((node, index) => nodeEquals(node, current[index]!)) ? "none" : "other";
+  }
+
+  if (current.length === previous.length + 1) {
+    const appended = previous.every((node, index) => nodeEquals(node, current[index]!));
+    if (appended) return "append";
+    const prepended = previous.every((node, index) => nodeEquals(node, current[index + 1]!));
+    if (prepended) return "prepend";
+    return "other";
+  }
+
+  if (previous.length === current.length + 1) {
+    const removedLast = current.every((node, index) => nodeEquals(node, previous[index]!));
+    if (removedLast) return "remove_last";
+    const removedFirst = current.every((node, index) => nodeEquals(node, previous[index + 1]!));
+    if (removedFirst) return "remove_first";
+    return "other";
+  }
+
+  return "other";
+};
+
+const normalizePhaseProgress = (value: number): number => Math.max(0, Math.min(1, value));
+
+const getOperationFromStepId = (stepId: string): string | null => {
+  const parts = stepId.split("-");
+  if (parts.length < 3) return null;
+  return parts[1] ?? null;
+};
+
 export function StructuresBoard({
   structures,
   variables = [],
   heapObjects = [],
+  events = [],
   showStructureConfigActions = false,
   onStructureConfigClick
 }: StructuresBoardProps) {
@@ -139,6 +184,26 @@ export function StructuresBoard({
   const contentBoundsRef = useRef<{ w: number; h: number }>({ w: 600, h: 400 });
   // trigger redraw
   const redrawRef = useRef<(() => void) | null>(null);
+  const listSnapshotsRef = useRef<Record<string, DataNode[]>>({});
+  const listReadHighlightRef = useRef<{
+    structureId: string;
+    operation: "get_head" | "get_tail" | "size";
+    startedAt: number;
+    durationMs: number;
+  } | null>(null);
+  const listTransitionRef = useRef<{
+    active: boolean;
+    startAt: number;
+    durationMs: number;
+    from: Record<string, DataNode[]>;
+    to: Record<string, DataNode[]>;
+  }>({
+    active: false,
+    startAt: 0,
+    durationMs: 420,
+    from: {},
+    to: {}
+  });
 
   const fitToView = () => {
     const host = hostRef.current;
@@ -174,7 +239,82 @@ export function StructuresBoard({
       return;
     }
 
+    const normalizedForTransition = structures.map((structure) => normalizeStructureSnapshot(structure));
+    const nextListSnapshots: Record<string, DataNode[]> = {};
+    normalizedForTransition.forEach((structure) => {
+      if (structure.kind !== "list") return;
+      nextListSnapshots[structure.id] = structure.values.map((value) => ({ ...(value as DataNode) }));
+    });
+
+    const previousListSnapshots = listSnapshotsRef.current;
+    const hasPreviousListState = Object.keys(previousListSnapshots).length > 0;
+    const listStateChanged = (() => {
+      const previousIds = Object.keys(previousListSnapshots);
+      const nextIds = Object.keys(nextListSnapshots);
+      if (previousIds.length !== nextIds.length) return true;
+      for (const id of nextIds) {
+        const before = previousListSnapshots[id] ?? [];
+        const after = nextListSnapshots[id] ?? [];
+        if (before.length !== after.length) return true;
+        for (let index = 0; index < after.length; index += 1) {
+          const beforeNode = before[index];
+          const afterNode = after[index];
+          if (
+            !beforeNode ||
+            !afterNode ||
+            beforeNode.value !== afterNode.value ||
+            (beforeNode.color ?? "") !== (afterNode.color ?? "")
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    })();
+
+    if (hasPreviousListState && listStateChanged) {
+      listTransitionRef.current = {
+        active: true,
+        startAt: performance.now(),
+        durationMs: 420,
+        from: previousListSnapshots,
+        to: nextListSnapshots
+      };
+    } else if (!hasPreviousListState) {
+      listTransitionRef.current = {
+        ...listTransitionRef.current,
+        active: false,
+        from: {},
+        to: {}
+      };
+    }
+
+    listSnapshotsRef.current = nextListSnapshots;
+
+    const latestEvent = events[events.length - 1];
+    if (latestEvent?.type === "VALUE_READ") {
+      const operation = getOperationFromStepId(latestEvent.stepId);
+      if (operation === "get_head" || operation === "get_tail" || operation === "size") {
+        const snapshot = nextListSnapshots[latestEvent.structureId];
+        if (snapshot) {
+          listReadHighlightRef.current = {
+            structureId: latestEvent.structureId,
+            operation,
+            startedAt: performance.now(),
+            durationMs: 520
+          };
+        }
+      }
+    }
+
+    const shouldAnimateListPointers = structures.some(
+      (structure) => structure.kind === "list"
+    );
+
     const draw = () => {
+      const now = performance.now();
+      const pointerDashOffset = -((now / 70) % 24);
+      const pointerPulse = 0.7 + 0.3 * Math.sin(now / 260);
       const normalizedStructures = structures.map((structure) => normalizeStructureSnapshot(structure));
 
       // remove stale card positions/sizes for cards that no longer exist
@@ -504,22 +644,336 @@ export function StructuresBoard({
           ctx.lineTo(frameX + frameWidth - Math.round(24 * layoutScale), laneY);
           ctx.stroke();
 
-          structure.values.slice(0, maxVisible).forEach((node, valueIndex) => {
-            const itemX = startX + valueIndex * (itemWidth + Math.round(16 * layoutScale));
-            const itemY = laneY - itemHeight - Math.round(10 * layoutScale);
-            const item = node as DataNode;
+          const listTransition = listTransitionRef.current;
+          const transitionProgressRaw = listTransition.active
+            ? (now - listTransition.startAt) / listTransition.durationMs
+            : 1;
+          const transitionProgress = Math.max(0, Math.min(1, transitionProgressRaw));
+          if (listTransition.active && transitionProgress >= 1) {
+            listTransition.active = false;
+          }
 
-            if (valueIndex > 0) {
-              ctx.strokeStyle = "rgba(124, 82, 186, 0.45)";
-              ctx.lineWidth = Math.max(2, Math.round(3 * layoutScale));
-              ctx.beginPath();
-              ctx.moveTo(itemX - Math.round(14 * layoutScale), itemY + itemHeight / 2);
-              ctx.lineTo(itemX - Math.round(4 * layoutScale), itemY + itemHeight / 2);
-              ctx.stroke();
+          const currentValues = structure.values.slice(0, maxVisible).map((value) => value as DataNode);
+          const previousValues = (
+            listTransition.active
+              ? (listTransition.from[structure.id] ?? currentValues)
+              : currentValues
+          )
+            .slice(0, maxVisible)
+            .map((value) => value as DataNode);
+          const transitionKind = detectListTransitionKind(previousValues, currentValues);
+          const isAppendTransition = listTransition.active && transitionKind === "append";
+          const isPrependTransition = listTransition.active && transitionKind === "prepend";
+          const isRemoveFirstTransition = listTransition.active && transitionKind === "remove_first";
+          const isRemoveLastTransition = listTransition.active && transitionKind === "remove_last";
+          const appendCreateEnd = 0.3;
+          const appendConnectEnd = 0.72;
+          const appendCreateProgress = normalizePhaseProgress(transitionProgress / appendCreateEnd);
+          const appendConnectProgress = normalizePhaseProgress(
+            (transitionProgress - appendCreateEnd) / (appendConnectEnd - appendCreateEnd)
+          );
+          const appendTailProgress = normalizePhaseProgress(
+            (transitionProgress - appendConnectEnd) / (1 - appendConnectEnd)
+          );
+          const prependCreateEnd = 0.3;
+          const prependConnectEnd = 0.72;
+          const prependCreateProgress = normalizePhaseProgress(transitionProgress / prependCreateEnd);
+          const prependConnectProgress = normalizePhaseProgress(
+            (transitionProgress - prependCreateEnd) / (prependConnectEnd - prependCreateEnd)
+          );
+          const prependHeadProgress = normalizePhaseProgress(
+            (transitionProgress - prependConnectEnd) / (1 - prependConnectEnd)
+          );
+          const removeDetachEnd = 0.55;
+          const removeFadeProgress = normalizePhaseProgress(
+            (transitionProgress - removeDetachEnd) / (1 - removeDetachEnd)
+          );
+
+          const buildKeyedNodes = (values: DataNode[]) => {
+            const counter = new Map<string, number>();
+            return values.map((node, index) => {
+              const signature = `${String(node.value)}|${node.color ?? ""}`;
+              const occurrence = counter.get(signature) ?? 0;
+              counter.set(signature, occurrence + 1);
+              return {
+                key: `${signature}|${occurrence}`,
+                node,
+                index
+              };
+            });
+          };
+
+          const previousKeyed = buildKeyedNodes(previousValues);
+          const currentKeyed = buildKeyedNodes(currentValues);
+          const previousHeadKey = previousKeyed[0]?.key ?? null;
+          const previousTailKey = previousKeyed[previousKeyed.length - 1]?.key ?? null;
+          const currentHeadKey = currentKeyed[0]?.key ?? null;
+          const currentTailKey = currentKeyed[currentKeyed.length - 1]?.key ?? null;
+          const previousByKey = new Map(previousKeyed.map((entry) => [entry.key, entry]));
+          const currentByKey = new Map(currentKeyed.map((entry) => [entry.key, entry]));
+
+          const allKeys = new Set<string>([
+            ...previousKeyed.map((entry) => entry.key),
+            ...currentKeyed.map((entry) => entry.key)
+          ]);
+
+          const indexToX = (index: number) =>
+            startX + index * (itemWidth + Math.round(16 * layoutScale));
+          const baseY = laneY - itemHeight - Math.round(10 * layoutScale);
+
+          type RenderNode = {
+            key: string;
+            node: DataNode;
+            x: number;
+            y: number;
+            alpha: number;
+            connectAlpha: number;
+            nullArrowAlpha: number;
+            toIndex: number | null;
+            fromIndex: number | null;
+          };
+
+          const renderedNodes: RenderNode[] = [];
+          allKeys.forEach((key) => {
+            const previousEntry = previousByKey.get(key);
+            const currentEntry = currentByKey.get(key);
+            if (previousEntry && currentEntry) {
+              const fromX = indexToX(previousEntry.index);
+              const toX = indexToX(currentEntry.index);
+              renderedNodes.push({
+                key,
+                node: currentEntry.node,
+                x: fromX + (toX - fromX) * transitionProgress,
+                y: baseY,
+                alpha: 1,
+                connectAlpha: 1,
+                nullArrowAlpha: 0,
+                toIndex: currentEntry.index,
+                fromIndex: previousEntry.index
+              });
+              return;
             }
+            if (previousEntry) {
+              const fromX = indexToX(previousEntry.index);
+              const isRemovedHead = previousEntry.key === previousHeadKey;
+              const isRemovedTail = previousEntry.key === previousTailKey;
+              const shouldHoldNode =
+                (isRemoveFirstTransition && isRemovedHead) ||
+                (isRemoveLastTransition && isRemovedTail);
+              if (shouldHoldNode) {
+                if (transitionProgress < removeDetachEnd) {
+                  renderedNodes.push({
+                    key,
+                    node: previousEntry.node,
+                    x: fromX,
+                    y: baseY,
+                    alpha: 1,
+                    connectAlpha: normalizePhaseProgress(1 - transitionProgress / removeDetachEnd),
+                    nullArrowAlpha: isRemovedTail ? 1 : 0,
+                    toIndex: null,
+                    fromIndex: previousEntry.index
+                  });
+                  return;
+                }
+                renderedNodes.push({
+                  key,
+                  node: previousEntry.node,
+                  x: fromX + Math.round(10 * layoutScale) * removeFadeProgress,
+                  y: baseY - Math.round(12 * layoutScale) * removeFadeProgress,
+                  alpha: Math.max(0, 1 - removeFadeProgress),
+                  connectAlpha: 0,
+                  nullArrowAlpha: isRemovedTail ? Math.max(0, 1 - removeFadeProgress) : 0,
+                  toIndex: null,
+                  fromIndex: previousEntry.index
+                });
+                return;
+              }
+              renderedNodes.push({
+                key,
+                node: previousEntry.node,
+                x: fromX + Math.round(10 * layoutScale) * transitionProgress,
+                y: baseY - Math.round(10 * layoutScale) * transitionProgress,
+                alpha: Math.max(0, 1 - transitionProgress),
+                connectAlpha: Math.max(0, 1 - transitionProgress),
+                nullArrowAlpha: 0,
+                toIndex: null,
+                fromIndex: previousEntry.index
+              });
+              return;
+            }
+            if (currentEntry) {
+              const toX = indexToX(currentEntry.index);
+              if (listTransition.active && !previousEntry) {
+                const introX = toX + Math.round(34 * layoutScale);
+                const introY = baseY - Math.round(20 * layoutScale);
+                if (isAppendTransition) {
+                  if (transitionProgress < appendCreateEnd) {
+                    renderedNodes.push({
+                      key,
+                      node: currentEntry.node,
+                      x: introX,
+                      y: introY,
+                      alpha: Math.max(0.25, appendCreateProgress),
+                      connectAlpha: 0,
+                      nullArrowAlpha: 1,
+                      toIndex: currentEntry.index,
+                      fromIndex: null
+                    });
+                    return;
+                  }
+                  if (transitionProgress < appendConnectEnd) {
+                    renderedNodes.push({
+                      key,
+                      node: currentEntry.node,
+                      x: introX + (toX - introX) * appendConnectProgress,
+                      y: introY + (baseY - introY) * appendConnectProgress,
+                      alpha: 1,
+                      connectAlpha: appendConnectProgress,
+                      nullArrowAlpha: Math.max(0, 1 - appendConnectProgress * 0.25),
+                      toIndex: currentEntry.index,
+                      fromIndex: null
+                    });
+                    return;
+                  }
+                  renderedNodes.push({
+                    key,
+                    node: currentEntry.node,
+                    x: toX,
+                    y: baseY,
+                    alpha: 1,
+                    connectAlpha: 1,
+                    nullArrowAlpha: 1,
+                    toIndex: currentEntry.index,
+                    fromIndex: null
+                  });
+                  return;
+                }
+                if (isPrependTransition) {
+                  const prependIntroX = toX - Math.round(34 * layoutScale);
+                  const prependIntroY = baseY - Math.round(20 * layoutScale);
+                  if (transitionProgress < prependCreateEnd) {
+                    renderedNodes.push({
+                      key,
+                      node: currentEntry.node,
+                      x: prependIntroX,
+                      y: prependIntroY,
+                      alpha: Math.max(0.25, prependCreateProgress),
+                      connectAlpha: 0,
+                      nullArrowAlpha: 1,
+                      toIndex: currentEntry.index,
+                      fromIndex: null
+                    });
+                    return;
+                  }
+                  if (transitionProgress < prependConnectEnd) {
+                    renderedNodes.push({
+                      key,
+                      node: currentEntry.node,
+                      x: prependIntroX + (toX - prependIntroX) * prependConnectProgress,
+                      y: prependIntroY + (baseY - prependIntroY) * prependConnectProgress,
+                      alpha: 1,
+                      connectAlpha: prependConnectProgress,
+                      nullArrowAlpha: Math.max(0, 1 - prependConnectProgress * 0.25),
+                      toIndex: currentEntry.index,
+                      fromIndex: null
+                    });
+                    return;
+                  }
+                  renderedNodes.push({
+                    key,
+                    node: currentEntry.node,
+                    x: toX,
+                    y: baseY,
+                    alpha: 1,
+                    connectAlpha: 1,
+                    nullArrowAlpha: 0,
+                    toIndex: currentEntry.index,
+                    fromIndex: null
+                  });
+                  return;
+                }
 
-            ctx.fillStyle = item.color ?? structureColor;
-            drawRoundedRect(ctx, itemX, itemY, itemWidth, itemHeight, Math.max(8, Math.round(12 * layoutScale)));
+                renderedNodes.push({
+                  key,
+                  node: currentEntry.node,
+                  x: introX + (toX - introX) * transitionProgress,
+                  y: introY + (baseY - introY) * transitionProgress,
+                  alpha: Math.max(0.2, transitionProgress),
+                  connectAlpha: transitionProgress,
+                  nullArrowAlpha: Math.max(0, 1 - transitionProgress * 0.5),
+                  toIndex: currentEntry.index,
+                  fromIndex: null
+                });
+                return;
+              }
+              renderedNodes.push({
+                key,
+                node: currentEntry.node,
+                x: toX + Math.round(10 * layoutScale) * (1 - transitionProgress),
+                y: baseY + Math.round(10 * layoutScale) * (1 - transitionProgress),
+                alpha: Math.max(0, transitionProgress),
+                connectAlpha: transitionProgress,
+                nullArrowAlpha: Math.max(0, 1 - transitionProgress),
+                toIndex: currentEntry.index,
+                fromIndex: null
+              });
+            }
+          });
+
+          renderedNodes.sort((left, right) => left.x - right.x);
+          const renderByKey = new Map(renderedNodes.map((entry) => [entry.key, entry]));
+
+          const drawPointer = (from: RenderNode, to: RenderNode, alpha: number) => {
+            if (alpha <= 0) return;
+            const centerY = from.y + itemHeight / 2;
+            const startPointerX = from.x + itemWidth + Math.round(2 * layoutScale);
+            const endPointerX = to.x - Math.round(8 * layoutScale);
+            const arrowHalf = Math.max(4, Math.round(6 * layoutScale));
+            const opacity = alpha * (0.55 + 0.4 * pointerPulse);
+
+            ctx.save();
+            ctx.strokeStyle = `rgba(124, 82, 186, ${opacity})`;
+            ctx.lineWidth = Math.max(2, Math.round(3 * layoutScale));
+            ctx.setLineDash([Math.max(4, Math.round(6 * layoutScale)), Math.max(3, Math.round(5 * layoutScale))]);
+            ctx.lineDashOffset = pointerDashOffset;
+            ctx.beginPath();
+            ctx.moveTo(startPointerX, centerY);
+            ctx.lineTo(endPointerX, centerY);
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = `rgba(124, 82, 186, ${Math.min(1, alpha * (0.76 + 0.2 * pointerPulse))})`;
+            ctx.beginPath();
+            ctx.moveTo(endPointerX + Math.round(5 * layoutScale), centerY);
+            ctx.lineTo(endPointerX - Math.round(3 * layoutScale), centerY - arrowHalf);
+            ctx.lineTo(endPointerX - Math.round(3 * layoutScale), centerY + arrowHalf);
+            ctx.closePath();
+            ctx.fill();
+          };
+
+          for (let i = 1; i < previousKeyed.length; i += 1) {
+            const left = renderByKey.get(previousKeyed[i - 1]!.key);
+            const right = renderByKey.get(previousKeyed[i]!.key);
+            if (!left || !right) continue;
+            drawPointer(left, right, 1 - transitionProgress);
+          }
+          for (let i = 1; i < currentKeyed.length; i += 1) {
+            const left = renderByKey.get(currentKeyed[i - 1]!.key);
+            const right = renderByKey.get(currentKeyed[i]!.key);
+            if (!left || !right) continue;
+            const targetAlpha =
+              isAppendTransition && transitionProgress < appendCreateEnd
+                ? 0
+                : transitionProgress * Math.min(left.connectAlpha, right.connectAlpha);
+            drawPointer(left, right, targetAlpha);
+          }
+
+          renderedNodes.forEach((entry) => {
+            if (entry.alpha <= 0) return;
+            ctx.save();
+            ctx.globalAlpha = entry.alpha;
+            ctx.fillStyle = entry.node.color ?? structureColor;
+            drawRoundedRect(ctx, entry.x, entry.y, itemWidth, itemHeight, Math.max(8, Math.round(12 * layoutScale)));
             ctx.fill();
             ctx.strokeStyle = "rgba(53, 80, 112, 0.18)";
             ctx.lineWidth = 2;
@@ -529,12 +983,244 @@ export function StructuresBoard({
             ctx.font = `800 ${Math.max(11, Math.round(15 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
             ctx.textAlign = "center";
             ctx.fillText(
-              String(item.value),
-              itemX + itemWidth / 2,
-              itemY + Math.round(itemHeight * 0.64)
+              String(entry.node.value),
+              entry.x + itemWidth / 2,
+              entry.y + Math.round(itemHeight * 0.64)
             );
             ctx.textAlign = "start";
+            ctx.restore();
+
+            if (entry.nullArrowAlpha > 0) {
+              const nullStartX = entry.x + itemWidth + Math.round(2 * layoutScale);
+              const nullEndX = nullStartX + Math.round(16 * layoutScale);
+              const nullY = entry.y + itemHeight / 2;
+              const arrowHalf = Math.max(4, Math.round(6 * layoutScale));
+              const opacity = entry.nullArrowAlpha * (0.65 + 0.25 * pointerPulse);
+
+              ctx.save();
+              ctx.strokeStyle = `rgba(124, 82, 186, ${opacity})`;
+              ctx.lineWidth = Math.max(2, Math.round(3 * layoutScale));
+              ctx.beginPath();
+              ctx.moveTo(nullStartX, nullY);
+              ctx.lineTo(nullEndX, nullY);
+              ctx.stroke();
+
+              ctx.fillStyle = `rgba(124, 82, 186, ${opacity})`;
+              ctx.beginPath();
+              ctx.moveTo(nullEndX + Math.round(5 * layoutScale), nullY);
+              ctx.lineTo(nullEndX - Math.round(3 * layoutScale), nullY - arrowHalf);
+              ctx.lineTo(nullEndX - Math.round(3 * layoutScale), nullY + arrowHalf);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
+            }
           });
+
+          if (currentValues.length > 0) {
+            const firstCurrentKey = currentKeyed[0]?.key;
+            const lastCurrentKey = currentKeyed[currentKeyed.length - 1]?.key;
+            const previousLastKey = previousKeyed[previousKeyed.length - 1]?.key;
+            const firstEntry = firstCurrentKey ? (renderByKey.get(firstCurrentKey) ?? null) : null;
+            const lastEntry = lastCurrentKey ? (renderByKey.get(lastCurrentKey) ?? null) : null;
+            const previousLastEntry = previousLastKey ? (renderByKey.get(previousLastKey) ?? null) : null;
+
+            const drawMarker = (label: "HEAD" | "TAIL", entry: RenderNode, alpha: number) => {
+              if (alpha <= 0) return;
+              const pointerTopY = entry.y - Math.round(18 * layoutScale);
+              ctx.save();
+              ctx.globalAlpha = alpha;
+              ctx.fillStyle = "#7c52ba";
+              ctx.strokeStyle = "#7c52ba";
+              ctx.lineWidth = Math.max(1.5, Math.round(2 * layoutScale));
+              ctx.font = `800 ${Math.max(9, Math.round(11 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+              if (label === "HEAD") {
+                ctx.textAlign = "start";
+                ctx.fillText("HEAD", entry.x + Math.round(2 * layoutScale), pointerTopY - Math.round(2 * layoutScale));
+                ctx.beginPath();
+                ctx.moveTo(entry.x + Math.round(16 * layoutScale), pointerTopY);
+                ctx.lineTo(entry.x + Math.round(16 * layoutScale), entry.y - Math.round(2 * layoutScale));
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(entry.x + Math.round(16 * layoutScale), entry.y + Math.round(2 * layoutScale));
+                ctx.lineTo(entry.x + Math.round(11 * layoutScale), entry.y - Math.round(5 * layoutScale));
+                ctx.lineTo(entry.x + Math.round(21 * layoutScale), entry.y - Math.round(5 * layoutScale));
+                ctx.closePath();
+                ctx.fill();
+              } else {
+                ctx.textAlign = "right";
+                ctx.fillText(
+                  "TAIL",
+                  entry.x + itemWidth - Math.round(2 * layoutScale),
+                  pointerTopY - Math.round(2 * layoutScale)
+                );
+                ctx.beginPath();
+                ctx.moveTo(entry.x + itemWidth - Math.round(16 * layoutScale), pointerTopY);
+                ctx.lineTo(entry.x + itemWidth - Math.round(16 * layoutScale), entry.y - Math.round(2 * layoutScale));
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(entry.x + itemWidth - Math.round(16 * layoutScale), entry.y + Math.round(2 * layoutScale));
+                ctx.lineTo(entry.x + itemWidth - Math.round(21 * layoutScale), entry.y - Math.round(5 * layoutScale));
+                ctx.lineTo(entry.x + itemWidth - Math.round(11 * layoutScale), entry.y - Math.round(5 * layoutScale));
+                ctx.closePath();
+                ctx.fill();
+              }
+              ctx.restore();
+              ctx.textAlign = "start";
+            };
+
+            const previousHeadEntry = previousHeadKey ? (renderByKey.get(previousHeadKey) ?? null) : null;
+            const previousTailEntry = previousTailKey ? (renderByKey.get(previousTailKey) ?? null) : null;
+
+            if (isPrependTransition && previousHeadEntry && firstEntry && previousHeadKey !== currentHeadKey) {
+              if (transitionProgress < prependConnectEnd) {
+                drawMarker("HEAD", previousHeadEntry, 1);
+              } else {
+                const blendedHeadEntry = {
+                  ...firstEntry,
+                  x: previousHeadEntry.x + (firstEntry.x - previousHeadEntry.x) * prependHeadProgress,
+                  y: previousHeadEntry.y + (firstEntry.y - previousHeadEntry.y) * prependHeadProgress
+                };
+                drawMarker("HEAD", blendedHeadEntry, 1);
+              }
+            } else if (isRemoveFirstTransition && previousHeadEntry && firstEntry && previousHeadKey !== currentHeadKey) {
+              const headDetachProgress = normalizePhaseProgress(transitionProgress / removeDetachEnd);
+              const blendedHeadEntry = {
+                ...firstEntry,
+                x: previousHeadEntry.x + (firstEntry.x - previousHeadEntry.x) * headDetachProgress,
+                y: previousHeadEntry.y + (firstEntry.y - previousHeadEntry.y) * headDetachProgress
+              };
+              drawMarker("HEAD", blendedHeadEntry, 1);
+            } else if (firstEntry) {
+              drawMarker("HEAD", firstEntry, Math.max(0.7, firstEntry.alpha));
+            }
+
+            if (isAppendTransition && previousLastEntry && lastEntry && previousTailKey !== currentTailKey) {
+              const drawOldTailNullArrow = (alpha: number) => {
+                if (alpha <= 0) return;
+                const terminalStartX = previousLastEntry.x + itemWidth + Math.round(2 * layoutScale);
+                const terminalEndX = terminalStartX + Math.round(16 * layoutScale);
+                const terminalY = previousLastEntry.y + itemHeight / 2;
+                const arrowHalf = Math.max(4, Math.round(6 * layoutScale));
+                const opacity = alpha * (0.66 + 0.3 * pointerPulse);
+                ctx.save();
+                ctx.strokeStyle = `rgba(124, 82, 186, ${opacity})`;
+                ctx.lineWidth = Math.max(2, Math.round(3 * layoutScale));
+                ctx.beginPath();
+                ctx.moveTo(terminalStartX, terminalY);
+                ctx.lineTo(terminalEndX, terminalY);
+                ctx.stroke();
+                ctx.fillStyle = `rgba(124, 82, 186, ${opacity})`;
+                ctx.beginPath();
+                ctx.moveTo(terminalEndX + Math.round(5 * layoutScale), terminalY);
+                ctx.lineTo(terminalEndX - Math.round(3 * layoutScale), terminalY - arrowHalf);
+                ctx.lineTo(terminalEndX - Math.round(3 * layoutScale), terminalY + arrowHalf);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+              };
+
+              if (transitionProgress < appendConnectEnd) {
+                drawMarker("TAIL", previousLastEntry, 1);
+                if (transitionProgress < appendCreateEnd) {
+                  drawOldTailNullArrow(1);
+                } else {
+                  drawOldTailNullArrow(Math.max(0, 1 - appendConnectProgress));
+                }
+              } else {
+                const blendedTailEntry = {
+                  ...lastEntry,
+                  x: previousLastEntry.x + (lastEntry.x - previousLastEntry.x) * appendTailProgress,
+                  y: previousLastEntry.y + (lastEntry.y - previousLastEntry.y) * appendTailProgress
+                };
+                drawMarker("TAIL", blendedTailEntry, 1);
+              }
+            } else if (isRemoveLastTransition && previousTailEntry && lastEntry && previousTailKey !== currentTailKey) {
+              const tailDetachProgress = normalizePhaseProgress(transitionProgress / removeDetachEnd);
+              const blendedTailEntry = {
+                ...lastEntry,
+                x: previousTailEntry.x + (lastEntry.x - previousTailEntry.x) * tailDetachProgress,
+                y: previousTailEntry.y + (lastEntry.y - previousTailEntry.y) * tailDetachProgress
+              };
+              drawMarker("TAIL", blendedTailEntry, 1);
+            } else if (lastEntry) {
+              drawMarker("TAIL", lastEntry, Math.max(0.7, lastEntry.alpha));
+            }
+
+            const readHighlight = listReadHighlightRef.current;
+            if (readHighlight && readHighlight.structureId === structure.id) {
+              const readProgress =
+                (now - readHighlight.startedAt) / readHighlight.durationMs;
+              if (readProgress >= 1) {
+                listReadHighlightRef.current = null;
+              } else {
+                const pulse = 0.5 + 0.5 * Math.sin(readProgress * Math.PI * 4);
+                const opacity = 0.22 + 0.22 * pulse;
+                const drawNodePulse = (entry: RenderNode | null) => {
+                  if (!entry) return;
+                  ctx.save();
+                  ctx.fillStyle = `rgba(124, 82, 186, ${opacity})`;
+                  drawRoundedRect(
+                    ctx,
+                    entry.x - Math.round(4 * layoutScale),
+                    entry.y - Math.round(4 * layoutScale),
+                    itemWidth + Math.round(8 * layoutScale),
+                    itemHeight + Math.round(8 * layoutScale),
+                    Math.max(10, Math.round(14 * layoutScale))
+                  );
+                  ctx.fill();
+                  ctx.restore();
+                };
+
+                if (readHighlight.operation === "get_head") {
+                  drawNodePulse(firstEntry);
+                } else if (readHighlight.operation === "get_tail") {
+                  drawNodePulse(lastEntry);
+                } else {
+                  ctx.save();
+                  ctx.fillStyle = `rgba(124, 82, 186, ${0.1 + 0.14 * pulse})`;
+                  drawRoundedRect(
+                    ctx,
+                    frameX + Math.round(14 * layoutScale),
+                    frameY + Math.round(70 * layoutScale),
+                    frameWidth - Math.round(28 * layoutScale),
+                    frameHeight - Math.round(84 * layoutScale),
+                    Math.max(10, Math.round(14 * layoutScale))
+                  );
+                  ctx.fill();
+                  ctx.restore();
+                }
+              }
+            }
+
+            if (
+              currentValues.length === structure.values.length &&
+              lastEntry &&
+              (
+                (!isAppendTransition || transitionProgress >= appendConnectEnd) &&
+                (!isRemoveLastTransition || transitionProgress >= removeDetachEnd)
+              )
+            ) {
+              const terminalStartX = lastEntry.x + itemWidth + Math.round(2 * layoutScale);
+              const terminalEndX = terminalStartX + Math.round(16 * layoutScale);
+              const terminalY = lastEntry.y + itemHeight / 2;
+              const arrowHalf = Math.max(4, Math.round(6 * layoutScale));
+
+              ctx.strokeStyle = `rgba(124, 82, 186, ${0.66 + 0.3 * pointerPulse})`;
+              ctx.lineWidth = Math.max(2, Math.round(3 * layoutScale));
+              ctx.beginPath();
+              ctx.moveTo(terminalStartX, terminalY);
+              ctx.lineTo(terminalEndX, terminalY);
+              ctx.stroke();
+
+              ctx.fillStyle = `rgba(124, 82, 186, ${0.66 + 0.3 * pointerPulse})`;
+              ctx.beginPath();
+              ctx.moveTo(terminalEndX + Math.round(5 * layoutScale), terminalY);
+              ctx.lineTo(terminalEndX - Math.round(3 * layoutScale), terminalY - arrowHalf);
+              ctx.lineTo(terminalEndX - Math.round(3 * layoutScale), terminalY + arrowHalf);
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
 
           if (structure.values.length > maxVisible) {
             ctx.fillStyle = "#6d8297";
@@ -1015,7 +1701,16 @@ export function StructuresBoard({
     // fit on first render
     fitToView();
 
-    const animationFrame = window.requestAnimationFrame(draw);
+    let animationFrame = 0;
+    if (shouldAnimateListPointers) {
+      const tick = () => {
+        draw();
+        animationFrame = window.requestAnimationFrame(tick);
+      };
+      animationFrame = window.requestAnimationFrame(tick);
+    } else {
+      animationFrame = window.requestAnimationFrame(draw);
+    }
 
     return () => {
       resizeObserver.disconnect();
@@ -1028,7 +1723,7 @@ export function StructuresBoard({
       canvas.style.cursor = "default";
       window.cancelAnimationFrame(animationFrame);
     };
-  }, [onStructureConfigClick, showStructureConfigActions, structures, variables, heapObjects]);
+  }, [onStructureConfigClick, showStructureConfigActions, structures, variables, heapObjects, events]);
 
   return (
     <section style={boardWrapperStyle}>
@@ -1369,6 +2064,7 @@ export interface PuzzleBoardProps {
   handValue?: string | number | null;
   variables?: BoardVariableSnapshot[];
   heapObjects?: BoardHeapObjectSnapshot[];
+  events?: EngineEvent[];
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 }
@@ -1377,6 +2073,7 @@ export function PuzzleBoard({
   structures,
   variables,
   heapObjects,
+  events,
   showStructureConfigActions,
   onStructureConfigClick
 }: PuzzleBoardProps) {
@@ -1385,6 +2082,7 @@ export function PuzzleBoard({
       structures={structures}
       variables={variables}
       heapObjects={heapObjects}
+      events={events}
       showStructureConfigActions={showStructureConfigActions}
       onStructureConfigClick={onStructureConfigClick}
     />

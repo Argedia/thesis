@@ -84,7 +84,9 @@ export interface EngineRegistryDeps {
 	setIsSidePaletteCollapsed: (collapsed: boolean) => void;
 	getExpandedPaletteGroupIds: () => Set<string>;
 	isLocked: () => boolean;
+	isBlockLocked: (blockId: string) => boolean;
 	isActiveRoutineFunction: () => boolean;
+	isActiveRoutineType: () => boolean;
 	isControlBlock: (block: EditorBlock | null | undefined) => block is ControlEditorBlock;
 	getControlLabel: (block: Pick<EditorBlock, "kind">) => string;
 	canShowDeclarationBindingWheel: (block: EditorBlock) => boolean;
@@ -253,6 +255,7 @@ export class EngineServiceRegistry {
 		if (!this.dragInteraction) {
 			const context: DragInteractionControllerContext = {
 				isLocked: () => this.deps.isLocked(),
+				isBlockLocked: (blockId) => this.deps.isBlockLocked(blockId),
 				getBlocks: () => this.deps.getBlocks(),
 				getMaxBlocks: () => this.deps.getProps().maxBlocks,
 				getGeometryService: () => this.getGeometryService(),
@@ -288,6 +291,7 @@ export class EngineServiceRegistry {
 			const context: PaletteRendererContext = {
 				getPaletteBlocks: () => this.deps.getPaletteBlocks(),
 				getIsActiveRoutineFunction: () => this.deps.isActiveRoutineFunction(),
+				getIsActiveRoutineType: () => this.deps.isActiveRoutineType(),
 				getHasFunctionDefinition: () =>
 					this.deps.getBlocks().some((b) => b.kind === "function_definition"),
 				getHasTypeDefinition: () =>
@@ -358,7 +362,9 @@ export class EngineServiceRegistry {
 		if (!this.editorCanvasRenderer) {
 			const context: EditorCanvasRendererContext = {
 				getIsLocked: () => this.deps.isLocked(),
+				isBlockLocked: (blockId) => this.deps.isBlockLocked(blockId),
 				getIsActiveRoutineFunction: () => this.deps.isActiveRoutineFunction(),
+				getIsActiveRoutineType: () => this.deps.isActiveRoutineType(),
 				getDragState: () => this.deps.getDragState(),
 				getBlocks: () => this.deps.getBlocks(),
 				getInlinePreviewBlocks: () => this.deps.buildInlinePreviewBlocks(),
@@ -483,6 +489,7 @@ export class EngineServiceRegistry {
 		if (!this.blockInstanceRenderer) {
 			const context: BlockInstanceRendererContext = {
 				isLocked: () => this.deps.isLocked(),
+				isBlockLocked: (blockId) => this.deps.isBlockLocked(blockId),
 				isControlBlock: (block) => this.deps.isControlBlock(block),
 				getControlLabel: (block) => this.deps.getControlLabel(block),
 				canShowDeclarationBindingWheel: (block) =>

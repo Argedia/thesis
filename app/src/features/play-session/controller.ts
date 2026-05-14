@@ -5,10 +5,13 @@ import {
   compileEditorDocument,
   createEditorDocument,
   createEmptyProgram,
+  deserializeProgramDocument,
   getActiveRoutine,
+  projectDocumentToEditorBlocks,
   renameRoutine,
   replaceActiveProgram,
   setActiveRoutineId,
+  type EditorBlock,
   type EditorDocument
 } from "../program-editor-core";
 import type { CompileResult } from "../program-editor-core";
@@ -30,14 +33,14 @@ import { evaluateExpression, getObjectInstance, type InterpreterContext } from "
 import type { RuntimeStoredValue } from "./runtime/runtime-values";
 import { setActiveRoutineId as setRoutineId } from "../program-editor-core";
 import { getMissingRequiredOperations } from "./runtime/constraints";
-
-const RUN_LINE_DELAY_MS = 1000;
+import { getRunLineDelayMs } from "../settings/execution-speed";
 
 const createInitialState = (): PlaySessionState => {
   const document = createEditorDocument();
   return {
     level: null,
     structures: [],
+    lockedBlockIds: [],
     variableSnapshots: [],
     heapSnapshots: [],
     events: [],
@@ -50,6 +53,25 @@ const createInitialState = (): PlaySessionState => {
     compiledProgram: compileEditorDocument(document),
     document
   };
+};
+
+const collectBlockIds = (blocks: EditorBlock[]): string[] => {
+  const ids: string[] = [];
+  const visit = (block: EditorBlock) => {
+    ids.push(block.id);
+    if (block.inputBlock) {
+      visit(block.inputBlock);
+    }
+    block.inputBlocks?.forEach((inputBlock) => {
+      if (inputBlock) {
+        visit(inputBlock);
+      }
+    });
+    block.bodyBlocks?.forEach(visit);
+    block.alternateBodyBlocks?.forEach(visit);
+  };
+  blocks.forEach(visit);
+  return ids;
 };
 
 export class DefaultPlaySessionController implements PlaySessionController {
@@ -100,10 +122,25 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.engine = engine;
     this.resetRuntimeState();
 
-    const document = createEditorDocument();
+    const document = (() => {
+      const rawStarter = loadedLevel.tooling?.starterDocumentJson;
+      if (!rawStarter) {
+        return createEditorDocument();
+      }
+      try {
+        const parsed = JSON.parse(rawStarter) as unknown;
+        return deserializeProgramDocument(parsed as Parameters<typeof deserializeProgramDocument>[0]);
+      } catch {
+        return createEditorDocument();
+      }
+    })();
+    const lockedBlockIds = loadedLevel.tooling?.lockStarterBlocks
+      ? collectBlockIds(projectDocumentToEditorBlocks(document))
+      : [];
     this.patchState({
       level: loadedLevel,
       structures: loadedLevel.initialState,
+      lockedBlockIds,
       completedLevelIds: progress.completedLevelIds,
       document,
       compiledProgram: compileEditorDocument(document),
@@ -172,7 +209,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         if (!executedInstruction) break;
         this.runtimeVisibleStepCount += 1;
 
-        await new Promise((resolve) => window.setTimeout(resolve, RUN_LINE_DELAY_MS));
+        await new Promise((resolve) => window.setTimeout(resolve, getRunLineDelayMs()));
       }
 
       if (this.runAbort) {
@@ -240,11 +277,22 @@ export class DefaultPlaySessionController implements PlaySessionController {
   public clearDocument(): void {
     this.runAbort = true;
     this.resetRuntimeState();
-    const activeRoutine = getActiveRoutine(this.state.document);
-    const clearedDocument = replaceActiveProgram(
-      this.restoreSelectedRoutine(this.state.document),
-      createEmptyProgram(activeRoutine.program.id)
-    );
+    const clearedDocument = (() => {
+      const rawStarter = this.state.level?.tooling?.starterDocumentJson;
+      if (this.state.level?.tooling?.lockStarterBlocks && rawStarter) {
+        try {
+          const parsed = JSON.parse(rawStarter) as Parameters<typeof deserializeProgramDocument>[0];
+          return deserializeProgramDocument(parsed);
+        } catch {
+          // Fall through to regular clear behavior.
+        }
+      }
+      const activeRoutine = getActiveRoutine(this.state.document);
+      return replaceActiveProgram(
+        this.restoreSelectedRoutine(this.state.document),
+        createEmptyProgram(activeRoutine.program.id)
+      );
+    })();
     this.patchState({
       runState: "idle",
       document: clearedDocument,

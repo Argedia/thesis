@@ -99,6 +99,10 @@ const levelConstraintsSchema = z.object({
   forbiddenBlocks: z.array(z.string()),
   blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
   maxSteps: z.number().int().nonnegative(),
+  allowAdditionalRoutines: z.boolean().optional(),
+  maxRoutineCount: z.number().int().nonnegative().optional(),
+  maxBlocksGlobal: z.number().int().nonnegative().optional(),
+  maxBlocksByRoutine: z.record(z.string(), z.number().int().nonnegative()).optional(),
   structureCapacities: z.record(z.string(), z.number().int().nonnegative()).optional(),
   noLargerOnSmaller: levelNoLargerOnSmallerSchema.optional(),
   valueDomain: levelValueDomainSchema.optional(),
@@ -120,7 +124,8 @@ const editorLayoutSchema = z.object({
 
 const editorToolingSchema = z.object({
   availableStructures: z.array(z.string()),
-  advancedToolsEnabled: z.boolean()
+  advancedToolsEnabled: z.boolean(),
+  starterDocumentJson: z.string().optional()
 });
 
 const levelCatalogMetadataSchema = z.object({
@@ -152,6 +157,10 @@ const importedLevelConstraintsSchema = z
     forbiddenBlocks: z.array(z.string()).optional(),
     blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
     maxSteps: z.number().int().nonnegative().optional(),
+    allowAdditionalRoutines: z.boolean().optional(),
+    maxRoutineCount: z.number().int().nonnegative().optional(),
+    maxBlocksGlobal: z.number().int().nonnegative().optional(),
+    maxBlocksByRoutine: z.record(z.string(), z.number().int().nonnegative()).optional(),
     structureCapacities: z.record(z.string(), z.number().int().nonnegative()).optional(),
     noLargerOnSmaller: z
       .object({
@@ -184,7 +193,8 @@ const importedLevelCandidateSchema = z.object({
   tooling: z
     .object({
       availableStructures: z.array(z.string()).optional(),
-      advancedToolsEnabled: z.boolean().optional()
+      advancedToolsEnabled: z.boolean().optional(),
+      starterDocumentJson: z.string().optional()
     })
     .optional()
 });
@@ -294,6 +304,10 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
     forbiddenBlocks: level.constraints.forbiddenBlocks ?? [],
     blockLimits: level.constraints.blockLimits,
     maxSteps: level.constraints.maxSteps ?? 99,
+    allowAdditionalRoutines: level.constraints.allowAdditionalRoutines ?? true,
+    maxRoutineCount: level.constraints.maxRoutineCount ?? 8,
+    maxBlocksGlobal: level.constraints.maxBlocksGlobal ?? (level.constraints.maxSteps ?? 99),
+    maxBlocksByRoutine: level.constraints.maxBlocksByRoutine,
     structureCapacities: level.constraints.structureCapacities,
     ...(normalizedNoLargerOnSmaller ? { noLargerOnSmaller: normalizedNoLargerOnSmaller } : {}),
     ...(level.constraints.valueDomain ? { valueDomain: level.constraints.valueDomain } : {}),
@@ -328,7 +342,10 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
     },
     tooling: {
       availableStructures: level.tooling?.availableStructures ?? ["stack", "queue", "list"],
-      advancedToolsEnabled: level.tooling?.advancedToolsEnabled ?? true
+      advancedToolsEnabled: level.tooling?.advancedToolsEnabled ?? true,
+      ...(level.tooling?.starterDocumentJson
+        ? { starterDocumentJson: level.tooling.starterDocumentJson }
+        : {})
     }
   };
 

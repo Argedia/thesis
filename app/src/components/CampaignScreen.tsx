@@ -53,7 +53,7 @@ export function CampaignScreen() {
   return (
     <Screen mode="player">
       <div className="community-shell campaign-shell">
-        <header className="topbar community-topbar campaign-topbar">
+        <header className="topbar community-topbar campaign-topbar primary-screen-topbar">
           <Link className="back-link" to={APP_ROUTES.home}>
             Menu
           </Link>

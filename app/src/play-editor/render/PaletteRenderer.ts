@@ -13,6 +13,7 @@ type PaletteBlockLimitState = {
 export interface PaletteRendererContext {
   getPaletteBlocks(): PaletteBlock[];
   getIsActiveRoutineFunction(): boolean;
+  getIsActiveRoutineType(): boolean;
   getHasFunctionDefinition(): boolean;
   getHasTypeDefinition(): boolean;
   getIsLocked(): boolean;
@@ -314,6 +315,9 @@ export class PaletteRenderer {
     if (this.ctx.getIsActiveRoutineFunction()) {
       palette.classList.add("function-routine");
     }
+    if (this.ctx.getIsActiveRoutineType()) {
+      palette.classList.add("type-routine");
+    }
     if (this.ctx.getIsBasePaletteCollapsed()) {
       palette.classList.add("collapsed");
     }
@@ -346,6 +350,9 @@ export class PaletteRenderer {
     palette.className = "scratch-palette scratch-palette-right";
     if (this.ctx.getIsActiveRoutineFunction()) {
       palette.classList.add("function-routine");
+    }
+    if (this.ctx.getIsActiveRoutineType()) {
+      palette.classList.add("type-routine");
     }
     if (this.ctx.getIsSidePaletteCollapsed()) {
       palette.classList.add("collapsed");

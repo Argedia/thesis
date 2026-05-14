@@ -60,7 +60,7 @@ export function CommunityLevelsScreen() {
   return (
     <Screen mode="player">
       <div className="community-shell">
-        <header className="topbar community-topbar">
+        <header className="topbar community-topbar primary-screen-topbar">
           <Link className="back-link" to={APP_ROUTES.home}>
             {t("menu.menuLabel")}
           </Link>

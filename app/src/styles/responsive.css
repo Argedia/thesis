@@ -37,7 +37,8 @@
 	.catalog-layout,
 	.play-summary,
 	.play-dual-stage,
-	.editor-middle {
+	.editor-middle,
+	.settings-grid {
 		grid-template-columns: 1fr;
 	}
 

@@ -259,8 +259,8 @@ El editor tiene dos capas conceptuales:
 
 Documentos de apoyo ya existentes:
 
-- [docs/editor-tree-architecture.md](C:\Users\aguerra\Documents\thesis\docs\editor-tree-architecture.md)
-- [docs/play-editor-architecture.md](C:\Users\aguerra\Documents\thesis\docs\play-editor-architecture.md)
+- [docs/proyecto/editor-tree-architecture.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\editor-tree-architecture.md)
+- [docs/proyecto/play-editor-architecture.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\play-editor-architecture.md)
 
 ### 8.2 `program-editor-core`
 
@@ -618,11 +618,11 @@ No meter strings hardcodeados si el comportamiento ya es bilingüe.
 
 Documentos técnicos y de tesis ya presentes:
 
-- [docs/play-editor-architecture.md](C:\Users\aguerra\Documents\thesis\docs\play-editor-architecture.md)
-- [docs/editor-tree-architecture.md](C:\Users\aguerra\Documents\thesis\docs\editor-tree-architecture.md)
-- [docs/documento-diseno-proyecto.md](C:\Users\aguerra\Documents\thesis\docs\documento-diseno-proyecto.md)
-- [docs/documento-pruebas-funcionales.md](C:\Users\aguerra\Documents\thesis\docs\documento-pruebas-funcionales.md)
-- [docs/cobertura-curricular-integral-inf261.md](C:\Users\aguerra\Documents\thesis\docs\cobertura-curricular-integral-inf261.md)
+- [docs/proyecto/play-editor-architecture.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\play-editor-architecture.md)
+- [docs/proyecto/editor-tree-architecture.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\editor-tree-architecture.md)
+- [docs/tesis/documento-diseno-proyecto.md](C:\Users\aguerra\Documents\thesis\docs\tesis\documento-diseno-proyecto.md)
+- [docs/tesis/documento-pruebas-funcionales.md](C:\Users\aguerra\Documents\thesis\docs\tesis\documento-pruebas-funcionales.md)
+- [docs/tesis/cobertura-curricular-integral-inf261.md](C:\Users\aguerra\Documents\thesis\docs\tesis\cobertura-curricular-integral-inf261.md)
 
 Material académico de referencia:
 

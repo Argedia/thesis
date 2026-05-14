@@ -19,6 +19,9 @@ export function MainMenuScreen() {
           <Link className="menu-link" to={APP_ROUTES.editor}>
             {t("menu.editor")}
           </Link>
+          <Link className="menu-link" to={APP_ROUTES.settings}>
+            {t("menu.settings")}
+          </Link>
         </div>
       </section>
     </main>

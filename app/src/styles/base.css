@@ -5,6 +5,7 @@
 	--editor-row-height: 54px;
 	--editor-block-height: 50px;
 	--editor-slot-height: 46px;
+	--editor-slot-min-width: 28px;
 	--editor-palette-block-height: var(--editor-block-height);
 	--editor-block-handle-height: 2.05rem;
 }
@@ -191,4 +192,3 @@ button:disabled {
 .back-link {
 	text-decoration: none;
 }
-

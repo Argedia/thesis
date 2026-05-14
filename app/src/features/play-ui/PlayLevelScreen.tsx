@@ -8,7 +8,8 @@ import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
 import {
   compileEditorDocument,
   createEditorDocument,
-  projectDocumentToEditorBlocks
+  projectDocumentToEditorBlocks,
+  projectProgramToEditorBlocks
 } from "../program-editor-core";
 import {
   createPlaySessionController,
@@ -33,6 +34,7 @@ const initialSessionState = (): PlaySessionState => ({
   document: createEditorDocument(),
   level: null,
   structures: [],
+  lockedBlockIds: [],
   variableSnapshots: [],
   heapSnapshots: [],
   events: [],
@@ -129,6 +131,14 @@ export function PlayLevelScreen() {
     () => countEditorBlocks(projectDocumentToEditorBlocks(sessionState.document)),
     [sessionState.document]
   );
+  const totalDocumentBlocks = useMemo(
+    () =>
+      sessionState.document.routines.reduce(
+        (acc, routine) => acc + countEditorBlocks(projectProgramToEditorBlocks(routine.program)),
+        0
+      ),
+    [sessionState.document]
+  );
 
   if (!sessionState.level) {
     return (
@@ -154,6 +164,24 @@ export function PlayLevelScreen() {
   });
   const activeRoutineCompiled =
     compiledProgram.routines[sessionState.document.activeRoutineId] ?? compiledProgram;
+  const allowAdditionalRoutines = level.constraints.allowAdditionalRoutines ?? true;
+  const maxRoutineCount = Math.max(1, Math.floor(level.constraints.maxRoutineCount ?? 8));
+  const maxBlocksGlobal = Math.max(
+    0,
+    Math.floor(level.constraints.maxBlocksGlobal ?? level.constraints.maxSteps)
+  );
+  const maxBlocksByRoutine = level.constraints.maxBlocksByRoutine ?? {};
+  const activeRoutineLimit = Math.max(
+    0,
+    Math.floor(maxBlocksByRoutine[sessionState.document.activeRoutineId] ?? 99)
+  );
+  const otherRoutineBlocks = Math.max(0, totalDocumentBlocks - visibleRoutineOperations);
+  const effectiveActiveRoutineBlockLimit = allowAdditionalRoutines
+    ? Math.max(0, maxBlocksGlobal - otherRoutineBlocks)
+    : activeRoutineLimit;
+  const effectiveDisplayBlockLimit = allowAdditionalRoutines ? maxBlocksGlobal : activeRoutineLimit;
+  const disableCreateRoutine =
+    !allowAdditionalRoutines || sessionState.document.routines.length >= maxRoutineCount;
 
   const permittedOperations = getPermittedOperationsFromPolicy(level.constraints.operationPolicy);
 
@@ -177,6 +205,14 @@ export function PlayLevelScreen() {
   };
 
   const handleCreateRoutine = async () => {
+    if (disableCreateRoutine) {
+      controller.setStatus(
+        allowAdditionalRoutines
+          ? `Script limit reached (${maxRoutineCount}).`
+          : "This level does not allow creating more scripts."
+      );
+      return;
+    }
     const name = await dialog.requestTextInput({
       title: t("editor.routineName"),
       initialValue: t("editor.routineDefault"),
@@ -244,9 +280,12 @@ export function PlayLevelScreen() {
             breakpointNodeIds={sessionState.breakpointNodeIds}
             events={sessionState.events}
             structures={level.initialState}
+            lockedBlockIds={sessionState.lockedBlockIds}
             allowedOperations={permittedOperations}
             blockLimits={effectiveBlockLimits}
             maxSteps={level.constraints.maxSteps}
+            maxBlocksForActiveRoutine={effectiveActiveRoutineBlockLimit}
+            maxBlocksForDisplay={effectiveDisplayBlockLimit}
             outputMode={outputMode}
             visibleRoutineOperations={visibleRoutineOperations}
             dialog={dialog}
@@ -257,6 +296,7 @@ export function PlayLevelScreen() {
             onSelectRoutine={(id) => controller.selectRoutine(id)}
             onRenameRoutine={handleRenameRoutine}
             onCreateRoutine={handleCreateRoutine}
+            disableCreateRoutine={disableCreateRoutine}
             onRun={() => { setOutputMode("runtime"); void controller.run().finally(openOutputForExecutionAttempt); }}
             onStep={() => { setOutputMode("runtime"); void controller.step().finally(openOutputForExecutionAttempt); }}
             onPause={() => controller.pause()}

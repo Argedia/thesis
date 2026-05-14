@@ -20,6 +20,7 @@ export interface EditorSurfaceAdapter {
 export interface PlayEditorSurfaceProps extends EditorSurfaceAdapter {
 	structures: StructureSnapshot[];
 	allowedOperations: string[];
+	lockedBlockIds?: string[];
 	blockLimits?: Record<string, number>;
 	onSetBlockLimit?: (limitKey: string, nextValue: number) => void;
 	maxBlocks: number;

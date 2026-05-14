@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
 import type { StructureSnapshot } from "@thesis/core-engine";
@@ -14,10 +14,13 @@ interface IdePanelProps {
   breakpointNodeIds: string[];
   events: Array<{ stepId: string; type: string; structureId: string; value?: unknown }>;
   structures: StructureSnapshot[];
+  lockedBlockIds?: string[];
   allowedOperations: string[];
   blockLimits?: Record<string, number>;
   onSetBlockLimit?: (limitKey: string, nextValue: number) => void;
   maxSteps: number;
+  maxBlocksForActiveRoutine?: number;
+  maxBlocksForDisplay?: number;
   outputMode: "hidden" | "runtime" | "diagnostics";
   visibleRoutineOperations: number;
   dialog: DialogManager;
@@ -27,6 +30,8 @@ interface IdePanelProps {
   onSelectRoutine: (routineId: string) => void;
   onRenameRoutine: (routineId: string, currentName: string) => void;
   onCreateRoutine: () => void;
+  disableCreateRoutine?: boolean;
+  hideRunActions?: boolean;
   disabledRunButtons?: boolean;
   onRun: () => void;
   onStep: () => void;
@@ -35,6 +40,10 @@ interface IdePanelProps {
   onClear: () => void;
   translateDiagnostic: (diagnostic: string) => string;
   status: string;
+  headerActions?: ReactNode;
+  topbarControls?: ReactNode;
+  hideOutputBlocksCounter?: boolean;
+  outputMetaControl?: ReactNode;
 }
 
 function RunIconButton({ icon, label, onClick, disabled }: { icon: string; label: string; onClick: () => void; disabled?: boolean }) {
@@ -61,10 +70,13 @@ export function IdePanel({
   breakpointNodeIds,
   events,
   structures,
+  lockedBlockIds,
   allowedOperations,
   blockLimits,
   onSetBlockLimit,
   maxSteps,
+  maxBlocksForActiveRoutine,
+  maxBlocksForDisplay,
   outputMode,
   visibleRoutineOperations,
   dialog,
@@ -75,24 +87,37 @@ export function IdePanel({
   onSelectRoutine,
   onRenameRoutine,
   onCreateRoutine,
+  disableCreateRoutine,
+  hideRunActions,
   onRun,
   onStep,
   onPause,
   onReset,
   onClear,
   translateDiagnostic,
-  status
+  status,
+  headerActions,
+  topbarControls,
+  hideOutputBlocksCounter,
+  outputMetaControl
 }: IdePanelProps) {
   const { t } = useTranslation();
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
   const isOutputVisible = outputMode !== "hidden";
-  const [isOutputCollapsed, setIsOutputCollapsed] = useState(true);
+  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
+  const addScriptLabel = t("actions.addScript");
+  const outputToggleLabel = isOutputCollapsed ? t("board.expandOutput") : t("board.collapseOutput");
+  const maxBlocksForSurface = Math.max(0, Math.floor(maxBlocksForActiveRoutine ?? maxSteps));
+  const maxBlocksForCounter = Math.max(0, Math.floor(maxBlocksForDisplay ?? maxSteps));
 
   return (
     <aside className="device-shell terminal-device">
       <div className="device-header terminal-header">
         <span className="device-label">{t("board.programConsole")}</span>
-        <span className="device-time">{runState === "running" ? t("state.run") : t("state.edit")}</span>
+        <div className="terminal-header-actions">
+          {headerActions}
+          <span className="device-time">{runState === "running" ? t("state.run") : t("state.edit")}</span>
+        </div>
       </div>
 
       <div className="terminal-panel">
@@ -111,32 +136,43 @@ export function IdePanel({
                   {routine.name}
                 </button>
               ))}
-              <button
-                type="button"
-                className="routine-chip routine-chip-add"
-                disabled={runState === "running"}
-                onClick={onCreateRoutine}
-              >
-                +
-              </button>
+              <TooltipTrigger delay={200} closeDelay={80}>
+                <Button
+                  className="routine-chip routine-chip-add"
+                  aria-label={addScriptLabel}
+                  isDisabled={runState === "running" || disableCreateRoutine}
+                  onPress={onCreateRoutine}
+                >
+                  +
+                </Button>
+                <Tooltip className="app-tooltip">{addScriptLabel}</Tooltip>
+              </TooltipTrigger>
             </div>
+            {topbarControls ? (
+              <div className="ide-topbar-controls">
+                {topbarControls}
+              </div>
+            ) : null}
 
-            <div className="ide-run-actions">
-              <RunIconButton icon="▶" label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
-              <RunIconButton icon="⏭" label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
-              <RunIconButton icon="⏸" label={t("actions.pause")} onClick={onPause} disabled={disabledRunButtons} />
-              <RunIconButton icon="↺" label={t("actions.reset")} onClick={onReset} disabled={disabledRunButtons} />
-              <RunIconButton icon="🗑" label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
-            </div>
+            {!hideRunActions ? (
+              <div className="ide-run-actions">
+                <RunIconButton icon="▶" label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
+                <RunIconButton icon="⏭" label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
+                <RunIconButton icon="⏸" label={t("actions.pause")} onClick={onPause} disabled={disabledRunButtons} />
+                <RunIconButton icon="↺" label={t("actions.reset")} onClick={onReset} disabled={disabledRunButtons} />
+                <RunIconButton icon="🗑" label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
+              </div>
+            ) : null}
           </div>
 
           <div className="ide-editor-frame">
             <PlayEditorSurface
               structures={structures}
+              lockedBlockIds={lockedBlockIds}
               allowedOperations={allowedOperations}
               blockLimits={blockLimits}
               onSetBlockLimit={onSetBlockLimit}
-              maxBlocks={maxSteps}
+              maxBlocks={maxBlocksForSurface}
               value={document}
               disabled={runState === "running"}
               highlightedNodeId={highlightedNodeId}
@@ -155,17 +191,22 @@ export function IdePanel({
             <div className={`ide-output-panel${isOutputCollapsed ? " collapsed" : ""}`}>
               <div className="ide-output-tabs">
                 <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
-                <button
-                  type="button"
-                  className="ide-output-toggle"
-                  aria-label={isOutputCollapsed ? "Expand output" : "Collapse output"}
-                  onClick={() => setIsOutputCollapsed((previous) => !previous)}
-                >
-                  {isOutputCollapsed ? "▴" : "▾"}
-                </button>
-                <span className="ide-output-meta">
-                  {t("board.blocksCount", { count: visibleRoutineOperations, max: maxSteps })}
-                </span>
+                <TooltipTrigger delay={200} closeDelay={80}>
+                  <Button
+                    className="ide-output-toggle"
+                    aria-label={outputToggleLabel}
+                    onPress={() => setIsOutputCollapsed((previous) => !previous)}
+                  >
+                    {isOutputCollapsed ? "▴" : "▾"}
+                  </Button>
+                  <Tooltip className="app-tooltip">{outputToggleLabel}</Tooltip>
+                </TooltipTrigger>
+                {outputMetaControl}
+                {!hideOutputBlocksCounter ? (
+                  <span className="ide-output-meta">
+                    {t("board.blocksCount", { count: visibleRoutineOperations, max: maxBlocksForCounter })}
+                  </span>
+                ) : null}
               </div>
               <div className="ide-output-body" hidden={isOutputCollapsed}>
                 <div className="ide-output-line primary">{translateDiagnostic(status)}</div>

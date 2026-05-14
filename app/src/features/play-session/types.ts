@@ -46,6 +46,7 @@ export interface RuntimeVariableSnapshot {
 export interface PlaySessionState {
   level: LevelDefinition | null;
   structures: StructureSnapshot[];
+  lockedBlockIds: string[];
   variableSnapshots: RuntimeVariableSnapshot[];
   heapSnapshots: HeapObjectSnapshot[];
   events: EngineEvent[];

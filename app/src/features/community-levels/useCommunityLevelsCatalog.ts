@@ -19,6 +19,8 @@ import {
 
 const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
+const isCampaignLevel = (level: LevelDefinition): boolean =>
+  level.id.startsWith("campaign-");
 
 export interface CommunityLevelsCatalogState {
   completedLevelIds: string[];
@@ -59,14 +61,15 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
       levelRepository.listLevels(),
       progressRepository.loadProgress()
     ]);
+    const communityLevels = loadedLevels.filter((level) => !isCampaignLevel(level));
 
-    setLevels(loadedLevels);
+    setLevels(communityLevels);
     setCompletedLevelIds(progress.completedLevelIds);
     setSelectedLevel((current) => {
-      if (current && loadedLevels.some((level) => level.id === current.id)) {
+      if (current && communityLevels.some((level) => level.id === current.id)) {
         return current;
       }
-      return loadedLevels[0] ?? null;
+      return communityLevels[0] ?? null;
     });
   }, []);
 
@@ -147,4 +150,3 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
     toggleStructureFilter
   };
 };
-

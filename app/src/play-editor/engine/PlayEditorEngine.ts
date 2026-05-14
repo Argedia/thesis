@@ -59,9 +59,9 @@ export class PlayEditorEngine {
 	private pressState: PendingPress | null = null;
 	private wheelState: WheelState | null = null;
 	private selectedPaletteLane: PaletteLaneId = "base";
-	private isBasePaletteCollapsed = true;
-	private isSidePaletteCollapsed = true;
-	private expandedPaletteGroupIds = new Set<string>();
+	private isBasePaletteCollapsed = false;
+	private isSidePaletteCollapsed = false;
+	private expandedPaletteGroupIds = new Set<string>(["scope:variables"]);
 	private cleanupFns: Array<() => void> = [];
 	private readonly registry: EngineServiceRegistry;
 
@@ -121,7 +121,9 @@ export class PlayEditorEngine {
 			setIsSidePaletteCollapsed: (collapsed) => { this.isSidePaletteCollapsed = collapsed; },
 			getExpandedPaletteGroupIds: () => this.expandedPaletteGroupIds,
 			isLocked: () => this.props.disabled === true,
+			isBlockLocked: (blockId) => this.isBlockLocked(blockId),
 			isActiveRoutineFunction: () => this.isActiveRoutineFunction(),
+			isActiveRoutineType: () => this.isActiveRoutineType(),
 			isControlBlock: (block) => this.isControlBlock(block),
 			getControlLabel: (block) => this.getControlLabel(block),
 			canShowDeclarationBindingWheel: (block) => this.canShowDeclarationBindingWheel(block),
@@ -194,10 +196,18 @@ export class PlayEditorEngine {
 					return { allowed: true };
 				}
 				const limit = this.getBlockLimitValue(limitKey);
+				const used = countBlockLimitUsageFromBlocks(this.getBlocks(), limitKey);
+				const isLevelEditorMode = !!this.props.onSetBlockLimit;
+				if (isLevelEditorMode) {
+					if (limit <= 0 || used >= limit) {
+						const nextLimit = used + 1;
+						this.props.onSetBlockLimit?.(limitKey, nextLimit);
+					}
+					return { allowed: true };
+				}
 				if (limit <= 0) {
 					return { allowed: false, message: "Este bloque está deshabilitado para este nivel." };
 				}
-				const used = countBlockLimitUsageFromBlocks(this.getBlocks(), limitKey);
 				if (used >= limit) {
 					return { allowed: false, message: `Límite alcanzado (${used}/${limit}).` };
 				}
@@ -348,6 +358,11 @@ export class PlayEditorEngine {
 		return this.rehydrateLevelStructureTypeRefs(projectedBlocks);
 	}
 
+	private isBlockLocked(blockId: string): boolean {
+		const locked = this.props.lockedBlockIds ?? [];
+		return locked.includes(blockId);
+	}
+
 	private rehydrateLevelStructureTypeRefs(blocks: EditorBlock[]): EditorBlock[] {
 		const prefix = "__level_structure__";
 		const structureKinds = new Map(
@@ -433,6 +448,10 @@ export class PlayEditorEngine {
 
 	private isActiveRoutineFunction(): boolean {
 		return this.getActiveRoutineSignature()?.isFunction === true;
+	}
+
+	private isActiveRoutineType(): boolean {
+		return this.getActiveRoutineSignature()?.routineKind === "type";
 	}
 
 	private isRootLevelBlock(blockId: string): boolean {

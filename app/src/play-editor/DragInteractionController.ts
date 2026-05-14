@@ -10,6 +10,7 @@ import type { PendingPress, ResolvedDropPlacement } from "./contracts/types";
 
 export interface DragInteractionControllerContext {
   isLocked(): boolean;
+  isBlockLocked(blockId: string): boolean;
   getBlocks(): EditorBlock[];
   getMaxBlocks(): number;
   getGeometryService(): DragDropGeometryService;
@@ -143,6 +144,10 @@ export class DragInteractionController {
     rect: DOMRect
   ): void {
     if (this.ctx.isLocked()) {
+      return;
+    }
+    if (this.ctx.isBlockLocked(block.id)) {
+      this.ctx.emitStatus("This block is locked by level configuration.");
       return;
     }
     this.clearPress();
@@ -343,14 +348,6 @@ export class DragInteractionController {
     this.ctx.setDragBaseLineRects(null);
     this.ctx.render();
 
-    if (dragState.source === "palette") {
-      const insertValidation = this.ctx.canInsertPaletteBlock(dragState);
-      if (!insertValidation.allowed) {
-        this.ctx.emitStatus(insertValidation.message ?? "Block limit reached.");
-        return;
-      }
-    }
-
     const slotTargetId = dragState.slotTargetKey ?? null;
     const matchesPaletteBlock = (block: PaletteBlock): boolean => {
       switch (dragState.blockKind) {
@@ -461,6 +458,13 @@ export class DragInteractionController {
       if (exceedsTopLevelBlockLimit) {
         this.ctx.emitStatus(`This level allows up to ${this.ctx.getMaxBlocks()} blocks.`);
       } else {
+        if (dragState.source === "palette") {
+          const insertValidation = this.ctx.canInsertPaletteBlock(dragState);
+          if (!insertValidation.allowed) {
+            this.ctx.emitStatus(insertValidation.message ?? "Block limit reached.");
+            return;
+          }
+        }
         const insertedBlock = await this.ctx.resolveInsertedBlockFromDrag(
           dragState,
           matchesPaletteBlock

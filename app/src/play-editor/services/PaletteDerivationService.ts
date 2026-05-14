@@ -37,12 +37,6 @@ export class PaletteDerivationService {
 			variableName: structure.id,
 			label: structure.id
 		}));
-		const firstLinearStructure = normalizedStructures.find(
-			(structure) =>
-				structure.kind === "stack" ||
-				structure.kind === "queue" ||
-				structure.kind === "list"
-		);
 		const variableDeclarations = collectVariableDeclarations(value);
 		const typeSignatures = listTypeSignatures(value);
 		const isActiveRoutineType = typeSignatures.some(
@@ -200,20 +194,6 @@ export class PaletteDerivationService {
 				literalValue: null,
 				label: "While"
 			},
-			...(firstLinearStructure
-				? [{
-					id: "palette-for-each",
-					kind: "for_each" as const,
-					color: "#df7cb5",
-					outputType: "none" as const,
-					valueType: null,
-					literalValue: null,
-					forEachSourceStructureId: firstLinearStructure.id,
-					forEachSourceStructureKind: firstLinearStructure.kind,
-					forEachItemName: "item",
-					label: "For each"
-				}]
-				: []),
 			{
 				id: "palette-break",
 				kind: "break" as const,

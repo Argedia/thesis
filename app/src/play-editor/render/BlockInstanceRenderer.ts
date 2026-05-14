@@ -16,6 +16,7 @@ type ControlEditorBlock = EditorBlock & {
 
 export interface BlockInstanceRendererContext {
 	isLocked(): boolean;
+	isBlockLocked(blockId: string): boolean;
 	isControlBlock(block: EditorBlock | null | undefined): block is ControlEditorBlock;
 	getControlLabel(block: Pick<EditorBlock, "kind">): string;
 	canShowDeclarationBindingWheel(block: EditorBlock): boolean;
@@ -180,6 +181,7 @@ export class BlockInstanceRenderer {
 		const nested = options.nested ?? false;
 		const ghost = options.ghost ?? false;
 		const preview = options.preview ?? false;
+		const blockLocked = this.ctx.isBlockLocked(block.id);
 		const isPendingStructure = (block.kind === "structure" && !block.operation) || this.ctx.isControlBlock(block);
 		const accentClass = getBlockAccentClass(block);
 		const declarationTypeClass =
@@ -224,7 +226,7 @@ export class BlockInstanceRenderer {
 					`editor-block-instance-handle${nested ? " editor-block-instance-handle-compact" : ""}`
 				);
 				if (handle) {
-					if (this.ctx.isLocked()) {
+					if (this.ctx.isLocked() || blockLocked) {
 						handle.disabled = true;
 					}
 					element.appendChild(handle);
@@ -241,19 +243,25 @@ export class BlockInstanceRenderer {
 
 	public renderInsertedBlock(block: EditorBlock): HTMLElement {
 		const nested = this.createBlockInstanceElement(block, { nested: true });
+		const blockLocked = this.ctx.isBlockLocked(block.id);
 
-		nested.addEventListener("pointerdown", (event) => {
-			const target = event.target as HTMLElement | null;
-			const cavity = target?.closest(".editor-block-instance-cavity") as HTMLElement | null;
-			if (cavity?.dataset.ownerBlockId === block.id) {
-				return;
-			}
-			const rect = nested.getBoundingClientRect();
-			this.ctx.onStartProgramPress(event, block, rect);
-		});
+		if (!blockLocked) {
+			nested.addEventListener("pointerdown", (event) => {
+				const target = event.target as HTMLElement | null;
+				const cavity = target?.closest(".editor-block-instance-cavity") as HTMLElement | null;
+				if (cavity?.dataset.ownerBlockId === block.id) {
+					return;
+				}
+				const rect = nested.getBoundingClientRect();
+				this.ctx.onStartProgramPress(event, block, rect);
+			});
+		}
 		nested.addEventListener("contextmenu", (event) => {
 			event.preventDefault();
 			event.stopPropagation();
+			if (blockLocked) {
+				return;
+			}
 			this.ctx.onRemoveBlock(block.id);
 		});
 		if (block.kind === "value") {

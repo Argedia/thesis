@@ -1,3 +1,11 @@
+.editor-shell {
+	padding: 0.5rem;
+	--editor-control-accent: #f0b43e;
+	--editor-control-accent-strong: #cc8d1a;
+	--editor-control-soft: #fff6dc;
+	--editor-control-focus: rgba(240, 180, 62, 0.26);
+}
+
 .editor-middle {
 	display: grid;
 	gap: 1rem;
@@ -14,10 +22,43 @@
 
 .level-editor-actions {
 	display: flex;
-	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.9rem;
+	margin-bottom: 0.6rem;
+}
+
+.level-editor-actions-left,
+.level-editor-actions-right {
+	display: flex;
 	align-items: center;
 	gap: 0.6rem;
-	margin-bottom: 0.6rem;
+	min-width: 0;
+}
+
+.level-editor-actions-right {
+	margin-left: auto;
+}
+
+.level-editor-title-group {
+	display: grid;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.level-editor-title-group .eyebrow {
+	margin: 0;
+}
+
+.level-editor-title-group h1 {
+	margin: 0;
+	font-size: clamp(1.25rem, 2vw, 2.05rem);
+	line-height: 1.08;
+	color: #355070;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: min(44vw, 560px);
 }
 
 .level-editor-actions input {
@@ -30,9 +71,9 @@
 	background: #ffffff;
 }
 
-.level-editor-actions button,
-.structure-draft-card button,
-.level-editor-side button {
+.level-editor-actions button:not(.toggle-switch-ra),
+.structure-draft-card button:not(.toggle-switch-ra),
+.level-editor-side button:not(.toggle-switch-ra) {
 	border: 1px solid #9ec5e5;
 	border-radius: 10px;
 	padding: 0.45rem 0.7rem;
@@ -41,8 +82,23 @@
 	font-weight: 800;
 }
 
-.level-editor-actions button:disabled {
+.level-editor-actions button:disabled:not(.toggle-switch-ra) {
 	opacity: 0.55;
+}
+
+@media (max-width: 940px) {
+	.level-editor-actions {
+		flex-wrap: wrap;
+	}
+
+	.level-editor-actions-right {
+		width: 100%;
+		justify-content: flex-end;
+	}
+
+	.level-editor-title-group h1 {
+		max-width: 100%;
+	}
 }
 
 .level-editor-status {
@@ -230,8 +286,9 @@
 }
 
 .toggle-switch-ra {
-	appearance: none;
-	-webkit-appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-start;
 	width: 38px;
 	height: 22px;
 	border-radius: 999px;
@@ -240,7 +297,9 @@
 	position: relative;
 	cursor: pointer;
 	transition: background 0.16s ease, border-color 0.16s ease;
-	display: inline-block;
+	padding: 2px;
+	box-sizing: border-box;
+	flex: 0 0 auto;
 }
 
 .toggle-switch-ra:focus-visible {
@@ -248,25 +307,32 @@
 	outline-offset: 2px;
 }
 
-.toggle-switch-ra::after {
-	content: "";
-	position: absolute;
-	top: 2px;
-	left: 2px;
+.toggle-switch-ra-indicator {
+	display: block;
 	width: 16px;
 	height: 16px;
 	border-radius: 999px;
 	background: #ffffff;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 	transition: transform 0.16s ease;
+	pointer-events: none;
 }
 
-.toggle-switch-ra[data-selected] {
+.toggle-switch-ra.is-selected {
 	background: #6ea6d4;
 	border-color: #6ea6d4;
 }
 
-.toggle-switch-ra[data-selected]::after {
+.toggle-switch-ra[aria-checked="true"] {
+	background: #6ea6d4;
+	border-color: #6ea6d4;
+}
+
+.toggle-switch-ra.is-selected .toggle-switch-ra-indicator {
+	transform: translateX(16px);
+}
+
+.toggle-switch-ra[aria-checked="true"] .toggle-switch-ra-indicator {
 	transform: translateX(16px);
 }
 
@@ -351,9 +417,14 @@
 	min-height: 0;
 }
 
+.level-editor-stage .editor-block.palette strong {
+	font-size: 0.72rem;
+	line-height: 1.05;
+}
+
 .level-editor-stage-divider {
-	cursor: default;
-	pointer-events: none;
+	cursor: col-resize;
+	pointer-events: auto;
 }
 
 .level-editor-console-shell .device-time {
@@ -460,5 +531,173 @@
 	backdrop-filter: blur(3px);
 	box-shadow: 0 14px 28px rgba(34, 55, 86, 0.18);
 	overflow: hidden;
+}
+
+.script-limit-controls-inline {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	flex-wrap: wrap;
+}
+
+.script-limit-inline-toggle,
+.script-limit-inline-field {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	color: #4f6780;
+	font-size: 0.72rem;
+	font-weight: 700;
+}
+
+.script-limit-inline-field input {
+	width: 4.1rem;
+	min-height: 1.6rem;
+	padding: 0.1rem 0.35rem;
+	border: 1px solid #c3daee;
+	border-radius: 7px;
+	background: #ffffff;
+	color: #355070;
+	font: inherit;
+}
+
+.script-limit-inline-field label {
+	white-space: nowrap;
+}
+
+.script-limit-output-field {
+	margin-left: auto;
+}
+
+.editor-drafts-shell {
+	display: grid;
+	gap: 0.8rem;
+}
+
+.editor-drafts-topbar {
+	margin-bottom: 0;
+}
+
+.editor-drafts-list {
+	display: grid;
+	gap: 0.7rem;
+	max-height: calc(100vh - 220px);
+	overflow: auto;
+	padding-right: 0.25rem;
+}
+
+.editor-draft-card {
+	border: 1px solid #c3daee;
+	border-radius: 12px;
+	background: #f8fbff;
+	padding: 0.75rem;
+	display: grid;
+	gap: 0.45rem;
+}
+
+.editor-draft-card h2 {
+	margin: 0;
+	font-size: 1.02rem;
+	color: #355070;
+}
+
+.editor-draft-card p {
+	margin: 0;
+	color: #4b6380;
+}
+
+.editor-draft-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+}
+
+.editor-draft-card-actions {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.menu-link.danger {
+	border-color: #e59696;
+	color: #9d1f1f;
+}
+
+.mini-tag.is-published {
+	background: #e3f4e6;
+	color: #1d6a31;
+	border: 1px solid #b8e2c1;
+}
+
+.mini-tag.is-draft {
+	background: #fff2de;
+	color: #85550d;
+	border: 1px solid #f1d0a2;
+}
+
+/* Editor mode: make editable controls visually obvious */
+.editor-shell .level-editor-actions-right > button:not(:disabled),
+.editor-shell .script-limit-inline-field input,
+.editor-shell .script-limit-inline-toggle .toggle-switch-ra,
+.editor-shell .permissions-block-list input[type="text"],
+.editor-shell .permissions-block-list input[type="number"],
+.editor-shell .structure-draft-fields input,
+.editor-shell .structure-draft-fields select,
+.editor-shell .details-grid input,
+.editor-shell .details-grid select,
+.editor-shell .details-grid textarea,
+.editor-shell .operation-policy-state-button,
+.editor-shell .board-preview-action.board-icon-action,
+.editor-shell .ide-output-toggle,
+.editor-shell .routine-chip.routine-chip-add {
+	border-color: var(--editor-control-accent);
+	background: var(--editor-control-soft);
+	box-shadow: inset 0 0 0 1px rgba(240, 180, 62, 0.14);
+}
+
+.editor-shell .level-editor-actions-right > button:not(:disabled):hover,
+.editor-shell .operation-policy-state-button:hover,
+.editor-shell .board-preview-action.board-icon-action:hover,
+.editor-shell .ide-output-toggle:hover,
+.editor-shell .routine-chip.routine-chip-add:hover,
+.editor-shell .script-limit-inline-field input:hover,
+.editor-shell .permissions-block-list input[type="text"]:hover,
+.editor-shell .permissions-block-list input[type="number"]:hover,
+.editor-shell .structure-draft-fields input:hover,
+.editor-shell .structure-draft-fields select:hover,
+.editor-shell .details-grid input:hover,
+.editor-shell .details-grid select:hover,
+.editor-shell .details-grid textarea:hover {
+	border-color: var(--editor-control-accent-strong);
+}
+
+.editor-shell .level-editor-actions-right > button:not(:disabled):focus-visible,
+.editor-shell .operation-policy-state-button:focus-visible,
+.editor-shell .board-preview-action.board-icon-action:focus-visible,
+.editor-shell .ide-output-toggle:focus-visible,
+.editor-shell .routine-chip.routine-chip-add:focus-visible,
+.editor-shell .script-limit-inline-field input:focus-visible,
+.editor-shell .permissions-block-list input[type="text"]:focus-visible,
+.editor-shell .permissions-block-list input[type="number"]:focus-visible,
+.editor-shell .structure-draft-fields input:focus-visible,
+.editor-shell .structure-draft-fields select:focus-visible,
+.editor-shell .details-grid input:focus-visible,
+.editor-shell .details-grid select:focus-visible,
+.editor-shell .details-grid textarea:focus-visible {
+	outline: 2px solid var(--editor-control-accent);
+	outline-offset: 1px;
+	box-shadow: 0 0 0 3px var(--editor-control-focus);
+}
+
+.editor-shell .toggle-switch-ra.is-selected {
+	background: #f6c861;
+	border-color: var(--editor-control-accent-strong);
+}
+
+.editor-shell .board-config-action {
+	color: #2f4c72;
+	border-color: #6d84ad;
+	background: #e8f2ff;
 }
 

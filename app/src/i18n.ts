@@ -1,7 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-
-const LANGUAGE_STORAGE_KEY = "visual-data-structures-language";
+import { LANGUAGE_STORAGE_KEY } from "./features/settings/local-storage-keys";
 
 const resources = {
 	en: {
@@ -16,7 +15,24 @@ const resources = {
 				menuLabel: "Menu",
 				campaign: "Campaign Mode",
 				community: "Community Levels",
-				editor: "Level Editor"
+				editor: "Level Editor",
+				settings: "Settings"
+			},
+			settings: {
+				title: "Settings",
+				sharedSettings: "Shared Settings",
+				preferences: "Preferences",
+				interface: "Interface",
+				execution: "Execution",
+				localData: "Local Data",
+				resetLayout: "Reset panel layout",
+				lineDelayMs: "Run delay (ms per block)",
+				localDataStatus: "Saved local data",
+				exportBackup: "Export local backup",
+				importBackup: "Import local backup",
+				clearProgress: "Clear progress",
+				clearDrafts: "Clear editor drafts",
+				resetAllLocalData: "Reset all local data"
 			},
 			common: {
 				back: "Back",
@@ -45,7 +61,8 @@ const resources = {
 				step: "Step",
 				pause: "Pause",
 				reset: "Reset",
-				clear: "Clear"
+				clear: "Clear",
+				addScript: "Add script"
 			},
 			state: {
 				run: "RUN",
@@ -60,7 +77,11 @@ const resources = {
 				output: "Output",
 				blocksCount: "{{count}}/{{max}} blocks",
 				runHint: "Feedback here.",
-				feedHint: "Run your program to watch the data move."
+				feedHint: "Run your program to watch the data move.",
+				expandOutput: "Expand output",
+				collapseOutput: "Collapse output",
+				addStructure: "Add structure",
+				configureBoard: "Configure board"
 			},
 			preview: {
 				findFunToPlay: "Find something fun to play.",
@@ -220,7 +241,24 @@ const resources = {
 				menuLabel: "Menú",
 				campaign: "Modo Campaña",
 				community: "Niveles de la Comunidad",
-				editor: "Editor de Niveles"
+				editor: "Editor de Niveles",
+				settings: "Ajustes"
+			},
+			settings: {
+				title: "Ajustes",
+				sharedSettings: "Ajustes generales",
+				preferences: "Preferencias",
+				interface: "Interfaz",
+				execution: "Ejecución",
+				localData: "Datos locales",
+				resetLayout: "Restablecer layout de paneles",
+				lineDelayMs: "Retardo (ms por bloque)",
+				localDataStatus: "Datos locales guardados",
+				exportBackup: "Exportar backup local",
+				importBackup: "Importar backup local",
+				clearProgress: "Limpiar progreso",
+				clearDrafts: "Limpiar borradores del editor",
+				resetAllLocalData: "Restablecer todos los datos locales"
 			},
 			common: {
 				back: "Volver",
@@ -249,7 +287,8 @@ const resources = {
 				step: "Paso",
 				pause: "Pausa",
 				reset: "Reiniciar",
-				clear: "Limpiar"
+				clear: "Limpiar",
+				addScript: "Añadir script"
 			},
 			state: {
 				run: "RUN",
@@ -264,7 +303,11 @@ const resources = {
 				output: "Salida",
 				blocksCount: "{{count}}/{{max}} bloques",
 				runHint: "Feedback aquí.",
-				feedHint: "Ejecuta tu programa para ver cómo se mueven los datos."
+				feedHint: "Ejecuta tu programa para ver cómo se mueven los datos.",
+				expandOutput: "Expandir salida",
+				collapseOutput: "Contraer salida",
+				addStructure: "Añadir estructura",
+				configureBoard: "Configurar tablero"
 			},
 			preview: {
 				findFunToPlay: "Encuentra algo divertido para jugar.",

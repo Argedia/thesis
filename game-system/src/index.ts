@@ -57,6 +57,10 @@ export interface LevelConstraints {
   forbiddenBlocks: string[];
   blockLimits?: Record<string, number>;
   maxSteps: number;
+  allowAdditionalRoutines?: boolean;
+  maxRoutineCount?: number;
+  maxBlocksGlobal?: number;
+  maxBlocksByRoutine?: Record<string, number>;
   structureCapacities?: Record<string, number>;
   noLargerOnSmaller?: LevelNoLargerOnSmallerConstraint;
   valueDomain?: LevelValueDomainConstraint;
@@ -91,6 +95,8 @@ export interface EditorLayout {
 export interface EditorTooling {
   availableStructures: string[];
   advancedToolsEnabled: boolean;
+  starterDocumentJson?: string;
+  lockStarterBlocks?: boolean;
 }
 
 export interface LevelCatalogMetadata {

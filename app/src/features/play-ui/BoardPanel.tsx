@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { Panel, PuzzleBoard } from "@thesis/ui-editor";
-import type { StructureSnapshot } from "@thesis/core-engine";
+import { PuzzleBoard } from "@thesis/ui-editor";
+import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
+import type { EngineEvent, StructureSnapshot } from "@thesis/core-engine";
 import type { HeapObjectSnapshot, RuntimeVariableSnapshot } from "../play-session/types";
 import type { StructureConfigClickPayload } from "@thesis/ui-editor";
 
@@ -16,9 +17,12 @@ interface BoardPanelProps {
   goalState: StructureSnapshot[];
   variableSnapshots: RuntimeVariableSnapshot[];
   heapSnapshots: HeapObjectSnapshot[];
-  events: Array<{ stepId: string; type: string; structureId: string; value?: unknown }>;
+  events?: EngineEvent[];
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
+  onAddStructure?: () => void;
+  isConfigOpen?: boolean;
+  onToggleConfig?: () => void;
 }
 
 export function BoardPanel({
@@ -33,11 +37,16 @@ export function BoardPanel({
   goalState,
   variableSnapshots,
   heapSnapshots,
-  events,
+  events = [],
   showStructureConfigActions = false,
-  onStructureConfigClick
+  onStructureConfigClick,
+  onAddStructure,
+  isConfigOpen = false,
+  onToggleConfig
 }: BoardPanelProps) {
   const { t } = useTranslation();
+  const addStructureLabel = t("board.addStructure");
+  const configureBoardLabel = t("board.configureBoard");
 
   return (
     <section className="device-shell board-device">
@@ -54,6 +63,18 @@ export function BoardPanel({
           >
             {t("common.previewResult")}
           </button>
+          {onToggleConfig ? (
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className={`board-preview-action board-icon-action board-config-action${isConfigOpen ? " is-active" : ""}`}
+                onPress={onToggleConfig}
+                aria-label={configureBoardLabel}
+              >
+                ⚙
+              </Button>
+              <Tooltip className="app-tooltip">{configureBoardLabel}</Tooltip>
+            </TooltipTrigger>
+          ) : null}
           <span className="device-time">{isCompleted ? t("state.done") : t("state.live")}</span>
         </div>
       </div>
@@ -62,27 +83,28 @@ export function BoardPanel({
         <div className="board-surface-grid" />
         <div className="board-content">
           <div className="board-visual-panel">
+            {onAddStructure ? (
+              <div className="board-canvas-actions">
+                <TooltipTrigger delay={200} closeDelay={80}>
+                  <Button
+                    className="board-preview-action board-icon-action board-add-structure-action"
+                    onPress={onAddStructure}
+                    aria-label={addStructureLabel}
+                  >
+                    +
+                  </Button>
+                  <Tooltip className="app-tooltip">{addStructureLabel}</Tooltip>
+                </TooltipTrigger>
+              </div>
+            ) : null}
             <PuzzleBoard
               structures={isShowingGoalPreview ? goalState : structures}
               variables={isShowingGoalPreview ? [] : variableSnapshots}
               heapObjects={isShowingGoalPreview ? [] : heapSnapshots}
+              events={isShowingGoalPreview ? [] : events}
               showStructureConfigActions={showStructureConfigActions}
               onStructureConfigClick={onStructureConfigClick}
             />
-          </div>
-
-          <div className="board-lower-panels">
-            <Panel title={t("board.executionFeed")} accent="#ffffff">
-              <div className="timeline-list">
-                {events.length === 0 ? <p>{t("board.feedHint")}</p> : null}
-                {events.map((event, i) => (
-                  <div key={`${event.stepId}-${event.type}-${i}`} className="timeline-entry">
-                    {event.type} · {event.structureId}
-                    {event.value !== undefined ? ` · ${event.value}` : ""}
-                  </div>
-                ))}
-              </div>
-            </Panel>
           </div>
         </div>
       </div>
