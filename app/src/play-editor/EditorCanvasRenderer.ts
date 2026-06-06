@@ -207,7 +207,12 @@ export class EditorCanvasRenderer {
       }
     } else {
       const indicator = document.createElement("div");
-      indicator.className = `editor-drop-indicator${isActive ? " active" : ""}`;
+      const branch = isActive ? dragState?.branchTarget?.branch ?? null : null;
+      indicator.className = [
+        "editor-drop-indicator",
+        isActive ? "active" : "",
+        branch === "alternateBody" ? "branch-else" : branch === "body" ? "branch-body" : ""
+      ].filter(Boolean).join(" ");
       line.appendChild(indicator);
     }
     this.ctx.setLineRowRef(lineLayout.id, line);
@@ -245,6 +250,15 @@ export class EditorCanvasRenderer {
       blockId: block.id
     });
     const element = this.ctx.createBlockInstanceElement(block, { preview: isPreviewBlock });
+
+    if (dragState?.branchTarget?.ownerId === block.id) {
+      element.classList.add(
+        dragState.branchTarget.branch === "alternateBody"
+          ? "drop-target-else"
+          : "drop-target-body"
+      );
+    }
+
     const blockLocked = this.ctx.isBlockLocked(block.id);
 
     if (!blockLocked) {

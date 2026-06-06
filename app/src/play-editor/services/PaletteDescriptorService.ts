@@ -11,6 +11,10 @@ export class PaletteDescriptorService {
         return "COL";
       case "list":
         return "LIS";
+      case "doubly-linked-list":
+        return "DLL";
+      case "circular-list":
+        return "CIR";
       default:
         return "EDS";
     }
@@ -27,7 +31,11 @@ export class PaletteDescriptorService {
           ? translate("structures.queue")
           : block.structureKind === "list"
             ? translate("structures.list")
-            : translate("structures.dataStructure");
+            : block.structureKind === "doubly-linked-list"
+              ? translate("structures.doubly-linked-list")
+              : block.structureKind === "circular-list"
+                ? translate("structures.circular-list")
+                : translate("structures.dataStructure");
     const idLabel = block.structureId?.trim();
     return idLabel ? `${typeLabel} ${idLabel}` : typeLabel;
   }

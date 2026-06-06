@@ -250,7 +250,8 @@ export class DragDropGeometryService {
 				centerX >= slot.rect.left &&
 				centerX <= slot.rect.right &&
 				centerY >= slot.rect.top &&
-				centerY <= slot.rect.bottom
+				centerY <= slot.rect.bottom &&
+				overlapRatio(slot.rect) >= enterThreshold
 		);
 		if (centerContainedSlot) {
 			return centerContainedSlot.slotKey;

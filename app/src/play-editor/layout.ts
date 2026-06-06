@@ -53,8 +53,18 @@ export const calculateDropIndex = (
     return { index: blockCount, isOverEditor };
   }
 
-  const anchors = blockRects.map(({ rect }) => rect.top + Math.max(rect.height, 1) / 2);
-  const leaveTolerance = 20;
+  // For rows with height=0 (drop rows), shift their anchor to the midpoint between
+  // their neighbors so they don't collide with adjacent block anchors.
+  const rawAnchors = blockRects.map(({ rect }) => rect.top + rect.height / 2);
+  const anchors = rawAnchors.map((anchor, i) => {
+    const rect = blockRects[i]!.rect;
+    if (rect.height > 0) return anchor;
+    // height=0: use midpoint between prev and next anchor
+    const prev = i > 0 ? rawAnchors[i - 1]! : rect.top - 25;
+    const next = i < rawAnchors.length - 1 ? rawAnchors[i + 1]! : rect.top + 25;
+    return (prev + next) / 2;
+  });
+  const leaveTolerance = 48;
 
   if (previousIndex !== null && previousIndex !== undefined && previousIndex >= 0 && previousIndex < anchors.length) {
     const currentAnchor = anchors[previousIndex];

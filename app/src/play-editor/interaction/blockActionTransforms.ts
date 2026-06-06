@@ -24,7 +24,13 @@ const operationReturnsValue = (operation: EditorBlock["operation"]): boolean =>
 	operation === "REMOVE_LAST" ||
 	operation === "GET_HEAD" ||
 	operation === "GET_TAIL" ||
-	operation === "SIZE";
+	operation === "PEEK" ||
+	operation === "SIZE" ||
+	operation === "IS_EMPTY" ||
+	operation === "GET_AT" ||
+	operation === "REMOVE_AT" ||
+	operation === "CONTAINS" ||
+	operation === "FIND";
 
 export const applyOperationToBlock = (
 	currentBlock: EditorBlock,
@@ -38,7 +44,11 @@ export const applyOperationToBlock = (
 		operation === "PUSH" ||
 		operation === "ENQUEUE" ||
 		operation === "APPEND" ||
-		operation === "PREPEND"
+		operation === "PREPEND" ||
+		operation === "CONTAINS" ||
+		operation === "FIND" ||
+		operation === "GET_AT" ||
+		operation === "REMOVE_AT"
 			? currentBlock.inputBlock ?? null
 			: null
 });

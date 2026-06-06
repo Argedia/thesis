@@ -7,6 +7,7 @@ import {
 	getOutputType,
 	isSlotCompatible
 } from "../operations";
+import { inferExpressionFamilyFromOperationMode } from "../../features/program-editor-core/adapters/shared";
 import { getBlockAccentClass } from "./blockAccent";
 import { t } from "../../i18n-helpers";
 
@@ -34,6 +35,8 @@ export interface BlockInstanceRendererContext {
 	editValueBlock(blockId: string, currentValue: EditorBlock["literalValue"]): Promise<void>;
 	editVariableName(blockId: string, currentName: string | undefined): Promise<void>;
 	toggleWheel(blockId: string): void;
+	hasWheelOptions(block: EditorBlock): boolean;
+	updateVariableOperationMode(blockId: string, mode: import("../model").VariableOperationMode): void;
 	registerSlotRef(slotKey: string, element: HTMLDivElement): void;
 	registerBlockRef(blockId: string, element: HTMLDivElement): void;
 	resolveTypeName(typeRoutineId: string): string | null;
@@ -44,17 +47,15 @@ export class BlockInstanceRenderer {
 
 	private getDeclarationTypeTone(
 		block: EditorBlock
-	): "bool" | "int" | "double" | "string" | "user" | "stack" | "queue" | "list" {
+	): "bool" | "int" | "double" | "string" | "user" | "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list" {
 		if (block.kind !== "var_declaration") {
 			return "double";
 		}
 		if (block.declaredTypeRef?.kind === "structure") {
-			if (block.declaredTypeRef.structureKind === "stack") {
-				return "stack";
-			}
-			if (block.declaredTypeRef.structureKind === "queue") {
-				return "queue";
-			}
+			if (block.declaredTypeRef.structureKind === "stack") return "stack";
+			if (block.declaredTypeRef.structureKind === "queue") return "queue";
+			if (block.declaredTypeRef.structureKind === "doubly-linked-list") return "doubly-linked-list";
+			if (block.declaredTypeRef.structureKind === "circular-list") return "circular-list";
 			return "list";
 		}
 		if (block.declaredTypeRef?.kind === "user") {
@@ -79,12 +80,10 @@ export class BlockInstanceRenderer {
 			return "double";
 		}
 		if (block.declaredTypeRef?.kind === "structure") {
-			if (block.declaredTypeRef.structureKind === "stack") {
-				return t("structures.stack");
-			}
-			if (block.declaredTypeRef.structureKind === "queue") {
-				return t("structures.queue");
-			}
+			if (block.declaredTypeRef.structureKind === "stack") return t("structures.stack");
+			if (block.declaredTypeRef.structureKind === "queue") return t("structures.queue");
+			if (block.declaredTypeRef.structureKind === "doubly-linked-list") return t("structures.doubly-linked-list");
+			if (block.declaredTypeRef.structureKind === "circular-list") return t("structures.circular-list");
 			return t("structures.list");
 		}
 		if (block.declaredTypeRef?.kind === "user") {
@@ -137,6 +136,106 @@ export class BlockInstanceRenderer {
 			default:
 				return "?";
 		}
+	}
+
+	private renderOperatorSelect(block: EditorBlock): HTMLElement {
+		const ALL_GROUPS: Record<string, Array<{ label: string; ops: Array<{ value: string; token: string }> }>> = {
+			arithmetic: [{ label: "Aritmética", ops: [
+				{ value: "add", token: "+" },
+				{ value: "subtract", token: "-" },
+				{ value: "multiply", token: "*" },
+				{ value: "divide", token: "/" },
+				{ value: "modulo", token: "%" },
+			]}],
+			comparison: [{ label: "Comparación", ops: [
+				{ value: "equals", token: "==" },
+				{ value: "not_equals", token: "!=" },
+				{ value: "greater_than", token: ">" },
+				{ value: "greater_or_equal", token: ">=" },
+				{ value: "less_than", token: "<" },
+				{ value: "less_or_equal", token: "<=" },
+			]}],
+			logical: [{ label: "Lógica", ops: [
+				{ value: "and", token: "and" },
+				{ value: "or", token: "or" },
+				{ value: "not", token: "not" },
+			]}],
+		};
+
+		const current = block.variableOperationMode ?? "add";
+		const family = block.expressionFamily ?? inferExpressionFamilyFromOperationMode(current);
+		const GROUPS = ALL_GROUPS[family] ?? ALL_GROUPS["arithmetic"]!;
+		const currentToken = GROUPS.flatMap(g => g.ops).find(o => o.value === current)?.token ?? "?";
+
+		const wrapper = document.createElement("div");
+		wrapper.className = "editor-operator-dropdown";
+
+		const trigger = document.createElement("button");
+		trigger.type = "button";
+		trigger.className = "editor-operator-trigger";
+		trigger.textContent = currentToken;
+		wrapper.appendChild(trigger);
+
+		const closeDropdown = () => {
+			const existing = document.querySelector(".editor-operator-popover");
+			existing?.remove();
+		};
+
+		trigger.addEventListener("pointerdown", (e) => {
+			if (e.button !== 0) return;
+			e.stopPropagation();
+			e.preventDefault();
+
+			// Toggle: close if already open for this block
+			const existing = document.querySelector(`.editor-operator-popover[data-block-id="${block.id}"]`);
+			if (existing) { existing.remove(); return; }
+			closeDropdown();
+
+			const popover = document.createElement("div");
+			popover.className = "editor-operator-popover";
+			popover.dataset.blockId = block.id;
+
+			for (const group of GROUPS) {
+				const header = document.createElement("div");
+				header.className = "editor-operator-popover-header";
+				header.textContent = group.label;
+				popover.appendChild(header);
+
+				for (const op of group.ops) {
+					const item = document.createElement("button");
+					item.type = "button";
+					item.className = "editor-operator-popover-item" + (op.value === current ? " active" : "");
+					item.textContent = op.token;
+					item.addEventListener("pointerdown", (ev) => {
+						if (ev.button !== 0) return;
+						ev.stopPropagation();
+						closeDropdown();
+						this.ctx.updateVariableOperationMode(
+							block.id,
+							op.value as import("../model").VariableOperationMode
+						);
+					});
+					popover.appendChild(item);
+				}
+			}
+
+			// Position below the trigger
+			document.body.appendChild(popover);
+			const rect = trigger.getBoundingClientRect();
+			popover.style.left = `${rect.left + rect.width / 2 - popover.offsetWidth / 2}px`;
+			popover.style.top = `${rect.bottom + 4}px`;
+
+			// Close on outside click
+			const onOutside = (ev: PointerEvent) => {
+				if (!popover.contains(ev.target as Node) && ev.target !== trigger) {
+					closeDropdown();
+					document.removeEventListener("pointerdown", onOutside, true);
+				}
+			};
+			document.addEventListener("pointerdown", onOutside, true);
+		});
+
+		return wrapper;
 	}
 
 	private getLiteralKind(value: EditorBlock["literalValue"]): "bool" | "int" | "double" | "string" {
@@ -202,18 +301,24 @@ export class BlockInstanceRenderer {
 		this.appendBlockInstanceContent(block, main, { ghost });
 		element.appendChild(main);
 
-		if (
-			block.kind === "structure" ||
-			block.kind === "conditional" ||
-			block.kind === "var" ||
-			block.kind === "var_assign" ||
-			block.kind === "var_reference" ||
-			block.kind === "var_operation" ||
-			block.kind === "var_binary_operation" ||
-			block.kind === "routine_call" ||
-			(block.kind === "routine_member" && block.routineMemberKind === "function") ||
-			this.ctx.canShowDeclarationBindingWheel(block)
-		) {
+		const needsHandle = (() => {
+			if (
+				block.kind === "conditional" ||
+				block.kind === "var_assign" ||
+				block.kind === "var_operation" ||
+				block.kind === "routine_call" ||
+				(block.kind === "routine_member" && block.routineMemberKind === "function") ||
+				this.ctx.canShowDeclarationBindingWheel(block)
+			) return true;
+			if (
+				block.kind === "structure" ||
+				block.kind === "var" ||
+				block.kind === "var_reference"
+			) return this.ctx.hasWheelOptions(block) ?? true;
+			return false;
+		})();
+
+		if (needsHandle) {
 			if (ghost) {
 				element.appendChild(
 					this.createStaticBlockHandle(
@@ -441,11 +546,17 @@ export class BlockInstanceRenderer {
 
 		if (block.kind === "var_binary_operation") {
 			const slots = getBlockInputSlots(block);
+			const operatorEl = options.ghost
+				? (() => {
+					const s = document.createElement("strong");
+					s.className = "editor-block-instance-operator";
+					s.textContent = this.getVariableOperationToken(block.variableOperationMode);
+					return s;
+				})()
+				: this.renderOperatorSelect(block);
+
 			if (slots.length === 1) {
-				const operator = document.createElement("strong");
-				operator.className = "editor-block-instance-operator";
-				operator.textContent = this.getVariableOperationToken(block.variableOperationMode);
-				main.appendChild(operator);
+				main.appendChild(operatorEl);
 				main.appendChild(
 					options.ghost
 						? this.renderGhostInputSlot(block, slots[0]!)
@@ -460,10 +571,7 @@ export class BlockInstanceRenderer {
 						? this.renderGhostInputSlot(block, slots[0]!)
 						: this.renderInlineInputSlot(block, slots[0]!)
 				);
-				const operator = document.createElement("strong");
-				operator.className = "editor-block-instance-operator";
-				operator.textContent = this.getVariableOperationToken(block.variableOperationMode);
-				main.appendChild(operator);
+				main.appendChild(operatorEl);
 				main.appendChild(
 					options.ghost
 						? this.renderGhostInputSlot(block, slots[1]!)
@@ -567,9 +675,7 @@ export class BlockInstanceRenderer {
 			textInput.className = "editor-block-instance-cavity-text";
 			textInput.setAttribute("aria-label", inputSlot.title);
 			textInput.setAttribute("spellcheck", "false");
-			// Literal creation via typing in slots is disabled:
-			// slots are now filled only by dropping/selecting blocks.
-			textInput.placeholder = "";
+			textInput.placeholder = inputSlot.placeholder ?? "";
 			textInput.disabled = true;
 			textInput.readOnly = true;
 			textInput.addEventListener("pointerdown", (event) => {

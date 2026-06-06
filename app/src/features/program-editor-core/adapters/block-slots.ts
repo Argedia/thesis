@@ -23,9 +23,15 @@ export const getOutputType = (block: EditorBlock): OutputType => {
 			block.operation === "DEQUEUE" ||
 			block.operation === "REMOVE_FIRST" ||
 			block.operation === "REMOVE_LAST" ||
+			block.operation === "REMOVE_AT" ||
 			block.operation === "GET_HEAD" ||
 			block.operation === "GET_TAIL" ||
-			block.operation === "SIZE"
+			block.operation === "SIZE" ||
+			block.operation === "PEEK" ||
+			block.operation === "IS_EMPTY" ||
+			block.operation === "GET_AT" ||
+			block.operation === "CONTAINS" ||
+			block.operation === "FIND"
 		)
 			? "value"
 			: "none";
@@ -90,6 +96,12 @@ export const getOutputType = (block: EditorBlock): OutputType => {
 	);
 };
 
+const structureOpPlaceholder = (operation: EditorBlock["operation"]): string => {
+	if (operation === "GET_AT" || operation === "REMOVE_AT") return "índice";
+	if (operation === "CONTAINS" || operation === "FIND") return "valor";
+	return "valor";
+};
+
 export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinition[] => {
 	if (block.kind === "conditional" || block.kind === "while") {
 		return [
@@ -97,7 +109,27 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "input",
 				expectedType: "any",
 				allowDirectTextEntry: true,
-				title: "Insert a condition block or type a value"
+				title: "Insert a condition block or type a value",
+				placeholder: "condición"
+			}
+		];
+	}
+
+	if (block.kind === "structure" && block.operation === "INSERT_AT") {
+		return [
+			{
+				id: "insert-value",
+				expectedType: "value",
+				allowDirectTextEntry: true,
+				title: "Insert a value",
+				placeholder: "valor"
+			},
+			{
+				id: "insert-index",
+				expectedType: "value",
+				allowDirectTextEntry: true,
+				title: "Insert an index",
+				placeholder: "índice"
 			}
 		];
 	}
@@ -108,7 +140,31 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "input",
 				expectedType: "value",
 				allowDirectTextEntry: true,
-				title: "Insert a compatible block or type a value"
+				title: "Insert a compatible block or type a value",
+				placeholder: structureOpPlaceholder(block.operation)
+			}
+		];
+	}
+
+	if (
+		block.kind === "var" &&
+		block.declaredTypeRef?.kind === "structure" &&
+		block.operation === "INSERT_AT"
+	) {
+		return [
+			{
+				id: "insert-value",
+				expectedType: "value",
+				allowDirectTextEntry: true,
+				title: "Insert a value",
+				placeholder: "valor"
+			},
+			{
+				id: "insert-index",
+				expectedType: "value",
+				allowDirectTextEntry: true,
+				title: "Insert an index",
+				placeholder: "índice"
 			}
 		];
 	}
@@ -123,7 +179,8 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "input",
 				expectedType: "value",
 				allowDirectTextEntry: true,
-				title: "Insert a compatible block or type a value"
+				title: "Insert a compatible block or type a value",
+				placeholder: structureOpPlaceholder(block.operation)
 			}
 		];
 	}
@@ -140,7 +197,8 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 						? "Insert a value block or type a value"
 						: mode === "not"
 							? "Insert a boolean block or type true / false"
-							: "Insert an operand block or type a value"
+							: "Insert an operand block or type a value",
+				placeholder: mode === "assign" ? "valor" : mode === "not" ? "bool" : "valor"
 			}
 		];
 	}
@@ -151,7 +209,8 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "input",
 				expectedType: "any",
 				allowDirectTextEntry: true,
-				title: "Insert a value block or type a value"
+				title: "Insert a value block or type a value",
+				placeholder: "valor"
 			}
 		];
 	}
@@ -162,7 +221,8 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "input",
 				expectedType: "any",
 				allowDirectTextEntry: true,
-				title: "Insert a value block or type a value"
+				title: "Insert a value block or type a value",
+				placeholder: "valor"
 			}
 		];
 	}
@@ -176,7 +236,8 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 					id: "operand",
 					expectedType: "boolean",
 					allowDirectTextEntry: true,
-					title: "Insert the operand"
+					title: "Insert the operand",
+					placeholder: "valor"
 				}
 			];
 		}
@@ -187,13 +248,15 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "left",
 				expectedType,
 				allowDirectTextEntry: true,
-				title: "Insert the left operand"
+				title: "Insert the left operand",
+				placeholder: "izq"
 			},
 			{
 				id: "right",
 				expectedType,
 				allowDirectTextEntry: true,
-				title: "Insert the right operand"
+				title: "Insert the right operand",
+				placeholder: "der"
 			}
 		];
 	}
@@ -204,7 +267,8 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				id: "value",
 				expectedType: "any",
 				allowDirectTextEntry: true,
-				title: "Insert a value block or type a value"
+				title: "Insert a value block or type a value",
+				placeholder: "valor"
 			}
 		];
 	}
@@ -215,18 +279,20 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 		}
 		return (block.routineParamNames ?? []).map((paramName, index) => ({
 			id: `arg-${index}`,
-			expectedType: "any",
+			expectedType: "any" as const,
 			allowDirectTextEntry: true,
-			title: `Insert a value for ${paramName}`
+			title: `Insert a value for ${paramName}`,
+			placeholder: paramName
 		}));
 	}
 
 	if (block.kind === "routine_member" && block.routineMemberKind === "function" && block.routineCallMode !== "reference") {
 		return (block.routineParamNames ?? []).map((paramName, index) => ({
 			id: `arg-${index}`,
-			expectedType: "any",
+			expectedType: "any" as const,
 			allowDirectTextEntry: true,
-			title: `Insert a value for ${paramName}`
+			title: `Insert a value for ${paramName}`,
+			placeholder: paramName
 		}));
 	}
 
@@ -239,6 +305,14 @@ export const getBlockInputSlot = (block: EditorBlock): EditorInputSlotDefinition
 export const getBlockSlotBlock = (block: EditorBlock, slotId: string): EditorBlock | null => {
 	if (slotId === "input" || slotId === "value") {
 		return block.inputBlock ?? null;
+	}
+
+	if (slotId === "insert-value") {
+		return block.inputBlocks?.[0] ?? null;
+	}
+
+	if (slotId === "insert-index") {
+		return block.inputBlocks?.[1] ?? null;
 	}
 
 	if (slotId === "left") {
@@ -266,6 +340,15 @@ export const setBlockSlotBlock = (
 		return {
 			...block,
 			inputBlock: nextBlock
+		};
+	}
+
+	if (slotId === "insert-value" || slotId === "insert-index") {
+		const nextInputBlocks = [...(block.inputBlocks ?? [null, null])];
+		nextInputBlocks[slotId === "insert-index" ? 1 : 0] = nextBlock;
+		return {
+			...block,
+			inputBlocks: nextInputBlocks
 		};
 	}
 

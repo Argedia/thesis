@@ -31,7 +31,16 @@ export const isBuilderOperation = (operation: string): operation is BuilderOpera
 		"REMOVE_LAST",
 		"GET_HEAD",
 		"GET_TAIL",
-		"SIZE"
+		"PEEK",
+		"SIZE",
+		"IS_EMPTY",
+		"GET_AT",
+		"INSERT_AT",
+		"REMOVE_AT",
+		"CONTAINS",
+		"FIND",
+		"REVERSE",
+		"CLEAR"
 	].includes(operation);
 
 export const getAllowedOperations = (
@@ -45,7 +54,7 @@ export const getAllowedOperations = (
 				return operation === "POP" || operation === "PUSH";
 			}
 
-			if (structureKind === "list") {
+			if (structureKind === "list" || structureKind === "doubly-linked-list" || structureKind === "circular-list") {
 				return (
 					operation === "APPEND" ||
 					operation === "PREPEND" ||
@@ -53,11 +62,19 @@ export const getAllowedOperations = (
 					operation === "REMOVE_LAST" ||
 					operation === "GET_HEAD" ||
 					operation === "GET_TAIL" ||
-					operation === "SIZE"
+					operation === "GET_AT" ||
+					operation === "SIZE" ||
+					operation === "IS_EMPTY" ||
+					operation === "INSERT_AT" ||
+					operation === "REMOVE_AT" ||
+					operation === "CONTAINS" ||
+					operation === "FIND" ||
+					operation === "REVERSE" ||
+					operation === "CLEAR"
 				);
 			}
 
-			return operation === "DEQUEUE" || operation === "ENQUEUE";
+			return operation === "DEQUEUE" || operation === "ENQUEUE" || operation === "PEEK" || operation === "SIZE" || operation === "IS_EMPTY";
 		});
 
 export const describeOperation = (
@@ -76,7 +93,11 @@ export const operationNeedsValue = (operation: BuilderOperation | null): boolean
 	operation === "PUSH" ||
 	operation === "ENQUEUE" ||
 	operation === "APPEND" ||
-	operation === "PREPEND";
+	operation === "PREPEND" ||
+	operation === "CONTAINS" ||
+	operation === "FIND" ||
+	operation === "GET_AT" ||
+	operation === "REMOVE_AT";
 
 export const variableModeOutputType = (mode: VariableOperationMode): OutputType =>
 	mode === "assign"

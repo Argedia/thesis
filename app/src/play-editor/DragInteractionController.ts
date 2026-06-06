@@ -6,6 +6,7 @@ import type {
   EditorDragState,
   PaletteBlock
 } from "./model";
+import { getOutputType } from "../features/program-editor-core/adapters/block-slots";
 import type { PendingPress, ResolvedDropPlacement } from "./contracts/types";
 
 export interface DragInteractionControllerContext {
@@ -36,6 +37,7 @@ export interface DragInteractionControllerContext {
   ): EditorDocument;
   getDocument(): EditorDocument;
   canUseSlotTarget(targetSlotKey: string): boolean;
+  getInlinePreviewBlocks(): EditorBlock[] | null;
   canInsertPaletteBlock(dragState: EditorDragState): {
     allowed: boolean;
     message?: string;
@@ -64,8 +66,8 @@ export class DragInteractionController {
     if (this.ctx.isLocked()) {
       return;
     }
-    const offsetX = event.clientX - rect.left;
-    const offsetY = event.clientY - rect.top;
+    const offsetX = 20;
+    const offsetY = 14;
     const dragGeometry = ghostGeometry(
       event.clientX,
       event.clientY,
@@ -91,6 +93,7 @@ export class DragInteractionController {
       pointerId: event.pointerId,
       source: "palette",
       blockKind: block.kind,
+      outputType: block.outputType,
       color: block.color,
       structureId: block.structureId,
       structureKind: block.structureKind,
@@ -232,13 +235,14 @@ export class DragInteractionController {
           lineLayouts
         );
         this.ctx.closeWheel();
+        const programBlock = this.ctx.findBlockById(this.ctx.getBlocks(), pendingPress.blockId);
         this.ctx.setDragState({
           pointerId: event.pointerId,
           source: "program",
           blockId: pendingPress.blockId,
           blockKind: pendingPress.blockKind,
-          color:
-            this.ctx.findBlockById(this.ctx.getBlocks(), pendingPress.blockId)?.color,
+          outputType: programBlock ? getOutputType(programBlock) : "none",
+          color: programBlock?.color,
           structureId: pendingPress.structureId,
           structureKind: pendingPress.structureKind,
           literalValue: pendingPress.literalValue,
@@ -296,7 +300,9 @@ export class DragInteractionController {
     }
 
     const baseBlocks = this.ctx.getBlocks();
-    const lineLayouts = buildEditorLineLayout(baseBlocks);
+    // Use the rendered layout (with inline preview) so geometry matches what's on screen.
+    const renderedBlocks = this.ctx.getInlinePreviewBlocks() ?? baseBlocks;
+    const lineLayouts = buildEditorLineLayout(renderedBlocks);
     const dragGeometry = ghostGeometry(
       event.clientX,
       event.clientY,
@@ -326,7 +332,7 @@ export class DragInteractionController {
       originSlotOwnerId: dragState.originSlotOwnerId ?? null,
       branchTarget: this.ctx
         .getGeometryService()
-        .currentBranchTarget(baseBlocks, visualLineIndex, lineLayouts, chosenIndent)
+        .currentBranchTarget(renderedBlocks, visualLineIndex, lineLayouts, chosenIndent)
     });
     this.ctx.render();
   };

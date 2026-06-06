@@ -179,7 +179,9 @@ const getDeclarationTypeOptions = (
 	];
 	const structureKinds = Array.from(new Set(structures.map((structure) => structure.kind)));
 	const structureOptions = structureKinds
-		.filter((kind): kind is "stack" | "queue" | "list" => kind === "stack" || kind === "queue" || kind === "list")
+		.filter((kind): kind is import("@thesis/core-engine").StructureKind =>
+			kind === "stack" || kind === "queue" || kind === "list" || kind === "doubly-linked-list" || kind === "circular-list"
+		)
 		.map((kind) => ({
 			value: `structure:${kind}`,
 			label:
@@ -187,7 +189,11 @@ const getDeclarationTypeOptions = (
 					? t("structures.stack")
 					: kind === "queue"
 						? t("structures.queue")
-						: t("structures.list"),
+						: kind === "doubly-linked-list"
+							? t("structures.doubly-linked-list")
+							: kind === "circular-list"
+								? t("structures.circular-list")
+								: t("structures.list"),
 			typeRef: {
 				kind: "structure" as const,
 				structureKind: kind

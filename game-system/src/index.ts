@@ -16,7 +16,16 @@ export const LEVEL_OPERATIONS = [
   "REMOVE_LAST",
   "GET_HEAD",
   "GET_TAIL",
-  "SIZE"
+  "SIZE",
+  "PEEK",
+  "IS_EMPTY",
+  "GET_AT",
+  "INSERT_AT",
+  "REMOVE_AT",
+  "CONTAINS",
+  "FIND",
+  "REVERSE",
+  "CLEAR"
 ] as const;
 
 export type LevelOperation = (typeof LEVEL_OPERATIONS)[number];

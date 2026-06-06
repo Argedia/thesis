@@ -123,6 +123,7 @@ export interface EditorInputSlotDefinition {
 	expectedType: SlotExpectedType;
 	allowDirectTextEntry: boolean;
 	title: string;
+	placeholder?: string;
 }
 
 export interface EditorSelectionState {
@@ -135,6 +136,7 @@ export interface EditorDragState {
 	source: "palette" | "program";
 	blockId?: string;
 	blockKind: EditorBlockKind;
+	outputType: OutputType;
 	color?: string;
 	structureId?: string;
 	structureKind?: StructureKind;

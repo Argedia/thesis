@@ -15,13 +15,14 @@ const createDropLinePusher = (lines: EditorLineLayout[]) => {
 		branchOwnerId?: string;
 		branch?: ControlBodyKey;
 	}) => {
+		const dedupedPotential = Array.from(new Set(config.indentPotential)).sort((a, b) => a - b);
 		lines.push({
 			id: `drop-line-${(dropLineId += 1)}`,
 			role: "drop",
 			depth: config.depth,
 			indentCurrent: config.depth,
-			indentPotential: Array.from(new Set(config.indentPotential)).sort((a, b) => a - b),
-			increaseNextIndentation: false,
+			indentPotential: dedupedPotential,
+			increaseNextIndentation: dedupedPotential.length > 1,
 			bodyOwnerPath: config.bodyOwnerPath,
 			controlPath: config.controlPath,
 			block: null,
@@ -51,10 +52,14 @@ const visitBlockLines = (
 ) => {
 	currentBlocks.forEach((block, index) => {
 		const effectiveTopLevelIndex = options?.topLevel ? index : options?.rootTopLevelIndex;
+		const prevBlock = index > 0 ? currentBlocks[index - 1] : null;
+		const prevIsControl = prevBlock ? isControlBlock(prevBlock) : false;
 		pushDropLine({
 			depth,
 			indentPotential:
-				index === 0 ? (controlPath.length > 0 ? [depth - 1, depth] : [depth]) : [depth],
+				index === 0
+					? (controlPath.length > 0 ? [depth - 1, depth] : [depth])
+					: prevIsControl ? [depth, depth + 1] : [depth],
 			bodyOwnerPath,
 			controlPath,
 			insertionRootIndex: effectiveTopLevelIndex,

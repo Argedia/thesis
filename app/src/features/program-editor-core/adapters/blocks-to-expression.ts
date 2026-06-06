@@ -95,7 +95,7 @@ export const editorBlockToExpression = (block: EditorBlock): ExpressionNode => {
 	if (block.kind === "value") return literalToExpression(block);
 
 	if (block.kind === "var") {
-		if (block.declaredTypeRef?.kind === "structure" && block.operation) {
+		if (block.declaredTypeRef?.kind === "structure") {
 			const isLevelStructure = block.variableSourceId?.startsWith("__level_structure__");
 			const resolvedStructureId = isLevelStructure
 				? block.variableSourceId!.slice("__level_structure__".length)

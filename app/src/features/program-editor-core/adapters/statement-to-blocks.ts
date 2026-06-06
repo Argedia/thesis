@@ -80,15 +80,28 @@ const statementToEditorBlock = (
 					statement.operation === "REMOVE_LAST" ||
 					statement.operation === "GET_HEAD" ||
 					statement.operation === "GET_TAIL" ||
-					statement.operation === "SIZE"
+					statement.operation === "PEEK" ||
+					statement.operation === "SIZE" ||
+					statement.operation === "IS_EMPTY" ||
+					statement.operation === "GET_AT" ||
+					statement.operation === "REMOVE_AT" ||
+					statement.operation === "CONTAINS" ||
+					statement.operation === "FIND"
 						? "value"
 						: "none",
 				valueType: null,
 				literalValue: null,
-				inputBlock: statement.args[0]
+				inputBlock: statement.operation !== "INSERT_AT" && statement.args[0]
 					? expressionToEditorBlock(statement.args[0], declarations, signatures)
 					: null,
-				variableSourceId: statement.targetDeclarationId ?? statement.id,
+				inputBlocks: statement.operation === "INSERT_AT"
+					? [
+						statement.args[0] ? expressionToEditorBlock(statement.args[0], declarations, signatures) : null,
+						statement.args[1] ? expressionToEditorBlock(statement.args[1], declarations, signatures) : null
+					  ]
+					: undefined,
+				variableSourceId: statement.targetDeclarationId
+					?? `__level_structure__${statement.structureId}`,
 				variableName: statement.targetName ?? statement.structureId,
 				declaredTypeRef: { kind: "structure", structureKind: statement.structureKind }
 			};
@@ -107,12 +120,26 @@ const statementToEditorBlock = (
 				statement.operation === "REMOVE_LAST" ||
 				statement.operation === "GET_HEAD" ||
 				statement.operation === "GET_TAIL" ||
-				statement.operation === "SIZE"
+				statement.operation === "PEEK" ||
+				statement.operation === "SIZE" ||
+				statement.operation === "IS_EMPTY" ||
+				statement.operation === "GET_AT" ||
+				statement.operation === "REMOVE_AT" ||
+				statement.operation === "CONTAINS" ||
+				statement.operation === "FIND"
 					? "value"
 					: "none",
 			valueType: null,
 			literalValue: null,
-			inputBlock: statement.args[0] ? expressionToEditorBlock(statement.args[0], declarations, signatures) : null
+			inputBlock: statement.operation !== "INSERT_AT" && statement.args[0]
+				? expressionToEditorBlock(statement.args[0], declarations, signatures)
+				: null,
+			inputBlocks: statement.operation === "INSERT_AT"
+				? [
+					statement.args[0] ? expressionToEditorBlock(statement.args[0], declarations, signatures) : null,
+					statement.args[1] ? expressionToEditorBlock(statement.args[1], declarations, signatures) : null
+				  ]
+				: undefined
 		};
 	}
 

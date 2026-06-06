@@ -28,6 +28,7 @@ import {
   createSourceOperation,
   createTargetOperation,
   getForEachValuesFromStructure,
+  isMutateOperation,
   isSourceOperation,
   isTargetOperation,
   resolveStructureTargetId
@@ -323,16 +324,28 @@ const executeCallStepped = (
   });
 
   let operation;
-  if (isSourceOperation(statement.operation)) {
-    operation = createSourceOperation(statement.operation, targetId);
+  if (isMutateOperation(statement.operation)) {
+    operation = { type: statement.operation, sourceId: targetId } as import("@thesis/core-engine").OperationDefinition;
+  } else if (isSourceOperation(statement.operation)) {
+    const argExpr = statement.args[0] ? evaluateExpression(statement.args[0], ctx) : null;
+    const argRaw = argExpr ? assertPrimitiveValue(argExpr.value) : undefined;
+    // REMOVE_AT and GET_AT require numeric index
+    const argVal = (statement.operation === "REMOVE_AT" || statement.operation === "GET_AT") && argRaw !== undefined
+      ? Number(argRaw)
+      : argRaw;
+    operation = createSourceOperation(statement.operation, targetId, argVal);
   } else if (isTargetOperation(statement.operation)) {
     const argument = statement.args[0] ? evaluateExpression(statement.args[0], ctx) : null;
     if (!argument) throw new Error("Finish each block and fill any missing value slots.");
-    operation = createTargetOperation(
-      statement.operation,
-      targetId,
-      argument.kind === "literal" ? assertPrimitiveValue(argument.value) : undefined
-    );
+    const value = argument.kind === "literal" ? assertPrimitiveValue(argument.value) : undefined;
+    if (statement.operation === "INSERT_AT") {
+      const indexExpr = statement.args[1] ? evaluateExpression(statement.args[1], ctx) : null;
+      if (!indexExpr) throw new Error("INSERT_AT requires both a value and an index.");
+      const index = Number(assertPrimitiveValue(indexExpr.value));
+      operation = createTargetOperation(statement.operation, targetId, value, index);
+    } else {
+      operation = createTargetOperation(statement.operation, targetId, value);
+    }
   } else {
     throw new Error("The block could not run.");
   }

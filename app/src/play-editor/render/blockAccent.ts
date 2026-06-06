@@ -40,6 +40,8 @@ export const getBlockAccentClass = (block: AccentBlock): string | null => {
 			if (block.structureKind === "stack") return "accent-structure-stack";
 			if (block.structureKind === "queue") return "accent-structure-queue";
 			if (block.structureKind === "list") return "accent-structure-list";
+			if (block.structureKind === "doubly-linked-list") return "accent-structure-doubly-linked-list";
+			if (block.structureKind === "circular-list") return "accent-structure-circular-list";
 			return "accent-structure";
 		case "value":
 			return "accent-literal";

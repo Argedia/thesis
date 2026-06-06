@@ -3,6 +3,7 @@ import {
   type DataValue,
   type DataNode,
   type EngineEvent,
+  type StructureKind,
   type StructureSnapshot
 } from "@thesis/core-engine";
 import type { EditorPanelId, PlayerPanelId } from "@thesis/game-system";
@@ -51,7 +52,7 @@ export interface BoardVariableSnapshot {
   displayValue: string | number | boolean;
   declaredTypeRef?:
     | { kind: "primitive"; primitive: "text" | "boolean" | "value" }
-    | { kind: "structure"; structureKind: "stack" | "queue" | "list" }
+    | { kind: "structure"; structureKind: StructureKind }
     | { kind: "user"; typeRoutineId: string }
     | null;
   objectFields?: Array<{
@@ -187,7 +188,7 @@ export function StructuresBoard({
   const listSnapshotsRef = useRef<Record<string, DataNode[]>>({});
   const listReadHighlightRef = useRef<{
     structureId: string;
-    operation: "get_head" | "get_tail" | "size";
+    operation: "get_head" | "get_tail" | "peek" | "size" | "is_empty" | "get_at" | "contains" | "find";
     startedAt: number;
     durationMs: number;
   } | null>(null);
@@ -242,7 +243,7 @@ export function StructuresBoard({
     const normalizedForTransition = structures.map((structure) => normalizeStructureSnapshot(structure));
     const nextListSnapshots: Record<string, DataNode[]> = {};
     normalizedForTransition.forEach((structure) => {
-      if (structure.kind !== "list") return;
+      if (structure.kind !== "list" && structure.kind !== "doubly-linked-list" && structure.kind !== "circular-list") return;
       nextListSnapshots[structure.id] = structure.values.map((value) => ({ ...(value as DataNode) }));
     });
 
@@ -294,12 +295,15 @@ export function StructuresBoard({
     const latestEvent = events[events.length - 1];
     if (latestEvent?.type === "VALUE_READ") {
       const operation = getOperationFromStepId(latestEvent.stepId);
-      if (operation === "get_head" || operation === "get_tail" || operation === "size") {
+      const isListReadOp = operation === "get_head" || operation === "get_tail" || operation === "peek" ||
+        operation === "size" || operation === "is_empty" || operation === "get_at" ||
+        operation === "contains" || operation === "find";
+      if (isListReadOp) {
         const snapshot = nextListSnapshots[latestEvent.structureId];
         if (snapshot) {
           listReadHighlightRef.current = {
             structureId: latestEvent.structureId,
-            operation,
+            operation: operation as "get_head" | "get_tail" | "peek" | "size" | "is_empty" | "get_at" | "contains" | "find",
             startedAt: performance.now(),
             durationMs: 520
           };
@@ -308,7 +312,7 @@ export function StructuresBoard({
     }
 
     const shouldAnimateListPointers = structures.some(
-      (structure) => structure.kind === "list"
+      (structure) => structure.kind === "list" || structure.kind === "doubly-linked-list" || structure.kind === "circular-list"
     );
 
     const draw = () => {

@@ -146,15 +146,25 @@ export const blockColorClass = (operation: string | null): string => {
 		case "DEQUEUE":
 		case "REMOVE_FIRST":
 		case "REMOVE_LAST":
+		case "REMOVE_AT":
 		case "GET_HEAD":
 		case "GET_TAIL":
 		case "SIZE":
+		case "PEEK":
+		case "IS_EMPTY":
+		case "GET_AT":
+		case "CONTAINS":
+		case "FIND":
 			return "mint";
 		case "PUSH":
 		case "ENQUEUE":
 		case "APPEND":
 		case "PREPEND":
+		case "INSERT_AT":
 			return "peach";
+		case "REVERSE":
+		case "CLEAR":
+			return "rose";
 		default:
 			return "sky";
 	}

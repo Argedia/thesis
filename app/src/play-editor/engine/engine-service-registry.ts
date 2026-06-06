@@ -28,7 +28,7 @@ import {
 	EditorCanvasRenderer,
 	type EditorCanvasRendererContext
 } from "../EditorCanvasRenderer";
-import { WheelOverlayRenderer } from "../render/WheelOverlayRenderer";
+import { PaletteOverlayRenderer as WheelOverlayRenderer } from "../render/PaletteOverlayRenderer";
 import {
 	BlockInstanceRenderer,
 	type BlockInstanceRendererContext
@@ -275,6 +275,7 @@ export class EngineServiceRegistry {
 					this.deps.resolveBaseDocumentForDrop(dragState, document),
 				getDocument: () => this.deps.getProps().value,
 				canUseSlotTarget: (targetSlotKey) => this.deps.canUseSlotTarget(targetSlotKey),
+				getInlinePreviewBlocks: () => this.deps.buildInlinePreviewBlocks(),
 				canInsertPaletteBlock: (dragState) => this.deps.canInsertPaletteBlock(dragState),
 				applyDropDestination: (document, insertedBlock, placement) =>
 					this.deps.applyDropDestination(document, insertedBlock, placement),
@@ -513,6 +514,10 @@ export class EngineServiceRegistry {
 				editValueBlock: (blockId, currentValue) => this.deps.editValueBlock(blockId, currentValue),
 				editVariableName: (blockId, currentName) =>
 					this.deps.editVariableName(blockId, currentName),
+				hasWheelOptions: (block) => {
+					const opts = this.getWheelInteraction().getOptionsForBlock(block);
+					return opts !== null && opts.length > 1;
+				},
 				toggleWheel: (blockId) => {
 					if (this.deps.getWheelState()?.blockId === blockId) {
 						this.deps.closeWheel();
@@ -520,6 +525,10 @@ export class EngineServiceRegistry {
 						return;
 					}
 					this.deps.openWheel(blockId);
+				},
+				updateVariableOperationMode: (blockId, mode) => {
+					this.getBlockActionController().updateVariableOperationMode(blockId, mode);
+					this.deps.emitStatus("Operation updated.");
 				},
 				registerSlotRef: (slotKey, element) => this.deps.getSlotRefs().set(slotKey, element),
 				registerBlockRef: (blockId, element) => this.deps.getBlockRefs().set(blockId, element),

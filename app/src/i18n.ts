@@ -161,6 +161,8 @@ const resources = {
 				stack: "Stack",
 				queue: "Queue",
 				list: "Singly Linked List",
+				"doubly-linked-list": "Doubly Linked List",
+				"circular-list": "Circular List",
 				dataStructure: "Data Structure",
 				variablesShort: "Vars"
 			},
@@ -225,7 +227,16 @@ const resources = {
 				REMOVE_LAST: "remove_last",
 				GET_HEAD: "get_head",
 				GET_TAIL: "get_tail",
-				SIZE: "size"
+				PEEK: "peek",
+				SIZE: "size",
+				IS_EMPTY: "is_empty",
+				GET_AT: "get_at",
+				INSERT_AT: "insert_at",
+				REMOVE_AT: "remove_at",
+				CONTAINS: "contains",
+				FIND: "find",
+				REVERSE: "reverse",
+				CLEAR: "clear"
 			}
 		}
 	},
@@ -387,6 +398,8 @@ const resources = {
 				stack: "Pila",
 				queue: "Cola",
 				list: "Lista simplemente enlazada",
+				"doubly-linked-list": "Lista doblemente enlazada",
+				"circular-list": "Lista circular",
 				dataStructure: "Estructura de datos",
 				variablesShort: "Vars"
 			},
@@ -451,7 +464,16 @@ const resources = {
 				REMOVE_LAST: "eliminar_último",
 				GET_HEAD: "obtener_cabeza",
 				GET_TAIL: "obtener_cola",
-				SIZE: "tamaño"
+				PEEK: "espiar",
+				SIZE: "tamaño",
+				IS_EMPTY: "es_vacía",
+				GET_AT: "obtener_en",
+				INSERT_AT: "insertar_en",
+				REMOVE_AT: "eliminar_en",
+				CONTAINS: "contiene",
+				FIND: "encontrar",
+				REVERSE: "invertir",
+				CLEAR: "vaciar"
 			}
 		}
 	}

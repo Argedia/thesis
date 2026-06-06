@@ -11,7 +11,16 @@ export type BuilderOperation =
 	| "REMOVE_LAST"
 	| "GET_HEAD"
 	| "GET_TAIL"
-	| "SIZE";
+	| "PEEK"
+	| "SIZE"
+	| "IS_EMPTY"
+	| "GET_AT"
+	| "INSERT_AT"
+	| "REMOVE_AT"
+	| "CONTAINS"
+	| "FIND"
+	| "REVERSE"
+	| "CLEAR";
 
 export type ConditionalMode = "if" | "if-else";
 export type VariableOperationMode =

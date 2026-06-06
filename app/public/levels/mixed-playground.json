@@ -71,7 +71,16 @@
       "REMOVE_LAST": "permitted",
       "GET_HEAD": "permitted",
       "GET_TAIL": "permitted",
-      "SIZE": "permitted"
+      "PEEK": "permitted",
+      "SIZE": "permitted",
+      "IS_EMPTY": "permitted",
+      "GET_AT": "permitted",
+      "INSERT_AT": "permitted",
+      "REMOVE_AT": "permitted",
+      "CONTAINS": "permitted",
+      "FIND": "permitted",
+      "REVERSE": "permitted",
+      "CLEAR": "permitted"
     },
     "forbiddenBlocks": [],
     "maxSteps": 99

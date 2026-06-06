@@ -13,14 +13,20 @@ import { readVariableValueFromFrames } from "./runtime-memory";
 
 export const isSourceOperation = (
   operation: StructureCallStatement["operation"]
-): operation is ExtractOperationType | "GET_HEAD" | "GET_TAIL" | "SIZE" =>
+): operation is ExtractOperationType | "GET_HEAD" | "GET_TAIL" | "PEEK" | "SIZE" | "IS_EMPTY" | "GET_AT" | "CONTAINS" | "FIND" =>
   operation === "POP" ||
   operation === "DEQUEUE" ||
   operation === "REMOVE_FIRST" ||
   operation === "REMOVE_LAST" ||
   operation === "GET_HEAD" ||
   operation === "GET_TAIL" ||
-  operation === "SIZE";
+  operation === "PEEK" ||
+  operation === "SIZE" ||
+  operation === "IS_EMPTY" ||
+  operation === "GET_AT" ||
+  operation === "REMOVE_AT" ||
+  operation === "CONTAINS" ||
+  operation === "FIND";
 
 export const isTargetOperation = (
   operation: StructureCallStatement["operation"]
@@ -28,21 +34,34 @@ export const isTargetOperation = (
   operation === "PUSH" ||
   operation === "ENQUEUE" ||
   operation === "APPEND" ||
-  operation === "PREPEND";
+  operation === "PREPEND" ||
+  operation === "INSERT_AT";
+
+export const isMutateOperation = (
+  operation: StructureCallStatement["operation"]
+): boolean =>
+  operation === "REVERSE" || operation === "CLEAR";
 
 export const createSourceOperation = (
-  operation: ExtractOperationType | "GET_HEAD" | "GET_TAIL" | "SIZE",
-  sourceId: string
-): OperationDefinition => ({ type: operation, sourceId } as OperationDefinition);
+  operation: ExtractOperationType | "GET_HEAD" | "GET_TAIL" | "PEEK" | "SIZE" | "IS_EMPTY" | "GET_AT" | "CONTAINS" | "FIND",
+  sourceId: string,
+  arg?: import("@thesis/core-engine").DataValue
+): OperationDefinition =>
+  arg !== undefined
+    ? ({ type: operation, sourceId, arg } as OperationDefinition)
+    : ({ type: operation, sourceId } as OperationDefinition);
 
 export const createTargetOperation = (
   operation: InsertOperationType,
   targetId: string,
-  value?: DataValue
+  value?: DataValue,
+  arg?: number
 ): OperationDefinition =>
-  value === undefined
-    ? ({ type: operation, targetId } as OperationDefinition)
-    : ({ type: operation, targetId, value } as OperationDefinition);
+  arg !== undefined
+    ? ({ type: operation, targetId, value, arg } as OperationDefinition)
+    : value === undefined
+      ? ({ type: operation, targetId } as OperationDefinition)
+      : ({ type: operation, targetId, value } as OperationDefinition);
 
 export const resolveStructureTargetId = (
   engine: VisualExecutionEngine,

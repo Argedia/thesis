@@ -59,7 +59,39 @@ const operationPolicySchema = z.object({
   REMOVE_LAST: levelOperationStateSchema,
   GET_HEAD: levelOperationStateSchema,
   GET_TAIL: levelOperationStateSchema,
-  SIZE: levelOperationStateSchema
+  SIZE: levelOperationStateSchema,
+  PEEK: levelOperationStateSchema,
+  IS_EMPTY: levelOperationStateSchema,
+  GET_AT: levelOperationStateSchema,
+  INSERT_AT: levelOperationStateSchema,
+  REMOVE_AT: levelOperationStateSchema,
+  CONTAINS: levelOperationStateSchema,
+  FIND: levelOperationStateSchema,
+  REVERSE: levelOperationStateSchema,
+  CLEAR: levelOperationStateSchema
+});
+
+const importedOperationPolicySchema = z.object({
+  POP: levelOperationStateSchema,
+  PUSH: levelOperationStateSchema,
+  DEQUEUE: levelOperationStateSchema,
+  ENQUEUE: levelOperationStateSchema,
+  APPEND: levelOperationStateSchema,
+  PREPEND: levelOperationStateSchema,
+  REMOVE_FIRST: levelOperationStateSchema,
+  REMOVE_LAST: levelOperationStateSchema,
+  GET_HEAD: levelOperationStateSchema,
+  GET_TAIL: levelOperationStateSchema,
+  SIZE: levelOperationStateSchema,
+  PEEK: levelOperationStateSchema.optional(),
+  IS_EMPTY: levelOperationStateSchema.optional(),
+  GET_AT: levelOperationStateSchema.optional(),
+  INSERT_AT: levelOperationStateSchema.optional(),
+  REMOVE_AT: levelOperationStateSchema.optional(),
+  CONTAINS: levelOperationStateSchema.optional(),
+  FIND: levelOperationStateSchema.optional(),
+  REVERSE: levelOperationStateSchema.optional(),
+  CLEAR: levelOperationStateSchema.optional()
 });
 const levelValueDomainSchema = z.object({
   numericOnly: z.boolean().optional(),
@@ -150,7 +182,7 @@ const levelDefinitionSchema = z.object({
 
 const importedLevelConstraintsSchema = z
   .object({
-    operationPolicy: operationPolicySchema.optional(),
+    operationPolicy: importedOperationPolicySchema.optional(),
     allowedOperations: z.array(z.string()).optional(),
     requiredOperations: z.array(z.string()).optional(),
     forbiddenOperations: z.array(z.string()).optional(),
@@ -226,7 +258,7 @@ const normalizeOperationPolicy = (
   constraints: z.infer<typeof importedLevelConstraintsSchema>
 ): LevelOperationPolicy => {
   if (constraints.operationPolicy) {
-    return constraints.operationPolicy;
+    return { ...createOperationPolicy("forbidden"), ...constraints.operationPolicy } as LevelOperationPolicy;
   }
   const policy = createOperationPolicy("forbidden");
   const setState = (operations: string[] | undefined, state: "forbidden" | "permitted" | "required") => {

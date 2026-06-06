@@ -167,11 +167,17 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 		};
 	}
 
-	if (block.kind === "var" && block.declaredTypeRef?.kind === "structure" && block.operation) {
+	if (block.kind === "var" && block.declaredTypeRef?.kind === "structure") {
 		const isLevelStructure = block.variableSourceId?.startsWith("__level_structure__");
 		const resolvedStructureId = isLevelStructure
 			? block.variableSourceId!.slice("__level_structure__".length)
 			: block.variableName?.trim() || "structure";
+		const args = block.operation === "INSERT_AT"
+			? [
+				block.inputBlocks?.[0] ? editorBlockToExpression(block.inputBlocks[0]) : null,
+				block.inputBlocks?.[1] ? editorBlockToExpression(block.inputBlocks[1]) : null
+			  ].filter((a): a is NonNullable<typeof a> => a !== null)
+			: block.inputBlock ? [editorBlockToExpression(block.inputBlock)] : [];
 		return {
 			id: block.id,
 			kind: "call",
@@ -181,7 +187,7 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 			targetDeclarationId: isLevelStructure ? null : (block.variableSourceId ?? block.id),
 			targetName: block.variableName?.trim() || "structure",
 			operation: block.operation,
-			args: block.inputBlock ? [editorBlockToExpression(block.inputBlock)] : [],
+			args,
 			visual: cloneVisual(block.color)
 		};
 	}
@@ -203,6 +209,12 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 		};
 	}
 
+	const fallbackArgs = block.operation === "INSERT_AT"
+		? [
+			block.inputBlocks?.[0] ? editorBlockToExpression(block.inputBlocks[0]) : null,
+			block.inputBlocks?.[1] ? editorBlockToExpression(block.inputBlocks[1]) : null
+		  ].filter((a): a is NonNullable<typeof a> => a !== null)
+		: block.inputBlock ? [editorBlockToExpression(block.inputBlock)] : [];
 	return {
 		id: block.id,
 		kind: "call",
@@ -210,7 +222,7 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 		structureId: block.structureId ?? "A",
 		structureKind: block.structureKind ?? "stack",
 		operation: block.operation,
-		args: block.inputBlock ? [editorBlockToExpression(block.inputBlock)] : [],
+		args: fallbackArgs,
 		visual: cloneVisual(block.color)
 	};
 };

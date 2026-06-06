@@ -139,12 +139,9 @@ export class WheelInteractionController {
     }
     const variableName = block.variableName ?? "variable";
     const isLevelStructure = block.variableSourceId?.startsWith("__level_structure__");
-    const modes: Array<{ kind: "var" | "var_reference"; label: string }> = isLevelStructure
-      ? [{ kind: "var", label: variableName }]
-      : [
-          { kind: "var", label: variableName },
-          { kind: "var_reference", label: `ref ${variableName}` }
-        ];
+    const modes: Array<{ kind: "var" | "var_reference"; label: string }> = [
+      { kind: "var", label: variableName }
+    ];
 
     const baseOptions = modes.map((option) => ({
       label: option.label,

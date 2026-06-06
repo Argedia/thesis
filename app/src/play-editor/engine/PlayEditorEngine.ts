@@ -7,6 +7,7 @@ import type {
 	RoutineSignature
 } from "../model";
 import { analyzeDocumentRoutines, projectDocumentToEditorBlocks } from "../operations";
+import { buildEditorLineLayout } from "../model";
 import { HostInteractionController } from "../interaction/HostInteractionController";
 import { t } from "../../i18n-helpers";
 import {
@@ -320,6 +321,17 @@ export class PlayEditorEngine {
 			getGeometryService: () => this.registry.getGeometryService(),
 			registry: this.registry
 		});
+
+		// After render, re-capture line rects using the same layout that was rendered
+		// (preview layout when inline preview is active, base layout otherwise).
+		if (this.dragState?.isOverEditor) {
+			requestAnimationFrame(() => {
+				if (!this.dragState) return;
+				const renderedBlocks = this.buildInlinePreviewBlocks() ?? this.getBlocks();
+				const lineLayouts = buildEditorLineLayout(renderedBlocks);
+				this.dragBaseLineRects = this.registry.getGeometryService().captureBaseLineRects(lineLayouts);
+			});
+		}
 	}
 
 	private ensureShell(): void {
@@ -334,7 +346,7 @@ export class PlayEditorEngine {
 	}
 
 	private buildInlinePreviewBlocks(): EditorBlock[] | null {
-		return buildInlinePreviewBlocks({
+		const raw = buildInlinePreviewBlocks({
 			getDragState: () => this.dragState,
 			createPreviewBlockFromDragState: () =>
 				this.registry.getDragPreviewFactory().createPreviewBlockFromDragState(
@@ -347,6 +359,7 @@ export class PlayEditorEngine {
 			applyResolvedPlacement: (document, placement, insertedBlock) =>
 				this.registry.getDropPlacementService().applyResolvedPlacement(document, placement, insertedBlock)
 		});
+		return raw;
 	}
 
 	// ---------------------------------------------------------------------------
@@ -354,81 +367,12 @@ export class PlayEditorEngine {
 	// ---------------------------------------------------------------------------
 
 	private getBlocks(): EditorBlock[] {
-		const projectedBlocks = projectDocumentToEditorBlocks(this.props.value);
-		return this.rehydrateLevelStructureTypeRefs(projectedBlocks);
+		return projectDocumentToEditorBlocks(this.props.value);
 	}
 
 	private isBlockLocked(blockId: string): boolean {
 		const locked = this.props.lockedBlockIds ?? [];
 		return locked.includes(blockId);
-	}
-
-	private rehydrateLevelStructureTypeRefs(blocks: EditorBlock[]): EditorBlock[] {
-		const prefix = "__level_structure__";
-		const structureKinds = new Map(
-			this.props.structures.map((structure) => [structure.id.trim(), structure.kind] as const)
-		);
-
-		const syncBlock = (block: EditorBlock): EditorBlock => {
-			let nextBlock = block;
-			if (
-				(block.kind === "var" ||
-					block.kind === "var_assign" ||
-					block.kind === "var_operation" ||
-					block.kind === "type_field_read" ||
-					block.kind === "type_field_assign") &&
-				block.variableSourceId?.startsWith(prefix)
-			) {
-				const structureId = block.variableSourceId.slice(prefix.length).trim();
-				const structureKind =
-					structureKinds.get(structureId) ??
-					(block.declaredTypeRef?.kind === "structure"
-						? block.declaredTypeRef.structureKind
-						: null);
-				const nextDeclaredTypeRef =
-					structureKind !== null ? { kind: "structure" as const, structureKind } : null;
-				const mustSyncType =
-					!!nextDeclaredTypeRef &&
-					(block.declaredTypeRef?.kind !== "structure" ||
-						block.declaredTypeRef.structureKind !== nextDeclaredTypeRef.structureKind);
-				const mustSyncName = (!block.variableName || block.variableName.trim().length === 0) && structureId.length > 0;
-				if (mustSyncType || mustSyncName) {
-					nextBlock = {
-						...nextBlock,
-						declaredTypeRef: nextDeclaredTypeRef ?? nextBlock.declaredTypeRef,
-						variableName: block.variableName?.trim().length
-							? block.variableName
-							: structureId
-					};
-				}
-			}
-
-			const syncedInputBlock = nextBlock.inputBlock ? syncBlock(nextBlock.inputBlock) : nextBlock.inputBlock;
-			const syncedInputBlocks = nextBlock.inputBlocks?.map((inputBlock) =>
-				inputBlock ? syncBlock(inputBlock) : inputBlock
-			);
-			const syncedBodyBlocks = nextBlock.bodyBlocks?.map(syncBlock);
-			const syncedAlternateBodyBlocks = nextBlock.alternateBodyBlocks?.map(syncBlock);
-
-			if (
-				syncedInputBlock !== nextBlock.inputBlock ||
-				syncedInputBlocks !== nextBlock.inputBlocks ||
-				syncedBodyBlocks !== nextBlock.bodyBlocks ||
-				syncedAlternateBodyBlocks !== nextBlock.alternateBodyBlocks
-			) {
-				nextBlock = {
-					...nextBlock,
-					inputBlock: syncedInputBlock,
-					inputBlocks: syncedInputBlocks,
-					bodyBlocks: syncedBodyBlocks,
-					alternateBodyBlocks: syncedAlternateBodyBlocks
-				};
-			}
-
-			return nextBlock;
-		};
-
-		return blocks.map(syncBlock);
 	}
 
 	private getRoutineSignatures(): Record<string, RoutineSignature> {

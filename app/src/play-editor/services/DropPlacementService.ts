@@ -93,17 +93,18 @@ export class DropPlacementService {
     dragState: EditorDragState | null,
     blocks: EditorBlock[]
   ): boolean {
+    if (!dragState) return true;
+    if (dragState.outputType === "none") return false;
+
     const { ownerId } = this.ctx.parseSlotKey(targetSlotKey);
-    if (!dragState?.blockId || dragState.source !== "program") {
-      return true;
+
+    if (dragState.source === "program" && dragState.blockId) {
+      const draggedBlock = this.ctx.findBlockById(blocks, dragState.blockId);
+      if (!draggedBlock) return true;
+      return !this.ctx.blockContainsId(draggedBlock, ownerId);
     }
 
-    const draggedBlock = this.ctx.findBlockById(blocks, dragState.blockId);
-    if (!draggedBlock) {
-      return true;
-    }
-
-    return !this.ctx.blockContainsId(draggedBlock, ownerId);
+    return true;
   }
 
   public applyDropDestination(

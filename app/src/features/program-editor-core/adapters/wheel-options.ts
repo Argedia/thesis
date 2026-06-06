@@ -19,18 +19,25 @@ import {
 
 const getStructureCompatibleOperations = (
 	structureKind: StructureKind
-): Array<
-	"POP" | "PUSH" | "DEQUEUE" | "ENQUEUE" | "APPEND" | "PREPEND" | "REMOVE_FIRST" | "REMOVE_LAST" | "GET_HEAD" | "GET_TAIL" | "SIZE"
-> => {
+): import("../types").BuilderOperation[] => {
 	if (structureKind === "stack") {
-		return ["POP", "PUSH"];
+		return ["POP", "PUSH", "PEEK", "SIZE", "IS_EMPTY"];
 	}
 
 	if (structureKind === "queue") {
-		return ["DEQUEUE", "ENQUEUE"];
+		return ["DEQUEUE", "ENQUEUE", "PEEK", "SIZE", "IS_EMPTY"];
 	}
 
-	return ["APPEND", "PREPEND", "REMOVE_FIRST", "REMOVE_LAST", "GET_HEAD", "GET_TAIL", "SIZE"];
+	if (structureKind === "list") {
+		return ["APPEND", "PREPEND", "INSERT_AT", "REMOVE_FIRST", "REMOVE_LAST", "REMOVE_AT", "GET_HEAD", "GET_TAIL", "GET_AT", "SIZE", "IS_EMPTY", "CONTAINS", "FIND", "REVERSE", "CLEAR"];
+	}
+
+	if (structureKind === "doubly-linked-list") {
+		return ["APPEND", "PREPEND", "INSERT_AT", "REMOVE_FIRST", "REMOVE_LAST", "REMOVE_AT", "GET_HEAD", "GET_TAIL", "GET_AT", "SIZE", "IS_EMPTY", "CONTAINS", "FIND", "REVERSE", "CLEAR"];
+	}
+
+	// circular-list
+	return ["APPEND", "PREPEND", "INSERT_AT", "REMOVE_FIRST", "REMOVE_LAST", "REMOVE_AT", "GET_HEAD", "GET_TAIL", "GET_AT", "SIZE", "IS_EMPTY", "CONTAINS", "FIND", "REVERSE", "CLEAR"];
 };
 
 export const buildWheelOptions = (
