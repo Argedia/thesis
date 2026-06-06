@@ -143,6 +143,14 @@ export interface EngineRegistryDeps {
 	getPaletteGroupId: (block: PaletteBlock) => PaletteGroupId;
 	getPaletteGroupLabel: (groupId: PaletteGroupId) => string;
 	canInsertPaletteBlock: (dragState: EditorDragState) => { allowed: boolean; message?: string };
+	isBlockSelected: (blockId: string) => boolean;
+	onBlockRightClick: (event: PointerEvent, block: EditorBlock) => void;
+	onBlockShiftClick: (event: PointerEvent, block: EditorBlock) => void;
+	onBlockCtrlClick: (event: PointerEvent, block: EditorBlock) => void;
+	getFlatBlockIds: () => string[];
+	getMultiDragIds: (blockId: string) => string[] | null;
+	moveBlocksAfter: (document: import("../model").EditorDocument, afterBlockId: string, blockIds: string[]) => import("../model").EditorDocument;
+	onBlockTap: (blockId: string) => void;
 }
 
 export class EngineServiceRegistry {
@@ -280,7 +288,11 @@ export class EngineServiceRegistry {
 				applyDropDestination: (document, insertedBlock, placement) =>
 					this.deps.applyDropDestination(document, insertedBlock, placement),
 				setDocument: (doc) => this.deps.setDocument(doc),
-				onPaletteBlockInserted: async (block) => { await this.deps.onPaletteBlockInserted(block); }
+				onPaletteBlockInserted: async (block) => { await this.deps.onPaletteBlockInserted(block); },
+				getMultiDragIds: (blockId) => this.deps.getMultiDragIds(blockId),
+				moveBlocksAfter: (document, afterBlockId, blockIds) =>
+					this.deps.moveBlocksAfter(document, afterBlockId, blockIds),
+				onBlockTap: (blockId) => this.deps.onBlockTap(blockId)
 			};
 			this.dragInteraction = new DragInteractionController(context);
 		}
@@ -397,7 +409,12 @@ export class EngineServiceRegistry {
 				findBlockById: (blocks, blockId) => this.getTreeService().findBlockById(blocks, blockId),
 				buildPreviewDescriptor: () => this.getPreviewRenderer().buildPreviewDescriptor(),
 				renderPreviewBlock: (descriptor) => this.getPreviewRenderer().renderPreviewBlock(descriptor),
-				getPreviewBlockId: () => PREVIEW_BLOCK_ID
+				getPreviewBlockId: () => PREVIEW_BLOCK_ID,
+				isBlockSelected: (blockId) => this.deps.isBlockSelected(blockId),
+				onBlockRightClick: (event, block) => this.deps.onBlockRightClick(event, block),
+				onBlockShiftClick: (event, block) => this.deps.onBlockShiftClick(event, block),
+				onBlockCtrlClick: (event, block) => this.deps.onBlockCtrlClick(event, block),
+				getFlatBlockIds: () => this.deps.getFlatBlockIds()
 			};
 			this.editorCanvasRenderer = new EditorCanvasRenderer(context);
 		}

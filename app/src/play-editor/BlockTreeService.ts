@@ -2,7 +2,8 @@ import type { EditorBlock } from "./model";
 import {
 	blockContainsId as blockContainsIdInTree,
 	findBlockById as findBlockByIdInTree,
-	findInputOwnerId as findInputOwnerIdInTree
+	findInputOwnerId as findInputOwnerIdInTree,
+	findParentBodyOf as findParentBodyOfInTree
 } from "./services/blockTreeSearch";
 
 export class BlockTreeService {
@@ -19,5 +20,16 @@ export class BlockTreeService {
 
   public findInputOwnerId(blocks: EditorBlock[], blockId: string): string | null {
     return findInputOwnerIdInTree(blocks, blockId);
+  }
+
+  public findParentBodyOf(
+    blocks: EditorBlock[],
+    blockId: string
+  ): { container: EditorBlock[]; parent: EditorBlock | null } | null {
+    // Check root level first
+    if (blocks.some((b) => b.id === blockId)) {
+      return { container: blocks, parent: null };
+    }
+    return findParentBodyOfInTree(blocks, blockId);
   }
 }

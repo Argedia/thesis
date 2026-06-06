@@ -41,6 +41,11 @@ export interface EditorCanvasRendererContext {
   removeBlockById(blocks: EditorBlock[], blockId: string): EditorBlock[];
   closeWheel(): void;
   emitStatus(message: string): void;
+  isBlockSelected(blockId: string): boolean;
+  onBlockRightClick(event: PointerEvent, block: EditorBlock): void;
+  onBlockShiftClick(event: PointerEvent, block: EditorBlock): void;
+  onBlockCtrlClick(event: PointerEvent, block: EditorBlock): void;
+  getFlatBlockIds(): string[];
   editValueBlock(
     blockId: string,
     currentValue: DataValue | null | undefined
@@ -243,6 +248,9 @@ export class EditorCanvasRenderer {
     if (isPreviewBlock) {
       line.classList.add("editor-program-row-preview");
     }
+    if (this.ctx.isBlockSelected(block.id)) {
+      line.classList.add("editor-program-row-selected");
+    }
     this.appendEditorLineNumber(gutter, {
       lineNumber: lineLayout.lineNumber,
       active: isActiveLine,
@@ -263,9 +271,22 @@ export class EditorCanvasRenderer {
 
     if (!blockLocked) {
       element.addEventListener("pointerdown", (event) => {
+        if (event.button === 2) return; // right-click handled by contextmenu
         const target = event.target as HTMLElement | null;
         const cavity = target?.closest(".editor-block-instance-cavity") as HTMLElement | null;
         if (cavity?.dataset.ownerBlockId === block.id) {
+          return;
+        }
+        if (event.shiftKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.ctx.onBlockShiftClick(event, block);
+          return;
+        }
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          this.ctx.onBlockCtrlClick(event, block);
           return;
         }
         const rect = element.getBoundingClientRect();
@@ -278,9 +299,7 @@ export class EditorCanvasRenderer {
         this.ctx.emitStatus("This block is locked by level configuration.");
         return;
       }
-      this.ctx.setBlocks(this.ctx.removeBlockById(this.ctx.getBlocks(), block.id));
-      this.ctx.closeWheel();
-      this.ctx.emitStatus("Block removed.");
+      this.ctx.onBlockRightClick(event as unknown as PointerEvent, block);
     });
     if (block.kind === "value") {
       element.addEventListener("dblclick", (event) => {

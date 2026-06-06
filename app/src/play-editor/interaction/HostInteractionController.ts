@@ -3,6 +3,7 @@ export interface HostInteractionContext {
   hasOpenWheel(): boolean;
   closeWheel(): void;
   rerender(): void;
+  clearSelection(): void;
 }
 
 export class HostInteractionController {
@@ -29,6 +30,14 @@ export class HostInteractionController {
 
       if (ctx.hasOpenWheel()) {
         ctx.closeWheel();
+        ctx.rerender();
+      }
+
+      if (
+        !target.closest(".editor-block-instance") &&
+        target.closest(".editor-program-body")
+      ) {
+        ctx.clearSelection();
         ctx.rerender();
       }
     };

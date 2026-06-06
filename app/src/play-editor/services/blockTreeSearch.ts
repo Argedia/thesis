@@ -1,5 +1,25 @@
 import type { EditorBlock } from "../model";
 
+/** Returns the container array and parent block (null = root) that directly contains blockId. */
+export const findParentBodyOf = (
+	blocks: EditorBlock[],
+	blockId: string
+): { container: EditorBlock[]; parent: EditorBlock | null } | null => {
+	for (const block of blocks) {
+		if (block.bodyBlocks?.some((b) => b.id === blockId)) {
+			return { container: block.bodyBlocks!, parent: block };
+		}
+		if (block.alternateBodyBlocks?.some((b) => b.id === blockId)) {
+			return { container: block.alternateBodyBlocks!, parent: block };
+		}
+		const inBody = block.bodyBlocks ? findParentBodyOf(block.bodyBlocks, blockId) : null;
+		if (inBody) return inBody;
+		const inAlt = block.alternateBodyBlocks ? findParentBodyOf(block.alternateBodyBlocks, blockId) : null;
+		if (inAlt) return inAlt;
+	}
+	return null;
+};
+
 export const findBlockById = (blocks: EditorBlock[], blockId: string): EditorBlock | null => {
 	for (const block of blocks) {
 		if (block.id === blockId) {

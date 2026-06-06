@@ -67,40 +67,27 @@ export const render = (deps: RenderDeps): void => {
 	deps.registry.getGhostRenderer().render(shell);
 };
 
-type ScrollTargetKey =
-	| "editorLane"
-	| "leftPaletteGroups"
-	| "rightPaletteGroupsScope"
-	| "rightPaletteGroupsCreated";
+const SCROLL_SELECTORS = [
+	".scratch-editor .editor-lane",
+	".scratch-palette-left .palette-groups",
+	".scratch-palette-left .palette-side-shell",
+	".scratch-palette-right .palette-groups",
+	".scratch-palette-right .palette-side-shell"
+];
 
-type ScrollSnapshot = Partial<Record<ScrollTargetKey, number>>;
-
-const getScrollTargets = (root: ParentNode): Partial<Record<ScrollTargetKey, HTMLElement>> => {
-	const leftPaletteGroups = root.querySelector(
-		".scratch-palette-left .palette-groups"
-	) as HTMLElement | null;
-	const rightPaletteGroups = root.querySelectorAll(
-		".scratch-palette-right .palette-groups"
-	) as NodeListOf<HTMLElement>;
-	const scopePaletteGroups = rightPaletteGroups[0] ?? null;
-	const createdPaletteGroups = rightPaletteGroups[1] ?? null;
-	const editorLane = root.querySelector(".scratch-editor .editor-lane") as HTMLElement | null;
-	return {
-		editorLane: editorLane ?? undefined,
-		leftPaletteGroups: leftPaletteGroups ?? undefined,
-		rightPaletteGroupsScope: scopePaletteGroups ?? undefined,
-		rightPaletteGroupsCreated: createdPaletteGroups ?? undefined
-	};
-};
+type ScrollSnapshot = Array<{ selector: string; scrollTop: number }>;
 
 const captureWorkbenchScrollState = (workbench: HTMLElement): ScrollSnapshot => {
-	const targets = getScrollTargets(workbench);
-	const snapshot: ScrollSnapshot = {};
-	(Object.keys(targets) as ScrollTargetKey[]).forEach((key) => {
-		const node = targets[key];
-		if (!node) return;
-		snapshot[key] = node.scrollTop;
-	});
+	const snapshot: ScrollSnapshot = [];
+	for (const selector of SCROLL_SELECTORS) {
+		workbench.querySelectorAll(selector).forEach((el, i) => {
+			const node = el as HTMLElement;
+			if (node.scrollTop > 0) {
+				snapshot.push({ selector: `${selector}[data-scroll-idx="${i}"]`, scrollTop: node.scrollTop });
+				node.setAttribute("data-scroll-idx", String(i));
+			}
+		});
+	}
 	return snapshot;
 };
 
@@ -108,15 +95,17 @@ const restoreWorkbenchScrollState = (
 	workbench: HTMLElement,
 	snapshot: ScrollSnapshot
 ): void => {
-	requestAnimationFrame(() => {
-		const targets = getScrollTargets(workbench);
-		(Object.keys(snapshot) as ScrollTargetKey[]).forEach((key) => {
-			const node = targets[key];
-			const scrollTop = snapshot[key];
-			if (!node || typeof scrollTop !== "number") return;
-			node.scrollTop = scrollTop;
+	if (snapshot.length === 0) return;
+	// Tag new elements with the same index so we can find them
+	for (const selector of SCROLL_SELECTORS) {
+		workbench.querySelectorAll(selector).forEach((el, i) => {
+			(el as HTMLElement).setAttribute("data-scroll-idx", String(i));
 		});
-	});
+	}
+	for (const { selector, scrollTop } of snapshot) {
+		const node = workbench.querySelector(selector) as HTMLElement | null;
+		if (node) node.scrollTop = scrollTop;
+	}
 };
 
 export const ensureLayoutShell = (deps: Pick<RenderDeps, "getShell" | "getWorkbench" | "setShell" | "setWorkbench" | "getHost" | "isLocked">): void => {

@@ -1003,6 +1003,51 @@
 	visibility: hidden;
 }
 
+.editor-program-row-selected .editor-block {
+	outline: 2px solid #5aaae0;
+	outline-offset: 2px;
+	border-radius: 12px;
+}
+
+.editor-context-menu {
+	position: fixed;
+	z-index: 9999;
+	background: rgba(255, 255, 255, 0.97);
+	border: 2px solid rgba(158, 197, 229, 0.9);
+	border-radius: 14px;
+	padding: 5px 6px 7px;
+	box-shadow: 0 6px 22px rgba(60, 100, 150, 0.18);
+	min-width: 140px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.editor-context-menu-item {
+	background: none;
+	border: none;
+	color: #355070;
+	font-size: 0.84rem;
+	font-weight: 800;
+	padding: 5px 10px;
+	border-radius: 999px;
+	text-align: left;
+	cursor: pointer;
+	white-space: nowrap;
+	font-family: inherit;
+}
+
+.editor-context-menu-item:hover:not(:disabled) {
+	background: rgba(207, 227, 245, 0.55);
+	color: #213a5a;
+}
+
+.editor-context-menu-item.disabled,
+.editor-context-menu-item:disabled {
+	color: rgba(53, 80, 112, 0.35);
+	cursor: default;
+}
+
 .editor-line-number {
 	display: inline-flex;
 	align-items: center;

@@ -53,6 +53,15 @@ export interface DragInteractionControllerContext {
   ): { nextDocument: EditorDocument; status: string };
   setDocument(nextDocument: EditorDocument): void;
   onPaletteBlockInserted?(block: EditorBlock): void | Promise<void>;
+  /** Returns top-level selected IDs if the given blockId is part of a multi-selection; null otherwise. */
+  getMultiDragIds(blockId: string): string[] | null;
+  /** Called when a block is tapped (pressed then released without dragging). */
+  onBlockTap(blockId: string): void;
+  /**
+   * Moves blocks with the given ids so they appear immediately after `afterBlockId`
+   * in the block tree (same container). Returns the updated document.
+   */
+  moveBlocksAfter(document: EditorDocument, afterBlockId: string, blockIds: string[]): EditorDocument;
 }
 
 export class DragInteractionController {
@@ -236,12 +245,14 @@ export class DragInteractionController {
         );
         this.ctx.closeWheel();
         const programBlock = this.ctx.findBlockById(this.ctx.getBlocks(), pendingPress.blockId);
+        const multiDragIds = this.ctx.getMultiDragIds(pendingPress.blockId) ?? undefined;
         this.ctx.setDragState({
           pointerId: event.pointerId,
           source: "program",
           blockId: pendingPress.blockId,
           blockKind: pendingPress.blockKind,
           outputType: programBlock ? getOutputType(programBlock) : "none",
+          multiDragIds,
           color: programBlock?.color,
           structureId: pendingPress.structureId,
           structureKind: pendingPress.structureKind,
@@ -341,6 +352,7 @@ export class DragInteractionController {
     const pressState = this.ctx.getPressState();
     if (pressState && pressState.pointerId === event.pointerId) {
       this.clearPress();
+      this.ctx.onBlockTap(pressState.blockId);
     }
 
     const dragState = this.ctx.getDragState();
@@ -493,7 +505,18 @@ export class DragInteractionController {
             visualLineIndex: dragState.visualLineIndex,
             chosenIndent: dragState.chosenIndent
           });
-          this.ctx.setDocument(result.nextDocument);
+          let finalDocument = result.nextDocument;
+
+          // Multi-drag: move remaining selected blocks to immediately after the primary drop
+          const multiDragIds = dragState.multiDragIds;
+          const otherIds = multiDragIds
+            ? multiDragIds.filter((id) => id !== dragState.blockId)
+            : [];
+          if (otherIds.length > 0 && !effectiveSlotTargetId) {
+            finalDocument = this.ctx.moveBlocksAfter(finalDocument, insertedBlock.id, otherIds);
+          }
+
+          this.ctx.setDocument(finalDocument);
           this.ctx.emitStatus(
             effectiveSlotTargetId
               ? result.status

@@ -6,6 +6,9 @@ import type {
 	PlayEditorSurfaceProps,
 	RoutineSignature
 } from "../model";
+import { SelectionState } from "../SelectionState";
+import { ContextMenuRenderer } from "../render/ContextMenuRenderer";
+import { BlockSelectionService } from "../services/BlockSelectionService";
 import { analyzeDocumentRoutines, projectDocumentToEditorBlocks } from "../operations";
 import { buildEditorLineLayout } from "../model";
 import { HostInteractionController } from "../interaction/HostInteractionController";
@@ -65,11 +68,20 @@ export class PlayEditorEngine {
 	private expandedPaletteGroupIds = new Set<string>(["scope:variables"]);
 	private cleanupFns: Array<() => void> = [];
 	private readonly registry: EngineServiceRegistry;
+	private readonly selection = new SelectionState();
+	private readonly contextMenu = new ContextMenuRenderer();
+	private readonly selectionService: BlockSelectionService;
 
 	public constructor(host: HTMLElement, props: PlayEditorSurfaceProps) {
 		this.host = host;
 		this.props = props;
 		this.registry = new EngineServiceRegistry(this.buildRegistryDeps());
+		this.selectionService = new BlockSelectionService({
+			getBlocks: () => this.getBlocks(),
+			setBlocks: (blocks) => setBlocks(this.buildHelperDeps(), blocks),
+			getSelection: () => this.selection,
+			emitStatus: (msg) => this.props.onStatus?.(msg)
+		});
 		this.ensureShell();
 		this.render();
 		this.attachGlobalListeners();
@@ -84,6 +96,7 @@ export class PlayEditorEngine {
 	public destroy(): void {
 		this.registry.getDragInteraction().clearPress();
 		this.dragBaseLineRects = null;
+		this.contextMenu.close();
 		this.registry.reset();
 		this.cleanupFns.forEach((fn) => fn());
 		this.cleanupFns = [];
@@ -223,7 +236,39 @@ export class PlayEditorEngine {
 					this.buildHelperDeps(), slotKey, rawValue, expectedType,
 					(key) => this.parseSlotKey(key),
 					(rawVal) => this.registry.getLiteralParserService().parseLiteralInput(rawVal)
-				)
+				),
+			isBlockSelected: (blockId) => this.selection.has(blockId),
+			onBlockRightClick: (event, block) => this.handleBlockRightClick(event, block),
+			onBlockShiftClick: (_event, block) => this.handleBlockShiftClick(block),
+			onBlockCtrlClick: (_event, block) => { this.selection.ctrlToggle(block.id); this.render(); },
+			getFlatBlockIds: () => {
+				const layouts = buildEditorLineLayout(this.getBlocks());
+				return layouts.filter((l) => l.role === "block" && l.block).map((l) => l.block!.id);
+			},
+			getMultiDragIds: (blockId) => {
+				if (!this.selection.has(blockId) || this.selection.size < 2) return null;
+				const topIds = this.selection.resolveTopLevel(this.getBlocks());
+				return topIds.length > 1 ? topIds : null;
+			},
+			onBlockTap: (blockId) => {
+				this.selection.select(blockId);
+				this.render();
+			},
+			moveBlocksAfter: (_document, afterBlockId, blockIds) => {
+				// Operate on block tree: remove blockIds then insert after afterBlockId
+				let blocks = this.getBlocks();
+				const extracted: EditorBlock[] = [];
+				for (const id of blockIds) {
+					const found = this.registry.getTreeService().findBlockById(blocks, id);
+					if (found) extracted.push(found);
+					blocks = this.registry.getMutationService().removeBlockById(blocks, id);
+				}
+				if (extracted.length > 0) {
+					blocks = insertBlocksAfter(blocks, afterBlockId, extracted);
+				}
+				setBlocks(this.buildHelperDeps(), blocks);
+				return this.props.value;
+			}
 		};
 	}
 
@@ -360,6 +405,61 @@ export class PlayEditorEngine {
 				this.registry.getDropPlacementService().applyResolvedPlacement(document, placement, insertedBlock)
 		});
 		return raw;
+	}
+
+	// ---------------------------------------------------------------------------
+	// Selection & context menu
+	// ---------------------------------------------------------------------------
+
+	private handleBlockRightClick(event: PointerEvent, block: EditorBlock): void {
+		// Select the block if not already selected; keep multi-selection if it's part of it
+		if (!this.selection.has(block.id)) {
+			this.selection.select(block.id);
+		}
+		this.render();
+
+		const selectedBlocks = Array.from(this.selection.getIds())
+			.map((id) => this.registry.getTreeService().findBlockById(this.getBlocks(), id))
+			.filter((b): b is EditorBlock => b !== null);
+
+		this.contextMenu.open(
+			event.clientX,
+			event.clientY,
+			selectedBlocks,
+			[
+				{
+					id: "duplicate",
+					label: selectedBlocks.length > 1 ? `Duplicar (${selectedBlocks.length})` : "Duplicar",
+					enabled: () => true,
+					execute: () => {
+						this.selectionService.duplicateSelection();
+						this.render();
+					}
+				},
+				{
+					id: "delete",
+					label: selectedBlocks.length > 1 ? `Eliminar (${selectedBlocks.length})` : "Eliminar",
+					enabled: () => true,
+					execute: () => {
+						this.selectionService.deleteSelection();
+						this.render();
+					}
+				}
+			],
+			this.host,
+			() => {
+				this.selection.clear();
+				this.render();
+			}
+		);
+	}
+
+	private handleBlockShiftClick(block: EditorBlock): void {
+		const flatIds = buildEditorLineLayout(this.getBlocks())
+			.filter((l) => l.role === "block" && l.block)
+			.map((l) => l.block!.id);
+		this.selection.selectRange(block.id, flatIds);
+		this.render();
 	}
 
 	// ---------------------------------------------------------------------------
@@ -558,8 +658,23 @@ export class PlayEditorEngine {
 			isLocked: () => this.props.disabled === true,
 			hasOpenWheel: () => this.wheelState !== null,
 			closeWheel: () => { this.wheelState = null; },
-			rerender: () => this.render()
+			rerender: () => this.render(),
+			clearSelection: () => { this.selection.clear(); }
 		});
 		this.cleanupFns.push(cleanup);
 	}
 }
+
+const insertBlocksAfter = (blocks: EditorBlock[], afterId: string, toInsert: EditorBlock[]): EditorBlock[] => {
+	const result: EditorBlock[] = [];
+	let inserted = false;
+	for (const b of blocks) {
+		result.push(b);
+		if (b.id === afterId && !inserted) {
+			result.push(...toInsert);
+			inserted = true;
+		}
+	}
+	if (!inserted) result.push(...toInsert);
+	return result;
+};
