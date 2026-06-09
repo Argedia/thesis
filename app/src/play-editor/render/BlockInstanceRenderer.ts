@@ -304,6 +304,7 @@ export class BlockInstanceRenderer {
 		const needsHandle = (() => {
 			if (
 				block.kind === "conditional" ||
+				block.kind === "else" ||
 				block.kind === "var_assign" ||
 				block.kind === "var_operation" ||
 				block.kind === "routine_call" ||
@@ -702,6 +703,7 @@ export class BlockInstanceRenderer {
 		if (
 			block.kind !== "structure" &&
 			block.kind !== "conditional" &&
+			block.kind !== "else" &&
 			block.kind !== "var" &&
 			block.kind !== "var_reference" &&
 			block.kind !== "var_operation" &&

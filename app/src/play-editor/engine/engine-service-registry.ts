@@ -445,7 +445,11 @@ export class EngineServiceRegistry {
 				updateRoutineCallMode: (blockId, mode) =>
 					this.getBlockActionController().updateRoutineCallMode(blockId, mode),
 				updateBlockOperation: (blockId, operation) =>
-					this.getBlockActionController().updateBlockOperation(blockId, operation)
+					this.getBlockActionController().updateBlockOperation(blockId, operation),
+				convertConditionalKind: (blockId, toKind) => {
+					this.getBlockActionController().convertConditionalKind(blockId, toKind);
+					this.deps.emitStatus(toKind === "else" ? "Converted to else block." : "Converted to if block.");
+				}
 			};
 			this.wheelInteraction = new WheelInteractionController(context);
 		}
@@ -550,7 +554,7 @@ export class EngineServiceRegistry {
 				resolveTypeName: (typeRoutineId) =>
 					listTypeSignatures(this.deps.getProps().value).find(
 						(sig) => sig.typeRoutineId === typeRoutineId
-					)?.typeName ?? null
+					)?.typeName ?? null,
 			};
 			this.blockInstanceRenderer = new BlockInstanceRenderer(context);
 		}

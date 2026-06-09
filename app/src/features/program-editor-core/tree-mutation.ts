@@ -494,7 +494,9 @@ export const replaceExpression = (
       target.kind === "routine-call" ||
       target.kind === "routine-member"
     ) {
-      const slotIndex = targetSlotId.startsWith("arg-") ? Number(targetSlotId.slice(4)) : 0;
+      const slotIndex = targetSlotId === "insert-index" ? 1
+        : targetSlotId === "insert-value" ? 0
+        : targetSlotId.startsWith("arg-") ? Number(targetSlotId.slice(4)) : 0;
       if (!Number.isFinite(slotIndex) || slotIndex < 0) {
         return target;
       }
@@ -526,7 +528,9 @@ export const replaceExpression = (
         statement.kind === "routine-member-call"
       ) {
         const nextArgs = [...statement.args];
-        const slotIndex = slotId.startsWith("arg-") ? Number(slotId.slice(4)) : 0;
+        const slotIndex = slotId === "insert-index" ? 1
+          : slotId === "insert-value" ? 0
+          : slotId.startsWith("arg-") ? Number(slotId.slice(4)) : 0;
         nextArgs[slotIndex] = expression!;
         return {
           ...statement,

@@ -6,6 +6,10 @@ import type {
 } from "../model";
 import type { DataValue } from "@thesis/core-engine";
 import {
+  createConditionalBlock,
+  createElseBlock
+} from "../../features/program-editor-core/adapters/block-factories";
+import {
   applyConditionalModeToBlock,
   applyDeclarationBindingKindToBlock,
   applyLiteralValueToBlock,
@@ -74,6 +78,19 @@ export class BlockActionController {
     }
 
     this.applyBlockUpdate(blockId, (currentBlock) => applyConditionalModeToBlock(currentBlock, mode));
+  }
+
+  public convertConditionalKind(blockId: string, toKind: "conditional" | "else"): void {
+    if (this.ctx.isLocked()) return;
+    this.ctx.replaceProjectedBlockById(blockId, (block) => {
+      if (toKind === "else" && block.kind === "conditional") {
+        return createElseBlock(block.color ?? undefined);
+      }
+      if (toKind === "conditional" && block.kind === "else") {
+        return createConditionalBlock(block.color ?? undefined);
+      }
+      return block;
+    });
   }
 
   public updateVariableOperationMode(blockId: string, mode: VariableOperationMode): void {
