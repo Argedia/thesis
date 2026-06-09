@@ -65,7 +65,8 @@ export function PlayLevelScreen() {
   const isCompactLayout = viewportWidth <= 640;
   const { dualStageRef, dualStageStyle, isResizingPanels, startPanelResize } = usePanelResize(
     isCompactLayout,
-    viewportWidth
+    viewportWidth,
+    "panel-split-ratio:play"
   );
 
   const controller = useMemo(() => {
@@ -300,7 +301,6 @@ export function PlayLevelScreen() {
             onRun={() => { setOutputMode("runtime"); void controller.run().finally(openOutputForExecutionAttempt); }}
             onStep={() => { setOutputMode("runtime"); void controller.step().finally(openOutputForExecutionAttempt); }}
             onPause={() => controller.pause()}
-            onReset={() => controller.reset()}
             onClear={() => controller.clearDocument()}
             translateDiagnostic={translateDiagnostic}
           />
@@ -322,6 +322,8 @@ export function PlayLevelScreen() {
             onPreviewPointerUp={() => setIsShowingGoalPreview(false)}
             onPreviewPointerLeave={() => setIsShowingGoalPreview(false)}
             onPreviewPointerCancel={() => setIsShowingGoalPreview(false)}
+            onReset={() => controller.reset()}
+            isRunning={sessionState.runState === "running"}
             structures={sessionState.structures}
             goalState={level.goalState}
             variableSnapshots={sessionState.variableSnapshots}

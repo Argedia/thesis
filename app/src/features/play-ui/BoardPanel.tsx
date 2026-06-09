@@ -20,6 +20,8 @@ interface BoardPanelProps {
   events?: EngineEvent[];
   showStructureConfigActions?: boolean;
   onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
+  onReset?: () => void;
+  isRunning?: boolean;
   onAddStructure?: () => void;
   isConfigOpen?: boolean;
   onToggleConfig?: () => void;
@@ -40,6 +42,8 @@ export function BoardPanel({
   events = [],
   showStructureConfigActions = false,
   onStructureConfigClick,
+  onReset,
+  isRunning = false,
   onAddStructure,
   isConfigOpen = false,
   onToggleConfig
@@ -53,6 +57,19 @@ export function BoardPanel({
       <div className="device-header board-header">
         <span className="device-label">{t("board.playBoard")}</span>
         <div className="board-header-actions">
+          {onReset ? (
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className="board-preview-action board-icon-action"
+                onPress={onReset}
+                isDisabled={isRunning}
+                aria-label={t("actions.reset")}
+              >
+                ↺
+              </Button>
+              <Tooltip className="app-tooltip">{t("actions.reset")}</Tooltip>
+            </TooltipTrigger>
+          ) : null}
           <button
             type="button"
             className="board-preview-action"

@@ -36,7 +36,6 @@ interface IdePanelProps {
   onRun: () => void;
   onStep: () => void;
   onPause: () => void;
-  onReset: () => void;
   onClear: () => void;
   translateDiagnostic: (diagnostic: string) => string;
   status: string;
@@ -92,7 +91,6 @@ export function IdePanel({
   onRun,
   onStep,
   onPause,
-  onReset,
   onClear,
   translateDiagnostic,
   status,
@@ -159,7 +157,6 @@ export function IdePanel({
                 <RunIconButton icon="▶" label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
                 <RunIconButton icon="⏭" label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
                 <RunIconButton icon="⏸" label={t("actions.pause")} onClick={onPause} disabled={disabledRunButtons} />
-                <RunIconButton icon="↺" label={t("actions.reset")} onClick={onReset} disabled={disabledRunButtons} />
                 <RunIconButton icon="🗑" label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
               </div>
             ) : null}

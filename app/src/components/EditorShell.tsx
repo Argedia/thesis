@@ -64,7 +64,9 @@ const toDraftTestLevelId = (signature: string): string => {
 const STRUCTURE_COLORS: Record<StructureTag, string> = {
   stack: "#f6b457",
   queue: "#8ec5ff",
-  list: "#bfa5ff"
+  list: "#bfa5ff",
+  "doubly-linked-list": "#c6a8ff",
+  "circular-list": "#7ad3ba"
 };
 
 const parseValues = (raw: string): Array<string | number | boolean> =>
@@ -328,7 +330,8 @@ export function EditorShell(_props: EditorShellProps) {
   const isCompactLayout = viewportWidth <= 640;
   const { dualStageRef, dualStageStyle, isResizingPanels, startPanelResize } = usePanelResize(
     isCompactLayout,
-    viewportWidth
+    viewportWidth,
+    "panel-split-ratio:editor"
   );
 
   const applySnapshot = (snapshot: LevelEditorDraftSnapshot) => {
@@ -921,11 +924,6 @@ export function EditorShell(_props: EditorShellProps) {
             onRun={() => setStatusMessage("Modo editor: usa Probar para ejecutar la sesión de juego.")}
             onStep={() => setStatusMessage("Modo editor: usa Probar para validación paso a paso.")}
             onPause={() => setStatusMessage("Modo editor.")}
-            onReset={() => {
-              setDocument(createEditorDocument());
-              setBreakpointNodeIds([]);
-              setStatusMessage("Editor reiniciado.");
-            }}
             onClear={() => {
               setDocument(createEditorDocument());
               setBreakpointNodeIds([]);
@@ -1076,6 +1074,8 @@ export function EditorShell(_props: EditorShellProps) {
                           <option value="stack">stack</option>
                           <option value="queue">queue</option>
                           <option value="list">list</option>
+                          <option value="doubly-linked-list">doubly-linked-list</option>
+                          <option value="circular-list">circular-list</option>
                         </select>
                       </label>
                       <label>
