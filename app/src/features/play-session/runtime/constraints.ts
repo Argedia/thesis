@@ -176,3 +176,18 @@ export const getMissingRequiredOperations = (options: {
 
   return required.filter((operation) => (options.operationUsage.get(operation) ?? 0) <= 0);
 };
+
+export const checkRoutineConstraints = (options: {
+  constraints: LevelConstraints;
+  routineCount: number;
+  routineCallCount: number;
+}): string | null => {
+  const { constraints, routineCount, routineCallCount } = options;
+  if (constraints.minRoutineCount !== undefined && routineCount < constraints.minRoutineCount) {
+    return `This level requires at least ${constraints.minRoutineCount} scripts (create a helper function).`;
+  }
+  if (constraints.requiresRoutineCall && routineCallCount === 0) {
+    return "This level requires calling a custom function from another script.";
+  }
+  return null;
+};

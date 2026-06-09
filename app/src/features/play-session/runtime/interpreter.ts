@@ -58,6 +58,7 @@ export interface InterpreterContext {
   lastConditionResult: boolean | null;
   syncFromEngine: () => void;
   onOperationExecuted?: (operationType: OperationDefinition["type"]) => void;
+  onRoutineCall?: () => void;
 }
 
 const executeStructureOperation = (
@@ -496,6 +497,7 @@ const executeStatementsDirect = (
         break;
 
       case "routine-call":
+        ctx.onRoutineCall?.();
         runRoutineDirect(
           ctx,
           statement.routineId,

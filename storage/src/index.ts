@@ -133,6 +133,8 @@ const levelConstraintsSchema = z.object({
   maxSteps: z.number().int().nonnegative(),
   allowAdditionalRoutines: z.boolean().optional(),
   maxRoutineCount: z.number().int().nonnegative().optional(),
+  minRoutineCount: z.number().int().nonnegative().optional(),
+  requiresRoutineCall: z.boolean().optional(),
   maxBlocksGlobal: z.number().int().nonnegative().optional(),
   maxBlocksByRoutine: z.record(z.string(), z.number().int().nonnegative()).optional(),
   structureCapacities: z.record(z.string(), z.number().int().nonnegative()).optional(),
@@ -157,7 +159,23 @@ const editorLayoutSchema = z.object({
 const editorToolingSchema = z.object({
   availableStructures: z.array(z.string()),
   advancedToolsEnabled: z.boolean(),
-  starterDocumentJson: z.string().optional()
+  starterDocumentJson: z.string().optional(),
+  lockStarterBlocks: z.boolean().optional(),
+  lockedBlockIds: z.array(z.string()).optional()
+});
+
+const levelTeachingTriggerSchema = z.enum(["level_start", "first_failure", "repeated_failure"]);
+
+const levelTeachingMessageSchema = z.object({
+  trigger: levelTeachingTriggerSchema,
+  title: z.string().min(1),
+  body: z.string().min(1),
+  concepts: z.array(z.string().min(1)).optional()
+});
+
+const levelTeachingPlanSchema = z.object({
+  introduces: z.array(z.string().min(1)),
+  messages: z.array(levelTeachingMessageSchema)
 });
 
 const levelCatalogMetadataSchema = z.object({
@@ -177,7 +195,8 @@ const levelDefinitionSchema = z.object({
   playLayout: playLayoutSchema,
   editorLayout: editorLayoutSchema,
   metadata: levelCatalogMetadataSchema,
-  tooling: editorToolingSchema.optional()
+  tooling: editorToolingSchema.optional(),
+  teaching: levelTeachingPlanSchema.optional()
 });
 
 const importedLevelConstraintsSchema = z
@@ -226,9 +245,12 @@ const importedLevelCandidateSchema = z.object({
     .object({
       availableStructures: z.array(z.string()).optional(),
       advancedToolsEnabled: z.boolean().optional(),
-      starterDocumentJson: z.string().optional()
+      starterDocumentJson: z.string().optional(),
+      lockStarterBlocks: z.boolean().optional(),
+      lockedBlockIds: z.array(z.string()).optional()
     })
-    .optional()
+    .optional(),
+  teaching: levelTeachingPlanSchema.optional()
 });
 
 const progressDataSchema = z.object({
@@ -375,10 +397,11 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
     tooling: {
       availableStructures: level.tooling?.availableStructures ?? ["stack", "queue", "list"],
       advancedToolsEnabled: level.tooling?.advancedToolsEnabled ?? true,
-      ...(level.tooling?.starterDocumentJson
-        ? { starterDocumentJson: level.tooling.starterDocumentJson }
-        : {})
-    }
+      ...(level.tooling?.starterDocumentJson ? { starterDocumentJson: level.tooling.starterDocumentJson } : {}),
+      ...(level.tooling?.lockStarterBlocks != null ? { lockStarterBlocks: level.tooling.lockStarterBlocks } : {}),
+      ...(level.tooling?.lockedBlockIds ? { lockedBlockIds: level.tooling.lockedBlockIds } : {})
+    },
+    ...(level.teaching ? { teaching: level.teaching } : {})
   };
 
   return {

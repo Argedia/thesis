@@ -68,6 +68,8 @@ export interface LevelConstraints {
   maxSteps: number;
   allowAdditionalRoutines?: boolean;
   maxRoutineCount?: number;
+  minRoutineCount?: number;
+  requiresRoutineCall?: boolean;
   maxBlocksGlobal?: number;
   maxBlocksByRoutine?: Record<string, number>;
   structureCapacities?: Record<string, number>;
@@ -106,6 +108,21 @@ export interface EditorTooling {
   advancedToolsEnabled: boolean;
   starterDocumentJson?: string;
   lockStarterBlocks?: boolean;
+  lockedBlockIds?: string[];
+}
+
+export type LevelTeachingTrigger = "level_start" | "first_failure" | "repeated_failure";
+
+export interface LevelTeachingMessage {
+  trigger: LevelTeachingTrigger;
+  title: string;
+  body: string;
+  concepts?: string[];
+}
+
+export interface LevelTeachingPlan {
+  introduces: string[];
+  messages: LevelTeachingMessage[];
 }
 
 export interface LevelCatalogMetadata {
@@ -126,6 +143,7 @@ export interface LevelDefinition {
   editorLayout: EditorLayout;
   metadata: LevelCatalogMetadata;
   tooling?: EditorTooling;
+  teaching?: LevelTeachingPlan;
 }
 
 export interface ValidationResult {

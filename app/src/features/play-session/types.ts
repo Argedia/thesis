@@ -6,6 +6,7 @@ import type {
 import type { LevelDefinition } from "@thesis/game-system";
 import type { ProgressRepository, LevelRepository } from "@thesis/storage";
 import type { AnalyticsRepository } from "../../backend/analytics";
+import type { AttemptOutcome } from "../../backend/analytics";
 import type { CompileResult, DeclaredTypeRef, EditorDocument } from "../program-editor-core";
 
 export type PlayRunState = "idle" | "running" | "paused";
@@ -56,6 +57,7 @@ export interface PlaySessionState {
   breakpointNodeIds: string[];
   highlightedNodeId: string | null;
   status: string;
+  lastEvaluationOutcome: AttemptOutcome | null;
   completedLevelIds: string[];
   compiledProgram: CompileResult;
   document: EditorDocument;

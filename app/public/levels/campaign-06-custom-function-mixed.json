@@ -5,14 +5,24 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [3, 2, 1],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        3,
+        2,
+        1
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "Q",
       "kind": "queue",
       "values": [],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -20,13 +30,23 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "Q",
       "kind": "queue",
-      "values": [1, 2, 3],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -41,31 +61,101 @@
       "REMOVE_LAST": "forbidden",
       "GET_HEAD": "forbidden",
       "GET_TAIL": "forbidden",
-      "SIZE": "forbidden"
+      "SIZE": "permitted",
+      "PEEK": "permitted",
+      "IS_EMPTY": "permitted",
+      "GET_AT": "permitted",
+      "INSERT_AT": "permitted",
+      "REMOVE_AT": "permitted",
+      "CONTAINS": "permitted",
+      "FIND": "permitted",
+      "REVERSE": "permitted",
+      "CLEAR": "permitted"
     },
     "forbiddenBlocks": [],
-    "maxSteps": 9
+    "maxSteps": 20,
+    "maxBlocksGlobal": 5,
+    "minRoutineCount": 2,
+    "requiresRoutineCall": true
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "Q"],
+    "structureOrder": [
+      "A",
+      "Q"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue"],
+    "structuresUsed": [
+      "stack",
+      "queue"
+    ],
     "difficulty": "medium",
     "author": "Core Team",
     "description": "Define a custom function and reuse it to move values from stack A into queue Q."
   },
   "tooling": {
-    "availableStructures": ["stack", "queue"],
-    "advancedToolsEnabled": true
+    "availableStructures": [
+      "stack",
+      "queue"
+    ],
+    "advancedToolsEnabled": true,
+    "starterDocumentJson": "{\"version\":3,\"activeRoutineId\":\"routine-main-06\",\"routines\":[{\"id\":\"routine-main-06\",\"name\":\"principal\",\"program\":{\"id\":\"program-main-06\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-while-06\",\"kind\":\"while\",\"condition\":null,\"body\":[{\"id\":\"stmt-call-06\",\"kind\":\"routine-call\",\"routineId\":\"routine-helper-06\",\"routineName\":\"mover\",\"args\":[],\"returnKind\":\"none\"}]}]}},{\"id\":\"routine-helper-06\",\"name\":\"mover\",\"program\":{\"id\":\"program-helper-06\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-funcdef-06\",\"kind\":\"function-definition\",\"routineId\":\"routine-helper-06\",\"name\":\"mover\"}]}}]}",
+    "lockedBlockIds": [
+      "stmt-while-06",
+      "stmt-call-06",
+      "stmt-funcdef-06"
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "functions across mixed structures",
+      "reusable logic with different structure behavior"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level mixes functions with structure differences",
+        "body": "Now the reusable helper must respect that the source is a stack and the target is a queue. The lesson is that abstraction still works, but the function must preserve the meaning of each structure operation.",
+        "concepts": [
+          "function reuse",
+          "stack source",
+          "queue target"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Reuse does not erase structure rules",
+        "body": "A function can simplify the program, but it does not change what POP and ENQUEUE mean. If the final order is wrong, check whether the helper respects the destination queue behavior.",
+        "concepts": [
+          "ENQUEUE",
+          "destination behavior"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Abstract the move, not the result",
+        "body": "The helper should describe the action that happens each time. The final pattern emerges from repeated calls plus the structure semantics, especially the queue receiving order.",
+        "concepts": [
+          "action abstraction",
+          "receiving order"
+        ]
+      }
+    ]
   }
 }
