@@ -74,7 +74,7 @@
     },
     "forbiddenBlocks": [],
     "maxSteps": 20,
-    "maxBlocksGlobal": 5,
+    "maxBlocksGlobal": 6,
     "minRoutineCount": 2,
     "requiresRoutineCall": true
   },
