@@ -53,6 +53,11 @@ export const BLOCK_METADATA: Record<EditorBlock["kind"], BlockMetadata> = {
 		paletteGroup: "logic",
 		labelI18nKey: "blocks.conditional"
 	},
+	else: {
+		staticChip: "EL",
+		paletteGroup: "logic",
+		labelI18nKey: "blocks.else"
+	},
 	while: {
 		staticChip: "WH",
 		paletteGroup: "logic",

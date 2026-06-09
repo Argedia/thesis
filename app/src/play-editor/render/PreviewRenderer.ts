@@ -8,7 +8,7 @@ import type { PreviewDescriptor } from "../contracts/types";
 import { getBlockAccentClass } from "./blockAccent";
 
 type ControlEditorBlock = EditorBlock & {
-  kind: "conditional" | "while" | "for_each";
+  kind: "conditional" | "else" | "while" | "for_each";
 };
 
 export interface PreviewRendererContext {
@@ -83,7 +83,7 @@ export class PreviewRenderer {
 
     return {
       label:
-        dragState.blockKind === "conditional" || dragState.blockKind === "while" || dragState.blockKind === "for_each"
+        dragState.blockKind === "conditional" || dragState.blockKind === "else" || dragState.blockKind === "while" || dragState.blockKind === "for_each"
           ? this.ctx.getControlLabel({ kind: dragState.blockKind } as Pick<EditorBlock, "kind">)
           : dragState.blockKind === "var_declaration"
             ? getDeclarationLabel(dragState.bindingKind)
@@ -127,11 +127,13 @@ export class PreviewRenderer {
       operation: null,
       pending:
         dragState.blockKind === "conditional" ||
+        dragState.blockKind === "else" ||
         dragState.blockKind === "while" ||
         dragState.blockKind === "for_each" ||
         dragState.blockKind === "structure",
       control:
         dragState.blockKind === "conditional" ||
+        dragState.blockKind === "else" ||
         dragState.blockKind === "while" ||
         dragState.blockKind === "for_each",
       variable:

@@ -2,6 +2,7 @@ import type { EditorBlock, EditorDragState, PaletteBlock } from "../model";
 import {
   createBooleanValueBlock,
   createConditionalBlock,
+  createElseBlock,
   createForEachBlock,
   createBreakBlock,
   createEditorBlock,
@@ -132,6 +133,9 @@ export class DragPreviewBlockFactory {
       switch (dragState.blockKind) {
         case "conditional":
           previewBlock = createConditionalBlock(dragState.color, "if");
+          break;
+        case "else":
+          previewBlock = createElseBlock(dragState.color);
           break;
         case "function_definition":
           previewBlock =

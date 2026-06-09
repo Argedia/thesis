@@ -208,13 +208,12 @@ const statementToEditorBlock = (
 			valueType: null,
 			literalValue: null,
 			inputBlock: statement.condition ? expressionToEditorBlock(statement.condition, declarations, signatures) : null,
-			conditionalMode: statement.mode,
-			bodyBlocks: statement.thenBody.map((c) => statementToEditorBlock(c, declarations, signatures)),
-			alternateBodyBlocks: statement.elseBody
-				? statement.elseBody.map((c) => statementToEditorBlock(c, declarations, signatures))
-				: []
+			bodyBlocks: statementsToEditorBlocks(statement.thenBody, declarations, signatures),
+			alternateBodyBlocks: []
 		};
 	}
+
+	// "else" blocks are synthesized as siblings by projectProgramToEditorBlocks / statementsToEditorBlocks
 
 	if (statement.kind === "while") {
 		return {
@@ -226,7 +225,7 @@ const statementToEditorBlock = (
 			valueType: null,
 			literalValue: null,
 			inputBlock: statement.condition ? expressionToEditorBlock(statement.condition, declarations, signatures) : null,
-			bodyBlocks: statement.body.map((c) => statementToEditorBlock(c, declarations, signatures))
+			bodyBlocks: statementsToEditorBlocks(statement.body, declarations, signatures)
 		};
 	}
 
@@ -240,7 +239,7 @@ const statementToEditorBlock = (
 			valueType: null,
 			literalValue: null,
 			inputBlock: null,
-			bodyBlocks: statement.body.map((c) => statementToEditorBlock(c, declarations, signatures)),
+			bodyBlocks: statementsToEditorBlocks(statement.body, declarations, signatures),
 			forEachItemDeclarationId: statement.itemDeclarationId,
 			forEachItemName: statement.itemName,
 			forEachSourceStructureId: statement.sourceStructureId,
@@ -311,12 +310,40 @@ const statementToEditorBlock = (
 	};
 };
 
+/**
+ * Converts a list of statements to editor blocks, synthesizing a separate `else`
+ * block after every `if` statement that has an `elseBody`.
+ */
+const statementsToEditorBlocks = (
+	statements: StatementNode[],
+	declarations: Map<string, DeclareStatement>,
+	signatures: Record<string, RoutineSignature>
+): EditorBlock[] =>
+	statements.flatMap((s) => {
+		const block = statementToEditorBlock(s, declarations, signatures);
+		if (s.kind === "if" && s.elseBody && s.elseBody.length > 0) {
+			const elseBlock: EditorBlock = {
+				id: `${s.id}-else`,
+				kind: "else",
+				color: s.visual?.color,
+				operation: null,
+				outputType: "none",
+				valueType: null,
+				literalValue: null,
+				inputBlock: null,
+				bodyBlocks: statementsToEditorBlocks(s.elseBody, declarations, signatures)
+			};
+			return [block, elseBlock];
+		}
+		return [block];
+	});
+
 export const projectProgramToEditorBlocks = (
 	program: ProgramNode,
 	signatures: Record<string, RoutineSignature> = {}
 ): EditorBlock[] => {
 	const declarations = variableDeclarationMap(program.statements);
-	return program.statements.map((s) => statementToEditorBlock(s, declarations, signatures));
+	return statementsToEditorBlocks(program.statements, declarations, signatures);
 };
 
 export const projectDocumentToEditorBlocks = (document: EditorDocument): EditorBlock[] =>

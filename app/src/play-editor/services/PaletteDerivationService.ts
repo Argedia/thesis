@@ -182,8 +182,16 @@ export class PaletteDerivationService {
 				outputType: "none" as const,
 				valueType: null,
 				literalValue: null,
-				conditionalMode: "if" as const,
 				label: "If"
+			},
+			{
+				id: "palette-else",
+				kind: "else" as const,
+				color: "#f3b2d5",
+				outputType: "none" as const,
+				valueType: null,
+				literalValue: null,
+				label: "Else"
 			},
 			{
 				id: "palette-while",

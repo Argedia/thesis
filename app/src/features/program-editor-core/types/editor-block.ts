@@ -24,6 +24,7 @@ export type EditorBlockKind =
 	| "type_field_read"
 	| "type_field_assign"
 	| "conditional"
+	| "else"
 	| "while"
 	| "for_each"
 	| "break"

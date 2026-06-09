@@ -12,7 +12,7 @@ import { getBlockAccentClass } from "./blockAccent";
 import { t } from "../../i18n-helpers";
 
 type ControlEditorBlock = EditorBlock & {
-	kind: "conditional" | "while" | "for_each";
+	kind: "conditional" | "else" | "while" | "for_each";
 };
 
 export interface BlockInstanceRendererContext {

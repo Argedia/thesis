@@ -68,6 +68,18 @@ export const createConditionalBlock = (
 	alternateBodyBlocks: []
 });
 
+export const createElseBlock = (color = "#f3b2d5"): EditorBlock => ({
+	id: `else-${crypto.randomUUID()}`,
+	kind: "else",
+	color,
+	operation: null,
+	outputType: "none",
+	valueType: null,
+	literalValue: null,
+	inputBlock: null,
+	bodyBlocks: []
+});
+
 export const createWhileBlock = (color = "#e892c3"): EditorBlock => ({
 	id: `while-${crypto.randomUUID()}`,
 	kind: "while",

@@ -2,6 +2,10 @@ import type { EditorBlock, ProgramNode, StatementNode } from "../types";
 import { cloneVisual } from "./shared";
 import { editorBlockToExpression } from "./blocks-to-expression";
 
+// Forward declaration — implemented after editorBlockToStatement
+// eslint-disable-next-line prefer-const
+let blocksToStatements: (blocks: EditorBlock[]) => import("../types").StatementNode[];
+
 export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 	if (block.kind === "function_definition") {
 		return {
@@ -28,12 +32,22 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 			id: block.id,
 			kind: "if",
 			condition: block.inputBlock ? editorBlockToExpression(block.inputBlock) : null,
-			thenBody: (block.bodyBlocks ?? []).map(editorBlockToStatement),
-			elseBody:
-				block.conditionalMode === "if-else"
-					? (block.alternateBodyBlocks ?? []).map(editorBlockToStatement)
-					: null,
-			mode: block.conditionalMode ?? "if",
+			thenBody: blocksToStatements(block.bodyBlocks ?? []),
+			elseBody: null,
+			mode: "if",
+			visual: cloneVisual(block.color)
+		};
+	}
+
+	if (block.kind === "else") {
+		// Synthesized by blocksToStatements into the preceding if's elseBody — never emitted standalone
+		return {
+			id: block.id,
+			kind: "if",
+			condition: null,
+			thenBody: [],
+			elseBody: null,
+			mode: "if",
 			visual: cloneVisual(block.color)
 		};
 	}
@@ -235,11 +249,36 @@ const normalizeEditorBlock = (block: EditorBlock): EditorBlock => {
 	return block;
 };
 
+/**
+ * Converts a block list to statements, merging an `else` block immediately following
+ * a `conditional` into that conditional's `elseBody`. Also recurses into control bodies.
+ */
+blocksToStatements = (blocks: EditorBlock[]): import("../types").StatementNode[] => {
+	const result: import("../types").StatementNode[] = [];
+	for (let i = 0; i < blocks.length; i++) {
+		const block = normalizeEditorBlock(blocks[i]!);
+		if (block.kind === "else") continue; // consumed by preceding conditional
+		const next = blocks[i + 1];
+		if (block.kind === "conditional" && next?.kind === "else") {
+			const baseStmt = editorBlockToStatement(block) as import("../types").IfStatement;
+			result.push({
+				...baseStmt,
+				elseBody: blocksToStatements(next.bodyBlocks ?? []),
+				mode: "if-else"
+			});
+			i++; // skip the else block
+		} else {
+			result.push(editorBlockToStatement(block));
+		}
+	}
+	return result;
+};
+
 export const migrateEditorBlocksToProgram = (
 	blocks: EditorBlock[],
 	programId = "program-root"
 ): ProgramNode => ({
 	id: programId,
 	kind: "program",
-	statements: blocks.map(normalizeEditorBlock).map(editorBlockToStatement)
+	statements: blocksToStatements(blocks)
 });

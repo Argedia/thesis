@@ -3,6 +3,7 @@ import type { EditorBlock, PaletteBlock, PlayEditorSurfaceProps } from "../model
 import {
 	createBreakBlock,
 	createConditionalBlock,
+	createElseBlock,
 	createEditorBlock,
 	createForEachBlock,
 	createFunctionDefinitionBlock,
@@ -68,6 +69,9 @@ export const createBlockFromPalette = async (options: {
 
 	if (block.kind === "conditional") {
 		return createConditionalBlock(block.color, block.conditionalMode ?? "if");
+	}
+	if (block.kind === "else") {
+		return createElseBlock(block.color);
 	}
 	if (block.kind === "while") {
 		return createWhileBlock(block.color);

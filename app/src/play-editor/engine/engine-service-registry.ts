@@ -5,7 +5,7 @@ import type {
 	PlayEditorSurfaceProps
 } from "../model";
 
-type ControlEditorBlock = EditorBlock & { kind: "conditional" | "while" | "for_each" };
+type ControlEditorBlock = EditorBlock & { kind: "conditional" | "else" | "while" | "for_each" };
 import { DragDropGeometryService } from "../DragDropGeometry";
 import { BlockMutationService } from "../BlockMutationService";
 import { BlockTreeService } from "../BlockTreeService";
@@ -430,8 +430,6 @@ export class EngineServiceRegistry {
 				closeWheel: () => this.deps.closeWheel(),
 				rerender: () => this.deps.render(),
 				emitStatus: (msg) => this.deps.emitStatus(msg),
-				updateConditionalMode: (blockId, mode) =>
-					this.getBlockActionController().updateConditionalMode(blockId, mode),
 				updateVariableOperationMode: (blockId, mode) =>
 					this.getBlockActionController().updateVariableOperationMode(blockId, mode),
 				updateDeclarationBindingKind: (blockId, bindingKind) =>

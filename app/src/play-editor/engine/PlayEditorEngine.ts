@@ -44,7 +44,7 @@ import {
 } from "./engine-block-helpers";
 import { render, ensureLayoutShell, buildInlinePreviewBlocks } from "./engine-render";
 
-type ControlEditorBlock = EditorBlock & { kind: "conditional" | "while" | "for_each" };
+type ControlEditorBlock = EditorBlock & { kind: "conditional" | "else" | "while" | "for_each" };
 
 export class PlayEditorEngine {
 	private readonly host: HTMLElement;
@@ -519,12 +519,13 @@ export class PlayEditorEngine {
 	}
 
 	private isControlBlock(block: EditorBlock | null | undefined): block is ControlEditorBlock {
-		return !!block && (block.kind === "conditional" || block.kind === "while" || block.kind === "for_each");
+		return !!block && (block.kind === "conditional" || block.kind === "else" || block.kind === "while" || block.kind === "for_each");
 	}
 
 	private getControlLabel(block: Pick<EditorBlock, "kind">): string {
 		if (block.kind === "while") return t("blocks.while").toLowerCase();
 		if (block.kind === "for_each") return t("blocks.forEach").toLowerCase();
+		if (block.kind === "else") return t("blocks.else").toLowerCase();
 		return t("blocks.if").toLowerCase();
 	}
 

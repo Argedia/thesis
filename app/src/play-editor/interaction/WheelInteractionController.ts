@@ -1,13 +1,11 @@
 import type {
   EditorBlock,
-  ConditionalMode,
   VariableOperationMode,
   RoutineBindingKind
 } from "../model";
 import type { TypeSignature } from "../model";
 import {
   buildVariableBinaryOperationWheelOptions,
-  buildConditionalWheelOptions,
   buildDeclarationBindingWheelOptions,
   inferExpressionFamilyFromOperationMode,
   buildVariableOperationWheelOptions,
@@ -21,7 +19,6 @@ export interface WheelInteractionContext {
   closeWheel(): void;
   rerender(): void;
   emitStatus(message: string): void;
-  updateConditionalMode(blockId: string, mode: ConditionalMode): void;
   updateVariableOperationMode(blockId: string, mode: VariableOperationMode): void;
   updateDeclarationBindingKind(blockId: string, bindingKind: RoutineBindingKind): void;
   convertVariableBlockKind(
@@ -42,9 +39,6 @@ export class WheelInteractionController {
   public constructor(private readonly ctx: WheelInteractionContext) {}
 
   public getOptionsForBlock(block: EditorBlock): WheelOption[] | null {
-    if (block.kind === "conditional") {
-      return this.getConditionalWheelOptions(block);
-    }
     if (block.kind === "var_operation") {
       return this.getVarOperationWheelOptions(block);
     }
@@ -67,19 +61,6 @@ export class WheelInteractionController {
       return this.getStructureOperationWheelOptions(block);
     }
     return null;
-  }
-
-  private getConditionalWheelOptions(block: EditorBlock): WheelOption[] {
-    return buildConditionalWheelOptions(block.conditionalMode ?? "if").map((option) => ({
-      label: option.label,
-      className: option.className,
-      onSelect: () => {
-        this.ctx.updateConditionalMode(block.id, option.mode);
-        this.ctx.closeWheel();
-        this.ctx.rerender();
-        this.ctx.emitStatus(option.mode === "if-else" ? "Else branch added." : "Else branch removed.");
-      }
-    }));
   }
 
   private getVarOperationWheelOptions(block: EditorBlock): WheelOption[] {

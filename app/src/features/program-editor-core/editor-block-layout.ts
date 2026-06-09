@@ -1,7 +1,7 @@
 import type { ControlBodyKey, EditorBlock, EditorLineLayout } from "./types";
 
 const isControlBlock = (block: EditorBlock) =>
-	block.kind === "conditional" || block.kind === "while" || block.kind === "for_each";
+	block.kind === "conditional" || block.kind === "else" || block.kind === "while" || block.kind === "for_each";
 
 const createDropLinePusher = (lines: EditorLineLayout[]) => {
 	let dropLineId = 0;
@@ -103,35 +103,18 @@ const visitBlockLines = (
 			);
 		}
 
-		if (block.conditionalMode === "if-else") {
-			lines.push({
-				id: `line-${block.id}-else`,
-				role: "else_header",
-				lineNumber: (state.codeLineNumber += 1),
-				depth,
-				indentCurrent: depth,
-				indentPotential: [depth, depth + 1],
-				increaseNextIndentation: true,
-				bodyOwnerPath,
-				controlPath,
-				block,
-				blockId: block.id,
-				topLevelIndex: effectiveTopLevelIndex
-			});
-		}
-
-		if ((block.alternateBodyBlocks?.length ?? 0) > 0) {
+		if (block.kind === "else" && (block.bodyBlocks?.length ?? 0) > 0) {
 			visitBlockLines(
-				block.alternateBodyBlocks ?? [],
+				block.bodyBlocks ?? [],
 				depth + 1,
 				[...bodyOwnerPath, block.id],
-				[...controlPath, { ownerId: block.id, branch: "alternateBody" }],
+				[...controlPath, { ownerId: block.id, branch: "body" }],
 				lines,
 				pushDropLine,
 				state,
 				{
 					branchOwnerId: block.id,
-					branch: "alternateBody",
+					branch: "body",
 					rootTopLevelIndex: effectiveTopLevelIndex
 				}
 			);

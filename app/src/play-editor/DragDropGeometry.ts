@@ -38,7 +38,7 @@ export function ghostGeometry(
 /**
  * Service for calculating drag/drop geometry and placement
  */
-type ControlEditorBlock = EditorBlock & { kind: "conditional" | "while" | "for_each" };
+type ControlEditorBlock = EditorBlock & { kind: "conditional" | "else" | "while" | "for_each" };
 type BranchTarget = { ownerId: string; branch: ControlBodyKey };
 
 export class DragDropGeometryService {
