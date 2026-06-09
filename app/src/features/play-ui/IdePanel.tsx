@@ -117,8 +117,11 @@ export function IdePanel({
   const maxBlocksForCounter = Math.max(0, Math.floor(maxBlocksForDisplay ?? maxSteps));
 
   return (
-    <aside className="device-shell terminal-device" {...tutorialAnchorProps("editor-ide-panel")}>
-      <div className="device-header terminal-header">
+    <aside
+      className="device-shell terminal-device"
+      {...tutorialAnchorProps("editor-ide-panel")}
+    >
+      <div className="device-header terminal-header" {...tutorialAnchorProps("play-program-header")}>
         <span className="device-label">{t("board.programConsole")}</span>
         <div className="terminal-header-actions">
           {headerActions}
@@ -161,7 +164,7 @@ export function IdePanel({
             ) : null}
 
             {!hideRunActions ? (
-              <div className="ide-run-actions">
+              <div className="ide-run-actions" {...tutorialAnchorProps("play-run-actions")}>
                 <RunIconButton icon="▶" label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
                 <RunIconButton icon="⏭" label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
                 <RunIconButton icon="⏸" label={t("actions.pause")} onClick={onPause} disabled={disabledRunButtons} />
@@ -170,7 +173,7 @@ export function IdePanel({
             ) : null}
           </div>
 
-          <div className="ide-editor-frame">
+          <div className="ide-editor-frame" {...tutorialAnchorProps("play-program-surface")}>
             <PlayEditorSurface
               structures={structures}
               lockedBlockIds={lockedBlockIds}
@@ -220,7 +223,7 @@ export function IdePanel({
                     {activeRoutineCompiled.diagnostics.length > 0 ? (
                       activeRoutineCompiled.diagnostics.map((d, i) => (
                         <div key={`${d}-${i}`} className="ide-output-line console-error">
-                          <span className="console-badge badge-error">ERR</span>
+                          <span className="console-badge badge-error">⚠️</span>
                           <span>{translateDiagnostic(d)}</span>
                         </div>
                       ))

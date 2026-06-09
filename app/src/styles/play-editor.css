@@ -1345,6 +1345,12 @@
 	filter: grayscale(0.18);
 }
 
+.editor-program-row.editor-program-row-locked .editor-block-instance.is-locked-block {
+	outline: 2px dashed rgba(80, 80, 130, 0.45);
+	outline-offset: 1px;
+	cursor: not-allowed;
+}
+
 .editor-block.sequence {
 	min-height: var(--editor-block-height);
 	height: var(--editor-block-height);

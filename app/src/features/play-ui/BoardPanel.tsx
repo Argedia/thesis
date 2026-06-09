@@ -65,7 +65,7 @@ export function BoardPanel({
 
   return (
     <section className="device-shell board-device" {...tutorialAnchorProps("editor-board-panel")}>
-      <div className="device-header board-header">
+      <div className="device-header board-header" {...tutorialAnchorProps("play-board-header")}>
         <span className="device-label">{t("board.playBoard")}</span>
         <div className="board-header-actions">
           {onReset ? (
@@ -84,6 +84,7 @@ export function BoardPanel({
           <button
             type="button"
             className="board-preview-action"
+            {...tutorialAnchorProps("play-preview-goal")}
             onPointerDown={onPreviewPointerDown}
             onPointerUp={onPreviewPointerUp}
             onPointerLeave={onPreviewPointerLeave}
@@ -133,6 +134,7 @@ export function BoardPanel({
             showStructureConfigActions={showStructureConfigActions}
             onStructureConfigClick={onStructureConfigClick}
             stepDurationMs={getRunLineDelayMs()}
+            isPreview={isShowingGoalPreview}
           />
         </div>
 

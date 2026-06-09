@@ -37,6 +37,7 @@ export interface StructuresBoardProps {
 	showStructureConfigActions?: boolean;
 	onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 	stepDurationMs?: number;
+	isPreview?: boolean;
 }
 
 export interface StructureConfigClickPayload {
@@ -192,7 +193,8 @@ export function StructuresBoard({
 	events = [],
 	showStructureConfigActions = false,
 	onStructureConfigClick,
-	stepDurationMs = 1000
+	stepDurationMs = 1000,
+	isPreview = false
 }: StructuresBoardProps) {
 	const hostRef = useRef<HTMLDivElement | null>(null);
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -284,6 +286,8 @@ export function StructuresBoard({
 		redrawRef.current?.();
 	};
 
+	const prevIsPreviewRef = useRef(false);
+
 	useEffect(() => {
 		const host = hostRef.current;
 		const canvas = canvasRef.current;
@@ -315,12 +319,27 @@ export function StructuresBoard({
 			}
 		}
 
+		const justExitedPreview = prevIsPreviewRef.current && !isPreview;
+		prevIsPreviewRef.current = isPreview;
+
 		const normalizedForTransition = structures.map((structure) => normalizeStructureSnapshot(structure));
 		const nextListSnapshots: Record<string, DataNode[]> = {};
 		normalizedForTransition.forEach((structure) => {
 			if (structure.kind !== "list" && structure.kind !== "doubly-linked-list" && structure.kind !== "circular-list") return;
 			nextListSnapshots[structure.id] = structure.values.map((value) => ({ ...(value as DataNode) }));
 		});
+
+		if (justExitedPreview) {
+			listSnapshotsRef.current = nextListSnapshots;
+			const nextSQ: Record<string, DataNode[]> = {};
+			normalizedForTransition.forEach((s) => {
+				if (s.kind !== "stack" && s.kind !== "queue") return;
+				nextSQ[s.id] = s.values.map((v) => ({ ...(v as DataNode) }));
+			});
+			stackQueueSnapshotsRef.current = nextSQ;
+			listTransitionRef.current = { ...listTransitionRef.current, active: false, from: {}, to: {} };
+			stackQueueTransitionRef.current = { ...stackQueueTransitionRef.current, active: false, transitions: {} };
+		}
 
 		const previousListSnapshots = listSnapshotsRef.current;
 		const hasPreviousListState = Object.keys(previousListSnapshots).length > 0;
@@ -348,7 +367,7 @@ export function StructuresBoard({
 			return false;
 		})();
 
-		if (hasPreviousListState && listStateChanged) {
+		if (hasPreviousListState && listStateChanged && events.length > 0 && !isPreview) {
 			listTransitionRef.current = {
 				active: true,
 				startAt: performance.now(),
@@ -365,7 +384,7 @@ export function StructuresBoard({
 			};
 		}
 
-		listSnapshotsRef.current = nextListSnapshots;
+		if (!isPreview) listSnapshotsRef.current = nextListSnapshots;
 
 		// Stack/queue transition detection
 		const nextSQSnapshots: Record<string, DataNode[]> = {};
@@ -388,7 +407,7 @@ export function StructuresBoard({
 					anyChanged = true;
 				}
 			});
-			if (anyChanged) {
+			if (anyChanged && events.length > 0 && !isPreview) {
 				stackQueueTransitionRef.current = {
 					active: true,
 					startAt: performance.now(),
@@ -399,7 +418,7 @@ export function StructuresBoard({
 		} else {
 			stackQueueTransitionRef.current = { ...stackQueueTransitionRef.current, active: false, transitions: {} };
 		}
-		stackQueueSnapshotsRef.current = nextSQSnapshots;
+		if (!isPreview) stackQueueSnapshotsRef.current = nextSQSnapshots;
 
 		const latestEvent = events[events.length - 1];
 		if (latestEvent?.type === "VALUE_READ") {
@@ -2212,7 +2231,7 @@ export function StructuresBoard({
 			canvas.style.cursor = "default";
 			window.cancelAnimationFrame(animationFrame);
 		};
-	}, [onStructureConfigClick, showStructureConfigActions, structures, variables, heapObjects, events]);
+	}, [onStructureConfigClick, showStructureConfigActions, structures, variables, heapObjects, events, isPreview]);
 
 	return (
 		<section style={boardWrapperStyle}>
@@ -2557,6 +2576,7 @@ export interface PuzzleBoardProps {
 	showStructureConfigActions?: boolean;
 	onStructureConfigClick?: (payload: StructureConfigClickPayload) => void;
 	stepDurationMs?: number;
+	isPreview?: boolean;
 }
 
 export function PuzzleBoard({
@@ -2566,7 +2586,8 @@ export function PuzzleBoard({
 	events,
 	showStructureConfigActions,
 	onStructureConfigClick,
-	stepDurationMs
+	stepDurationMs,
+	isPreview
 }: PuzzleBoardProps) {
 	return (
 		<StructuresBoard
@@ -2577,6 +2598,7 @@ export function PuzzleBoard({
 			showStructureConfigActions={showStructureConfigActions}
 			onStructureConfigClick={onStructureConfigClick}
 			stepDurationMs={stepDurationMs}
+			isPreview={isPreview}
 		/>
 	);
 }

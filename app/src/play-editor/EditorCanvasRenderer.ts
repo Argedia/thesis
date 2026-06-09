@@ -271,6 +271,11 @@ export class EditorCanvasRenderer {
 
     const blockLocked = this.ctx.isBlockLocked(block.id);
 
+    if (blockLocked) {
+      element.classList.add("is-locked-block");
+      line.classList.add("editor-program-row-locked");
+    }
+
     if (!blockLocked) {
       element.addEventListener("pointerdown", (event) => {
         if (event.button === 2) return; // right-click handled by contextmenu
