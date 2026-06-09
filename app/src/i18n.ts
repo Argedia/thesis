@@ -64,6 +64,67 @@ const resources = {
 				clear: "Clear",
 				addScript: "Add script"
 			},
+			tutorials: {
+				common: {
+					next: "Next",
+					back: "Back",
+					close: "Close"
+				},
+				editorBasics: {
+					label: "Editor basics",
+					steps: {
+						actions: {
+							title: "Top actions",
+							description: "Core draft actions stay here: export, test, save, publish, and this tutorial entrypoint."
+						},
+						paletteBase: {
+							title: "Main palette",
+							description: "Drag building blocks from this palette into the program surface."
+						},
+						programBody: {
+							title: "Program surface",
+							description: "This surface is the editable program. Blocks, inline inputs, and control flow all render here."
+						},
+						boardConfigButton: {
+							title: "Board rules",
+							description: "Click this control to open the board and restriction settings. This step advances after the click."
+						},
+						boardConfigPanel: {
+							title: "Restrictions panel",
+							description: "This panel configures allowed operations, block limits, and validation rules for the level."
+						},
+						paletteSide: {
+							title: "Context palette",
+							description: "Scope variables, created values, and routine-specific helpers appear here."
+						}
+					}
+				},
+				campaignLevelBasics: {
+					label: "Campaign level basics",
+					steps: {
+						boardPanel: {
+							title: "Right panel: current state",
+							description: "The right panel shows the structures as they are right now. This is the current state that your program will change when it runs."
+						},
+						previewGoal: {
+							title: "Goal preview",
+							description: "Hold Preview Result to temporarily see the target arrangement. That is the goal state the current state must match."
+						},
+						programSurface: {
+							title: "Left panel: program area",
+							description: "The left panel is where you build the solution. Arrange blocks here to create the program that transforms the structures."
+						},
+						runActions: {
+							title: "Run controls",
+							description: "Run executes the whole program. Step executes one action at a time, which is useful while learning what each block does."
+						},
+						levelTask: {
+							title: "Compare, then solve",
+							description: "First compare the current state on the right with the goal preview. Then build a program on the left that makes both match."
+						}
+					}
+				}
+			},
 			state: {
 				run: "RUN",
 				edit: "EDIT",
@@ -301,6 +362,67 @@ const resources = {
 				reset: "Reiniciar",
 				clear: "Limpiar",
 				addScript: "Añadir script"
+			},
+			tutorials: {
+				common: {
+					next: "Siguiente",
+					back: "Atrás",
+					close: "Cerrar"
+				},
+				editorBasics: {
+					label: "Conceptos básicos del editor",
+					steps: {
+						actions: {
+							title: "Acciones superiores",
+							description: "Aquí están las acciones principales del borrador: exportar, probar, guardar, publicar y abrir este tutorial."
+						},
+						paletteBase: {
+							title: "Paleta principal",
+							description: "Arrastra bloques desde esta paleta hacia la superficie del programa."
+						},
+						programBody: {
+							title: "Superficie del programa",
+							description: "Esta superficie es el programa editable. Aquí se renderizan los bloques, entradas en línea y control de flujo."
+						},
+						boardConfigButton: {
+							title: "Reglas del tablero",
+							description: "Haz clic en este control para abrir la configuración del tablero y las restricciones. Este paso avanza después del clic."
+						},
+						boardConfigPanel: {
+							title: "Panel de restricciones",
+							description: "Este panel configura operaciones permitidas, límites de bloques y reglas de validación del nivel."
+						},
+						paletteSide: {
+							title: "Paleta contextual",
+							description: "Aquí aparecen variables en alcance, valores creados y ayudas específicas de cada rutina."
+						}
+					}
+				},
+				campaignLevelBasics: {
+					label: "Conceptos básicos del nivel de campaña",
+					steps: {
+						boardPanel: {
+							title: "Panel derecho: estado actual",
+							description: "El panel derecho muestra las estructuras tal como están ahora. Ese es el estado actual que tu programa cambiará al ejecutarse."
+						},
+						previewGoal: {
+							title: "Vista previa de la meta",
+							description: "Mantén presionado Previsualizar resultado para ver temporalmente la disposición objetivo. Ese es el estado meta que debe igualar el estado actual."
+						},
+						programSurface: {
+							title: "Panel izquierdo: área del programa",
+							description: "El panel izquierdo es donde construyes la solución. Organiza aquí los bloques para crear el programa que transforma las estructuras."
+						},
+						runActions: {
+							title: "Controles de ejecución",
+							description: "Ejecutar corre todo el programa. Paso ejecuta una acción a la vez, lo cual ayuda a aprender qué hace cada bloque."
+						},
+						levelTask: {
+							title: "Compara y luego resuelve",
+							description: "Primero compara el estado actual de la derecha con la vista previa de la meta. Luego construye en la izquierda un programa que haga que ambos coincidan."
+						}
+					}
+				}
 			},
 			state: {
 				run: "RUN",

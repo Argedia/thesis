@@ -1,15 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
-import { driver, type AllowedButtons, type Driver, type DriveStep } from "driver.js";
-import "driver.js/dist/driver.css";
-import { waitForTutorialTarget } from "./anchors";
-import { tutorials, type TutorialId } from "./tutorials";
+import { driver, type AllowedButtons, type DriveStep, type Driver } from "driver.js";
+import { resolveTutorialTarget, waitForTutorialTarget } from "./anchors";
+import { getTutorial, type TutorialId } from "./tutorials";
 import type { TutorialDefinition, TutorialStepDefinition } from "./types";
+import type { PopoverDOM } from "driver.js";
 
 interface TutorialContextValue {
   activeTutorialId: TutorialId | null;
   isActive: boolean;
-  startTutorial: (tutorialId: TutorialId) => Promise<void>;
+  startTutorial: (tutorialId: TutorialId) => Promise<boolean>;
   stopTutorial: () => void;
 }
 
@@ -22,6 +22,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const driverRef = useRef<Driver | null>(null);
   const activeRef = useRef<{ tutorial: TutorialDefinition; index: number } | null>(null);
   const targetCleanupRef = useRef<(() => void) | null>(null);
+  const viewportCleanupRef = useRef<(() => void) | null>(null);
   const requestIdRef = useRef(0);
   const [activeTutorialId, setActiveTutorialId] = useState<TutorialId | null>(null);
 
@@ -29,112 +30,91 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     requestIdRef.current += 1;
     targetCleanupRef.current?.();
     targetCleanupRef.current = null;
+    viewportCleanupRef.current?.();
+    viewportCleanupRef.current = null;
     activeRef.current = null;
     driverRef.current?.destroy();
+    driverRef.current = null;
     setActiveTutorialId(null);
   }, []);
 
-  const ensureDriver = useCallback(() => {
-    if (!driverRef.current) {
-      driverRef.current = driver({
-        animate: true,
-        allowClose: true,
-        allowKeyboardControl: true,
-        smoothScroll: true,
-        overlayColor: "#10233d",
-        popoverClass: "app-tutorial-popover"
-      });
-    }
-
-    return driverRef.current;
-  }, []);
-
-  const showStep = useCallback(async (tutorial: TutorialDefinition, index: number) => {
-    if (index < 0 || index >= tutorial.steps.length) {
-      stopTutorial();
-      return;
+  const startTutorial = useCallback(async (tutorialId: TutorialId) => {
+    const tutorial = getTutorial(tutorialId);
+    if (!tutorial) {
+      return false;
     }
 
     const requestId = ++requestIdRef.current;
     targetCleanupRef.current?.();
     targetCleanupRef.current = null;
+    viewportCleanupRef.current?.();
+    viewportCleanupRef.current = null;
 
-    const step = tutorial.steps[index];
-    const target = await waitForTutorialTarget(
-      step.target,
-      step.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
+    const firstStep = tutorial.steps[0];
+    const firstTarget = await waitForTutorialTarget(
+      firstStep.target,
+      firstStep.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
     ).catch(() => null);
 
-    if (!target || requestId !== requestIdRef.current) {
-      return;
+    if (!firstTarget || requestId !== requestIdRef.current) {
+      return false;
     }
 
-    const instance = ensureDriver();
-    const isFirst = index === 0;
-    const isLast = index === tutorial.steps.length - 1;
+    driverRef.current?.destroy();
+    driverRef.current = null;
 
-    activeRef.current = { tutorial, index };
-    setActiveTutorialId(tutorial.id as TutorialId);
-
-    instance.setConfig({
+    const instance = driver({
       animate: true,
       allowClose: true,
       allowKeyboardControl: true,
       smoothScroll: true,
       overlayColor: "#10233d",
       overlayOpacity: tutorial.overlayOpacity ?? 0.7,
-      stagePadding: step.padding ?? tutorial.stagePadding ?? 10,
+      stagePadding: tutorial.stagePadding ?? 10,
       stageRadius: tutorial.stageRadius ?? 16,
       popoverClass: "app-tutorial-popover",
+      onPopoverRender: (popover) => {
+        applyTutorialPopoverStyles(popover);
+      },
+      nextBtnText: tutorial.nextButtonText,
+      prevBtnText: tutorial.previousButtonText,
+      doneBtnText: tutorial.closeButtonText,
+      steps: tutorial.steps.map((step, index) =>
+        buildDriverStep({
+          step,
+          index,
+          tutorial,
+          requestId,
+          getActiveRequestId: () => requestIdRef.current,
+          getDriver: () => driverRef.current,
+          onStepActivated: () => {
+            activeRef.current = { tutorial, index };
+            setActiveTutorialId(tutorial.id as TutorialId);
+          },
+          onRegisterTargetCleanup: (cleanup) => {
+            targetCleanupRef.current?.();
+            targetCleanupRef.current = cleanup;
+          }
+        })
+      ),
       onDestroyed: () => {
         targetCleanupRef.current?.();
         targetCleanupRef.current = null;
+        viewportCleanupRef.current?.();
+        viewportCleanupRef.current = null;
+        activeRef.current = null;
+        driverRef.current = null;
+        setActiveTutorialId(null);
       }
     });
 
-    const advance = () => {
-      if (isLast) {
-        stopTutorial();
-        return;
-      }
-
-      void showStep(tutorial, index + 1);
-    };
-
-    const previous = () => {
-      if (isFirst) {
-        return;
-      }
-
-      void showStep(tutorial, index - 1);
-    };
-
-    const driveStep = buildDriverStep({
-      step,
-      target,
-      isFirst,
-      isLast,
-      tutorial,
-      onNext: advance,
-      onPrevious: previous,
-      onClose: stopTutorial,
-      onRegisterTargetCleanup: (cleanup) => {
-        targetCleanupRef.current?.();
-        targetCleanupRef.current = cleanup;
-      }
-    });
-
-    instance.highlight(driveStep);
-  }, [ensureDriver, stopTutorial]);
-
-  const startTutorial = useCallback(async (tutorialId: TutorialId) => {
-    const tutorial = tutorials[tutorialId];
-    if (!tutorial) {
-      return;
-    }
-
-    await showStep(tutorial, 0);
-  }, [showStep]);
+    driverRef.current = instance;
+    activeRef.current = { tutorial, index: 0 };
+    setActiveTutorialId(tutorial.id as TutorialId);
+    viewportCleanupRef.current = bindViewportRefresh(instance);
+    instance.drive(0);
+    return true;
+  }, []);
 
   useEffect(() => {
     const active = activeRef.current;
@@ -172,31 +152,32 @@ export const useTutorial = (): TutorialContextValue => {
 };
 
 const APP_ROUTE_PREFIXES: Record<TutorialId, string> = {
-  "editor-basics": "/editor/"
+  "editor-basics": "/editor/",
+  "campaign-level-basics": "/play/"
 };
 
 const buildDriverStep = (options: {
   step: TutorialStepDefinition;
-  target: Element;
+  index: number;
   tutorial: TutorialDefinition;
-  isFirst: boolean;
-  isLast: boolean;
-  onNext: () => void;
-  onPrevious: () => void;
-  onClose: () => void;
+  requestId: number;
+  getActiveRequestId: () => number;
+  getDriver: () => Driver | null;
+  onStepActivated: () => void;
   onRegisterTargetCleanup: (cleanup: (() => void) | null) => void;
 }): DriveStep => {
   const {
     step,
-    target,
+    index,
     tutorial,
-    isFirst,
-    isLast,
-    onNext,
-    onPrevious,
-    onClose,
+    requestId,
+    getActiveRequestId,
+    getDriver,
+    onStepActivated,
     onRegisterTargetCleanup
   } = options;
+  const isFirst = index === 0;
+  const targetResolver = step.target;
 
   const buttons: AllowedButtons[] =
     step.advanceOn === "targetClick"
@@ -208,15 +189,45 @@ const buildDriverStep = (options: {
         : ["previous", "next", "close"];
 
   return {
-    element: target,
+    element:
+      typeof targetResolver === "string"
+        ? targetResolver
+        : () => resolveTutorialTarget(targetResolver) as Element,
     disableActiveInteraction: step.allowInteraction === false,
-    onHighlighted: (element) => {
+    onHighlightStarted: () => {
+      onStepActivated();
+      window.requestAnimationFrame(() => {
+        if (requestId === getActiveRequestId()) {
+          getDriver()?.refresh();
+        }
+      });
+      window.setTimeout(() => {
+        if (requestId === getActiveRequestId()) {
+          getDriver()?.refresh();
+        }
+      }, 40);
+    },
+    onHighlighted: (element, _currentStep, options) => {
       if (!element || step.advanceOn !== "targetClick") {
         onRegisterTargetCleanup(null);
         return;
       }
 
-      const handleClick = () => onNext();
+      const handleClick = () => {
+        const nextStep = tutorial.steps[index + 1];
+        if (!nextStep) {
+          options.driver.destroy();
+          return;
+        }
+
+        void waitForTutorialTarget(
+          nextStep.target,
+          nextStep.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
+        ).then(() => {
+          options.driver.moveNext();
+        }).catch(() => undefined);
+      };
+
       element.addEventListener("click", handleClick, { once: true });
       onRegisterTargetCleanup(() => {
         element.removeEventListener("click", handleClick);
@@ -231,11 +242,162 @@ const buildDriverStep = (options: {
       side: step.side ?? "bottom",
       align: step.align ?? "start",
       showButtons: buttons,
-      nextBtnText: step.nextButtonText ?? (isLast ? "Finish" : tutorial.nextButtonText ?? "Next"),
-      prevBtnText: step.previousButtonText ?? tutorial.previousButtonText ?? "Back",
-      onNextClick: () => onNext(),
-      onPrevClick: () => onPrevious(),
-      onCloseClick: () => onClose()
+      nextBtnText: step.nextButtonText,
+      prevBtnText: step.previousButtonText,
+      onNextClick:
+        step.advanceOn === "targetClick"
+          ? undefined
+          : () => {
+              void navigateToStep({
+                direction: "next",
+                tutorial,
+                currentIndex: index,
+                requestId,
+                getActiveRequestId,
+                getDriver
+              });
+            },
+      onPrevClick:
+        isFirst
+          ? undefined
+          : () => {
+              void navigateToStep({
+                direction: "previous",
+                tutorial,
+                currentIndex: index,
+                requestId,
+                getActiveRequestId,
+                getDriver
+              });
+            }
     }
+  };
+};
+
+const applyTutorialPopoverStyles = (popover: PopoverDOM): void => {
+  const { wrapper, title, description, closeButton, footer, footerButtons, previousButton, nextButton } = popover;
+
+  wrapper.style.all = "unset";
+  wrapper.style.position = "fixed";
+  wrapper.style.top = "0";
+  wrapper.style.right = "0";
+  wrapper.style.display = "block";
+  wrapper.style.boxSizing = "border-box";
+  wrapper.style.maxWidth = "340px";
+  wrapper.style.minWidth = "250px";
+  wrapper.style.padding = "15px";
+  wrapper.style.border = "1px solid rgba(157, 185, 212, 0.9)";
+  wrapper.style.borderRadius = "16px";
+  wrapper.style.background = "rgba(255, 255, 255, 0.98)";
+  wrapper.style.boxShadow = "0 24px 48px rgba(16, 35, 61, 0.2)";
+  wrapper.style.color = "#355070";
+  wrapper.style.zIndex = "1000000000";
+  wrapper.style.pointerEvents = "auto";
+
+  title.style.fontSize = "1rem";
+  title.style.fontWeight = "900";
+  title.style.margin = "0";
+
+  description.style.color = "#53718a";
+  description.style.fontSize = "0.9rem";
+  description.style.lineHeight = "1.45";
+  description.style.fontWeight = "700";
+  description.style.margin = "0.35rem 0 0";
+
+  footer.style.marginTop = "0.8rem";
+  footer.style.display = "flex";
+  footer.style.alignItems = "center";
+  footer.style.justifyContent = "space-between";
+  footerButtons.style.gap = "0.5rem";
+  footerButtons.style.display = "flex";
+  footerButtons.style.flexGrow = "1";
+  footerButtons.style.justifyContent = "flex-end";
+
+  closeButton.style.all = "unset";
+  closeButton.style.position = "absolute";
+  closeButton.style.top = "8px";
+  closeButton.style.right = "8px";
+  closeButton.style.width = "28px";
+  closeButton.style.height = "28px";
+  closeButton.style.color = "#6b8198";
+  closeButton.style.cursor = "pointer";
+  closeButton.style.fontSize = "18px";
+  closeButton.style.lineHeight = "1";
+  closeButton.style.textAlign = "center";
+
+  [previousButton, nextButton].forEach((button) => {
+    button.style.all = "unset";
+    button.style.display = "inline-flex";
+    button.style.alignItems = "center";
+    button.style.justifyContent = "center";
+    button.style.minHeight = "38px";
+    button.style.padding = "0.55rem 0.9rem";
+    button.style.border = "1px solid #c9d6e3";
+    button.style.borderRadius = "12px";
+    button.style.background = "#ffffff";
+    button.style.color = "#355070";
+    button.style.fontSize = "0.88rem";
+    button.style.fontWeight = "800";
+    button.style.cursor = "pointer";
+    button.style.boxSizing = "border-box";
+  });
+};
+
+const navigateToStep = async (options: {
+  direction: "next" | "previous";
+  tutorial: TutorialDefinition;
+  currentIndex: number;
+  requestId: number;
+  getActiveRequestId: () => number;
+  getDriver: () => Driver | null;
+}): Promise<void> => {
+  const { direction, tutorial, currentIndex, requestId, getActiveRequestId, getDriver } = options;
+  const targetIndex = direction === "next" ? currentIndex + 1 : currentIndex - 1;
+  const nextStep = tutorial.steps[targetIndex];
+  const activeDriver = getDriver();
+
+  if (!activeDriver || requestId !== getActiveRequestId()) {
+    return;
+  }
+
+  if (!nextStep) {
+    if (direction === "next") {
+      activeDriver.destroy();
+    }
+    return;
+  }
+
+  const target = await waitForTutorialTarget(
+    nextStep.target,
+    nextStep.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
+  ).catch(() => null);
+
+  if (!target || requestId !== getActiveRequestId() || getDriver() !== activeDriver) {
+    return;
+  }
+
+  if (direction === "next") {
+    activeDriver.moveNext();
+  } else {
+    activeDriver.movePrevious();
+  }
+};
+
+const bindViewportRefresh = (instance: Driver): (() => void) => {
+  const refresh = () => {
+    window.requestAnimationFrame(() => {
+      const activeElement = instance.getActiveElement();
+      if (activeElement) {
+        instance.refresh();
+      }
+    });
+  };
+
+  window.addEventListener("resize", refresh);
+  window.addEventListener("scroll", refresh, true);
+
+  return () => {
+    window.removeEventListener("resize", refresh);
+    window.removeEventListener("scroll", refresh, true);
   };
 };

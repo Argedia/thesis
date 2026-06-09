@@ -67,5 +67,28 @@
   "tooling": {
     "availableStructures": ["stack"],
     "advancedToolsEnabled": true
+  },
+  "teaching": {
+    "introduces": ["custom types", "user-defined models", "separating data model from structure operation"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces custom types",
+        "body": "A custom type lets you model your own kind of value. The key lesson is that structure operations still move values the same way, even when those values represent richer objects you defined yourself.",
+        "concepts": ["custom type", "model objects", "same transfer semantics"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Do not confuse the type with the structure",
+        "body": "The type describes what a value is. The stack still decides how values move. If the transfer fails, separate the data model concept from the stack behavior concept.",
+        "concepts": ["type vs structure", "stack behavior"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Start from the simpler layer",
+        "body": "If the custom type is distracting you, first solve the movement idea: how the value leaves A and reaches B. Then bring the custom model back into the solution.",
+        "concepts": ["layered thinking", "movement first"]
+      }
+    ]
   }
 }

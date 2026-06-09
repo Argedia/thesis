@@ -84,5 +84,28 @@
   "tooling": {
     "availableStructures": ["stack"],
     "advancedToolsEnabled": true
+  },
+  "teaching": {
+    "introduces": ["repeating a stack pattern", "building a target state step by step"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces repetition",
+        "body": "The same stack transfer idea must happen several times in a row. Instead of thinking about one big answer, think about a repeatable move that removes the current top of A and places it on B.",
+        "concepts": ["repeatable pattern", "stack sequence"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Build the result one layer at a time",
+        "body": "B is not filled at once. Each transfer creates the next visible layer of the target stack, so check how B should grow after every move.",
+        "concepts": ["incremental build", "visible layers"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Keep the same transfer rule",
+        "body": "If your program works once but not for the whole stack, the issue is usually consistency. The solution should apply the same POP then PUSH idea until A is empty.",
+        "concepts": ["consistency", "repeat until empty"]
+      }
+    ]
   }
 }

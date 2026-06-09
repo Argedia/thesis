@@ -82,5 +82,28 @@
   "tooling": {
     "availableStructures": ["stack", "queue", "list"],
     "advancedToolsEnabled": true
+  },
+  "teaching": {
+    "introduces": ["integration", "combining default structures with custom modeling", "choosing the right abstraction level"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level integrates what you learned",
+        "body": "The challenge now is deciding which ideas belong to structure manipulation and which belong to your own modeling tools. It is an integration level: use the right concept at the right layer.",
+        "concepts": ["integration", "default structures", "custom modeling"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Check which layer caused the mistake",
+        "body": "When a solution fails here, ask whether the issue is with stack or queue behavior, or with the extra abstraction you introduced. This level rewards separating those concerns clearly.",
+        "concepts": ["separate concerns", "behavior vs model"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Not every tool is needed in every step",
+        "body": "Integration does not mean using every concept at once. Sometimes the correct move is to solve the structure problem first and use custom abstractions only where they truly help.",
+        "concepts": ["tool choice", "abstraction control"]
+      }
+    ]
   }
 }

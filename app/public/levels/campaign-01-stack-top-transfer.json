@@ -84,5 +84,28 @@
   "tooling": {
     "availableStructures": ["stack"],
     "advancedToolsEnabled": true
+  },
+  "teaching": {
+    "introduces": ["goal-state reading", "stack top behavior", "pop then push transfer"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces stack transfers",
+        "body": "Read the initial and goal states first. Only the top value of a stack comes out when you POP, so this level is about moving exactly that visible top element into the other stack with PUSH.",
+        "concepts": ["stack top", "POP", "PUSH", "goal state"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Focus on the top value only",
+        "body": "If more than one value changed, the program probably moved too much. This level only needs the current top of A to end up on top of B.",
+        "concepts": ["single transfer", "top element"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Transfer has an order",
+        "body": "For this level, think in two actions: remove from the source stack first, then insert into the target stack. The result should change both structures in one controlled transfer.",
+        "concepts": ["source then target", "ordered actions"]
+      }
+    ]
   }
 }

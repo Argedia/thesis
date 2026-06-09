@@ -72,5 +72,28 @@
   "tooling": {
     "availableStructures": ["list"],
     "advancedToolsEnabled": true
+  },
+  "teaching": {
+    "introduces": ["list edge operations", "first and last element as separate positions"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces list edges",
+        "body": "A list lets you act on the first and last positions directly. This level teaches the difference between trimming the left edge and trimming the right edge without disturbing the middle values.",
+        "concepts": ["REMOVE_FIRST", "REMOVE_LAST", "list edges"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Preserve the middle",
+        "body": "The center of the list should survive unchanged. If the middle values moved or disappeared, the operation sequence trimmed more than the two outer positions.",
+        "concepts": ["middle values", "edge-only changes"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Each edge is a different position",
+        "body": "This level is not about general stack or queue movement. It is about targeting the current first item and the current last item of the same structure.",
+        "concepts": ["first position", "last position"]
+      }
+    ]
   }
 }

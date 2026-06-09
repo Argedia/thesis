@@ -21,20 +21,33 @@ export const resolveTutorialTarget = (target: TutorialTarget): Element | null =>
   return target();
 };
 
+const isRenderableTutorialTarget = (element: Element | null): element is Element => {
+  if (!element) {
+    return false;
+  }
+
+  const rect = element.getBoundingClientRect();
+  return (
+    (element as HTMLElement).offsetWidth > 0 ||
+    (element as HTMLElement).offsetHeight > 0 ||
+    element.getClientRects().length > 0
+  ) && rect.width > 0 && rect.height > 0;
+};
+
 export const waitForTutorialTarget = (
   target: TutorialTarget,
   timeoutMs = 4000
 ): Promise<Element> =>
   new Promise((resolve, reject) => {
     const immediate = resolveTutorialTarget(target);
-    if (immediate) {
+    if (isRenderableTutorialTarget(immediate)) {
       resolve(immediate);
       return;
     }
 
     const observer = new MutationObserver(() => {
       const next = resolveTutorialTarget(target);
-      if (!next) {
+      if (!isRenderableTutorialTarget(next)) {
         return;
       }
 
@@ -53,4 +66,21 @@ export const waitForTutorialTarget = (
       subtree: true,
       attributes: true
     });
+
+    const frameTick = () => {
+      const next = resolveTutorialTarget(target);
+      if (isRenderableTutorialTarget(next)) {
+        window.clearTimeout(timeoutId);
+        observer.disconnect();
+        resolve(next);
+        return;
+      }
+
+      if (Date.now() < deadline) {
+        window.requestAnimationFrame(frameTick);
+      }
+    };
+
+    const deadline = Date.now() + timeoutMs;
+    window.requestAnimationFrame(frameTick);
   });
