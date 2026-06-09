@@ -175,6 +175,12 @@ export const useDialogManager = (): DialogManager => {
       return;
     }
 
+    if (dialogState.kind === "level-complete") {
+      dialogState.resolve("levels");
+      closeDialog();
+      return;
+    }
+
     const nextError = dialogState.validate?.(dialogValue) ?? null;
     if (nextError) { setDialogError(nextError); return; }
     dialogState.resolve(dialogValue);
