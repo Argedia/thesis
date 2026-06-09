@@ -131,6 +131,7 @@ export interface LevelCatalogMetadata {
   difficulty: LevelDifficulty;
   author?: string;
   description?: string;
+  hidden?: boolean;
 }
 
 export interface LevelDefinition {

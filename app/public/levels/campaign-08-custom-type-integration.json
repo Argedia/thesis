@@ -77,7 +77,8 @@
     "structuresUsed": ["stack", "queue"],
     "difficulty": "hard",
     "author": "Core Team",
-    "description": "Final challenge: solve with default structures and optionally model helper data using a custom type."
+    "description": "Final challenge: solve with default structures and optionally model helper data using a custom type.",
+    "hidden": true
   },
   "tooling": {
     "availableStructures": ["stack", "queue", "list"],

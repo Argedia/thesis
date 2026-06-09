@@ -33,7 +33,7 @@ export function CampaignScreen() {
           progressRepository.loadProgress()
         ]);
         const campaignLevels = allLevels
-          .filter((level) => level.id.startsWith("campaign-"))
+          .filter((level) => level.id.startsWith("campaign-") && !level.metadata.hidden)
           .sort((left, right) => parseCampaignOrder(left) - parseCampaignOrder(right));
         setLevels(campaignLevels);
         setCompletedLevelIds(progress.completedLevelIds);
