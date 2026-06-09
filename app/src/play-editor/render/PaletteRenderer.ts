@@ -1,5 +1,6 @@
 import type { PaletteBlock } from "../model";
 import type { PaletteGroupId } from "../BlockMetadata";
+import { setTutorialAnchor } from "../../features/tutorial/anchors";
 import { getBlockAccentClass } from "./blockAccent";
 
 export type PaletteLaneId = "base" | "scope" | "created";
@@ -312,6 +313,7 @@ export class PaletteRenderer {
     container.classList.toggle("palette-left-collapsed", this.ctx.getIsBasePaletteCollapsed());
     const palette = document.createElement("aside");
     palette.className = "scratch-palette scratch-palette-left";
+    setTutorialAnchor(palette, "editor-palette-base");
     if (this.ctx.getIsActiveRoutineFunction()) {
       palette.classList.add("function-routine");
     }
@@ -348,6 +350,7 @@ export class PaletteRenderer {
     container.classList.toggle("palette-right-collapsed", this.ctx.getIsSidePaletteCollapsed());
     const palette = document.createElement("aside");
     palette.className = "scratch-palette scratch-palette-right";
+    setTutorialAnchor(palette, "editor-palette-side");
     if (this.ctx.getIsActiveRoutineFunction()) {
       palette.classList.add("function-routine");
     }

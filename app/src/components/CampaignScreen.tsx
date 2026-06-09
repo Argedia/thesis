@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { LevelDefinition } from "@thesis/game-system";
-import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
+import { LocalProgressRepository } from "@thesis/storage";
+import { catalogLevelRepository } from "../backend";
 import { Screen } from "@thesis/ui-editor";
 import { APP_ROUTES } from "../types/routes";
 
-const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
 
 const parseCampaignOrder = (level: LevelDefinition): number => {
@@ -29,7 +29,7 @@ export function CampaignScreen() {
     const load = async () => {
       try {
         const [allLevels, progress] = await Promise.all([
-          levelRepository.listLevels(),
+          catalogLevelRepository.listLevels(),
           progressRepository.loadProgress()
         ]);
         const campaignLevels = allLevels

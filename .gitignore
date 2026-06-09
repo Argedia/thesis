@@ -37,6 +37,12 @@ Thumbs.db
 .idea/
 .vscode/
 
+# AI assistant / local tooling
+.claude/
+.cursor/
+.aider*
+.copilot/
+
 # Package manager caches
 .npm/
 .pnpm-store/

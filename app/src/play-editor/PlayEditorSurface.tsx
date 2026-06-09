@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { PlayEditorSurfaceProps } from "./model";
 import { PlayEditorEngine } from "./engine/PlayEditorEngine";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 
 export function PlayEditorSurface(props: PlayEditorSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -22,5 +23,5 @@ export function PlayEditorSurface(props: PlayEditorSurfaceProps) {
     engineRef.current?.update(props);
   }, [props]);
 
-  return <div ref={hostRef} className="play-editor-surface" />;
+  return <div ref={hostRef} className="play-editor-surface" {...tutorialAnchorProps("editor-program-host")} />;
 }

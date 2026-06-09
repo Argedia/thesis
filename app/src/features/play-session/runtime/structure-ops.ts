@@ -75,22 +75,37 @@ export const resolveStructureTargetId = (
 ): string => {
   if (options.targetDeclarationId || options.targetName) {
     const frames = [...runtimeFrames].reverse().map((f) => f.locals);
-    const value = readVariableValueFromFrames(
-      frames,
-      options.targetDeclarationId ?? options.targetName ?? "",
-      options.targetName ?? options.targetDeclarationId ?? "structure"
-    );
-    if (!isPointerValue(value) || value.targetKind !== "structure") {
-      throw new Error(`Variable "${options.targetName ?? "structure"}" is not referencing a data structure.`);
+    let value: RuntimeStoredValue | undefined;
+    try {
+      value = readVariableValueFromFrames(
+        frames,
+        options.targetDeclarationId ?? options.targetName ?? "",
+        options.targetName ?? options.targetDeclarationId ?? "structure"
+      );
+    } catch {
+      // fall through to direct structure name lookup below
     }
-    const snapshot = engine.getState().structures[value.targetId];
-    if (!snapshot) {
-      throw new Error(`Structure "${value.targetName}" does not exist.`);
+    if (value !== undefined) {
+      if (!isPointerValue(value) || value.targetKind !== "structure") {
+        throw new Error(`Variable "${options.targetName ?? "structure"}" is not referencing a data structure.`);
+      }
+      const snapshot = engine.getState().structures[value.targetId];
+      if (!snapshot) throw new Error(`Structure "${value.targetName}" does not exist.`);
+      if (options.expectedKind && normalizeStructureSnapshot(snapshot).kind !== options.expectedKind) {
+        throw new Error(`Structure "${value.targetName}" does not match the expected type.`);
+      }
+      return value.targetId;
     }
-    if (options.expectedKind && normalizeStructureSnapshot(snapshot).kind !== options.expectedKind) {
-      throw new Error(`Structure "${value.targetName}" does not match the expected type.`);
+    // Variable not in scope — try matching the name directly against a known structure ID
+    const name = options.targetName ?? options.targetDeclarationId ?? "";
+    const directSnapshot = engine.getState().structures[name];
+    if (directSnapshot) {
+      if (options.expectedKind && normalizeStructureSnapshot(directSnapshot).kind !== options.expectedKind) {
+        throw new Error(`Structure "${name}" does not match the expected type.`);
+      }
+      return name;
     }
-    return value.targetId;
+    throw new Error(`Variable "${options.targetName ?? "structure"}" has not been assigned yet.`);
   }
 
   if (!options.structureId) {
@@ -110,22 +125,36 @@ export const resolveStructureTargetIdFromFrames = (
   }
 ): string => {
   if (options.targetDeclarationId || options.targetName) {
-    const value = readVariableValueFromFrames(
-      frames,
-      options.targetDeclarationId ?? options.targetName ?? "",
-      options.targetName ?? options.targetDeclarationId ?? "structure"
-    );
-    if (!isPointerValue(value) || value.targetKind !== "structure") {
-      throw new Error(`Variable "${options.targetName ?? "structure"}" is not referencing a data structure.`);
+    let value: RuntimeStoredValue | undefined;
+    try {
+      value = readVariableValueFromFrames(
+        frames,
+        options.targetDeclarationId ?? options.targetName ?? "",
+        options.targetName ?? options.targetDeclarationId ?? "structure"
+      );
+    } catch {
+      // fall through to direct structure name lookup below
     }
-    const snapshot = engine.getState().structures[value.targetId];
-    if (!snapshot) {
-      throw new Error(`Structure "${value.targetName}" does not exist.`);
+    if (value !== undefined) {
+      if (!isPointerValue(value) || value.targetKind !== "structure") {
+        throw new Error(`Variable "${options.targetName ?? "structure"}" is not referencing a data structure.`);
+      }
+      const snapshot = engine.getState().structures[value.targetId];
+      if (!snapshot) throw new Error(`Structure "${value.targetName}" does not exist.`);
+      if (options.expectedKind && normalizeStructureSnapshot(snapshot).kind !== options.expectedKind) {
+        throw new Error(`Structure "${value.targetName}" does not match the expected type.`);
+      }
+      return value.targetId;
     }
-    if (options.expectedKind && normalizeStructureSnapshot(snapshot).kind !== options.expectedKind) {
-      throw new Error(`Structure "${value.targetName}" does not match the expected type.`);
+    const name = options.targetName ?? options.targetDeclarationId ?? "";
+    const directSnapshot = engine.getState().structures[name];
+    if (directSnapshot) {
+      if (options.expectedKind && normalizeStructureSnapshot(directSnapshot).kind !== options.expectedKind) {
+        throw new Error(`Structure "${name}" does not match the expected type.`);
+      }
+      return name;
     }
-    return value.targetId;
+    throw new Error(`Variable "${options.targetName ?? "structure"}" has not been assigned yet.`);
   }
 
   if (!options.structureId) {

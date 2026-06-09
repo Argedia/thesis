@@ -1,5 +1,6 @@
 import { VisualExecutionEngine } from "@thesis/core-engine";
 import type { ProgressData } from "@thesis/storage";
+import type { AttemptOutcome } from "../../backend/analytics";
 import {
   addRoutine,
   compileEditorDocument,
@@ -89,6 +90,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private routineSelectionBeforeRun: string | null = null;
   private runtimeVisibleStepCount = 0;
   private runtimeOperationUsage = new Map<string, number>();
+  private analyticsSessionId = crypto.randomUUID();
+  private analyticsAttemptId: string | null = null;
+  private analyticsAttemptStartedAt = 0;
+  private lastProgramChangeLogAt = 0;
 
   public constructor(deps: PlaySessionDependencies) {
     this.deps = deps;
@@ -109,6 +114,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
   }
 
   public async loadLevel(levelId: string): Promise<void> {
+    await this.finishAnalyticsAttempt("abandoned");
+
     const [loadedLevel, progress] = await Promise.all([
       this.deps.levelRepository.getLevel(levelId),
       this.deps.progressRepository.loadProgress()
@@ -151,6 +158,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
       runState: "idle",
       status: "Drag blocks into the editor and choose an action with the arrow tab."
     });
+    await this.ensureAnalyticsAttempt(loadedLevel.id, loadedLevel.title);
+    await this.logAnalyticsEvent("level_loaded", {
+      levelTitle: loadedLevel.title,
+      source: loadedLevel.metadata.source
+    });
   }
 
   public setDocument(document: EditorDocument): void {
@@ -159,6 +171,15 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.resetRuntimeState();
     const compiledProgram = compileEditorDocument(document);
     this.patchState({ document, compiledProgram, stepCursor: 0, highlightedNodeId: null, runState: "idle" });
+    const now = Date.now();
+    if (now - this.lastProgramChangeLogAt >= 1500) {
+      this.lastProgramChangeLogAt = now;
+      void this.logAnalyticsEvent("program_changed", {
+        activeRoutineId: document.activeRoutineId,
+        routineCount: document.routines.length,
+        blockCount: projectDocumentToEditorBlocks(document).length
+      });
+    }
   }
 
   public createRoutine(name = "routine"): void {
@@ -167,11 +188,16 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const nextRoutine = getActiveRoutine(nextDocument);
     this.setDocument(nextDocument);
     this.patchState({ status: `Routine "${nextRoutine.name}" created.` });
+    void this.logAnalyticsEvent("routine_created", {
+      routineId: nextRoutine.id,
+      routineName: nextRoutine.name
+    });
   }
 
   public selectRoutine(routineId: string): void {
     if (this.state.runState === "running") return;
     this.setDocument(setActiveRoutineId(this.state.document, routineId));
+    void this.logAnalyticsEvent("routine_selected", { routineId });
   }
 
   public renameRoutine(routineId: string, name: string): void {
@@ -179,6 +205,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const normalizedName = name.trim();
     if (!normalizedName) return;
     this.setDocument(renameRoutine(this.state.document, routineId, normalizedName));
+    void this.logAnalyticsEvent("routine_renamed", { routineId, routineName: normalizedName });
   }
 
   public async run(): Promise<void> {
@@ -187,6 +214,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const prepared = this.prepareExecution();
     if (!prepared || !this.engine) return;
 
+    await this.ensureAnalyticsAttempt();
+    await this.logAnalyticsEvent("run_started", {
+      activeRoutineId: this.state.document.activeRoutineId,
+      priorVisibleSteps: this.runtimeVisibleStepCount
+    });
     this.runAbort = false;
     this.patchState({ runState: "running" });
 
@@ -221,6 +253,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.finishExecution();
       await this.evaluateProgress(operationUsageSnapshot);
     } catch (error) {
+      const message = error instanceof Error ? error.message : "The program could not run.";
+      await this.finishAnalyticsAttempt(this.resolveFailureOutcome(message), {
+        errorMessage: message
+      });
       this.finishExecution(error instanceof Error ? error.message : "The program could not run.");
     }
   }
@@ -232,6 +268,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
     if (!prepared || !this.engine) return;
 
     try {
+      await this.ensureAnalyticsAttempt();
+      await this.logAnalyticsEvent("step_requested", {
+        activeRoutineId: this.state.document.activeRoutineId,
+        priorVisibleSteps: this.runtimeVisibleStepCount
+      });
       this.assertRuntimeStepBudget();
       const executedInstruction = executeVisibleInstruction(this.buildCtx(prepared), prepared);
       if (!executedInstruction) {
@@ -249,6 +290,10 @@ export class DefaultPlaySessionController implements PlaySessionController {
             : "One block executed."
       });
     } catch (error) {
+      const message = error instanceof Error ? error.message : "The program could not run.";
+      await this.finishAnalyticsAttempt(this.resolveFailureOutcome(message), {
+        errorMessage: message
+      });
       this.finishExecution(error instanceof Error ? error.message : "The program could not run.");
     }
   }
@@ -256,6 +301,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
   public pause(): void {
     this.runAbort = true;
     this.patchState({ runState: "paused", status: "Paused." });
+    void this.logAnalyticsEvent("run_paused", {
+      visibleSteps: this.runtimeVisibleStepCount
+    });
   }
 
   public reset(): void {
@@ -271,6 +319,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       document: this.restoreSelectedRoutine(this.state.document),
       structures: this.state.level.initialState,
       status: "Reset. Try a different sequence."
+    });
+    void this.logAnalyticsEvent("level_reset", {
+      visibleSteps: this.runtimeVisibleStepCount
     });
   }
 
@@ -303,6 +354,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       structures: this.state.level?.initialState ?? [],
       status: "Editor cleared."
     });
+    void this.logAnalyticsEvent("editor_cleared");
   }
 
   public toggleBreakpoint(nodeId: string): void {
@@ -312,6 +364,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
         ? this.state.breakpointNodeIds.filter((id) => id !== nodeId)
         : [...this.state.breakpointNodeIds, nodeId]
     });
+    void this.logAnalyticsEvent("breakpoint_toggled", { nodeId });
   }
 
   public setStatus(status: string): void {
@@ -320,6 +373,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
   public dispose(): void {
     this.runAbort = true;
+    void this.finishAnalyticsAttempt("abandoned");
     this.disposeEngine();
   }
 
@@ -428,6 +482,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       operationUsage
     });
     if (missingRequiredOperations.length > 0) {
+      await this.finishAnalyticsAttempt("missing_required_ops", {
+        missingRequiredOperations
+      });
       this.patchState({
         status: `Missing required operations: ${missingRequiredOperations.join(", ")}.`
       });
@@ -436,10 +493,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     const nextStructures = Object.values(this.engine.getState().structures);
     if (goalMatches(nextStructures, this.state.level.goalState)) {
+      await this.finishAnalyticsAttempt("success");
       await this.persistCompletion();
       this.patchState({ status: "Success! You solved the level." });
       return;
     }
+    await this.finishAnalyticsAttempt("goal_mismatch");
     this.patchState({ status: "Your program finished, but it does not match the goal yet." });
   }
 
@@ -523,6 +582,71 @@ export class DefaultPlaySessionController implements PlaySessionController {
   private recordOperationUsage(operationType: string): void {
     const key = operationType.trim().toUpperCase();
     this.runtimeOperationUsage.set(key, (this.runtimeOperationUsage.get(key) ?? 0) + 1);
+  }
+
+  private async ensureAnalyticsAttempt(levelId?: string, levelTitle?: string): Promise<void> {
+    if (!this.deps.analyticsRepository || this.analyticsAttemptId) {
+      return;
+    }
+
+    const resolvedLevelId = levelId ?? this.state.level?.id;
+    const resolvedLevelTitle = levelTitle ?? this.state.level?.title;
+    if (!resolvedLevelId || !resolvedLevelTitle) {
+      return;
+    }
+
+    this.analyticsAttemptId = await this.deps.analyticsRepository.startAttempt({
+      levelId: resolvedLevelId,
+      levelTitle: resolvedLevelTitle,
+      sessionId: this.analyticsSessionId,
+      metadata: {
+        source: this.state.level?.metadata.source ?? null
+      }
+    });
+    this.analyticsAttemptStartedAt = Date.now();
+  }
+
+  private async finishAnalyticsAttempt(
+    outcome: AttemptOutcome,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    if (!this.deps.analyticsRepository || !this.analyticsAttemptId) {
+      return;
+    }
+
+    const attemptId = this.analyticsAttemptId;
+    this.analyticsAttemptId = null;
+
+    await this.deps.analyticsRepository.finishAttempt({
+      attemptId,
+      outcome,
+      stepCount: this.runtimeVisibleStepCount,
+      elapsedMs: Math.max(0, Date.now() - this.analyticsAttemptStartedAt),
+      operationUsage: Object.fromEntries(this.runtimeOperationUsage),
+      metadata
+    });
+  }
+
+  private async logAnalyticsEvent(
+    eventType: string,
+    payload?: Record<string, unknown>
+  ): Promise<void> {
+    if (!this.deps.analyticsRepository) {
+      return;
+    }
+
+    await this.ensureAnalyticsAttempt();
+    await this.deps.analyticsRepository.logEvent({
+      attemptId: this.analyticsAttemptId,
+      levelId: this.state.level?.id ?? null,
+      sessionId: this.analyticsSessionId,
+      eventType,
+      payload
+    });
+  }
+
+  private resolveFailureOutcome(message: string): AttemptOutcome {
+    return message.startsWith("Step limit reached") ? "step_limit" : "runtime_error";
   }
 
   private restoreSelectedRoutine(document: EditorDocument): EditorDocument {

@@ -5,6 +5,7 @@ import type {
 } from "@thesis/core-engine";
 import type { LevelDefinition } from "@thesis/game-system";
 import type { ProgressRepository, LevelRepository } from "@thesis/storage";
+import type { AnalyticsRepository } from "../../backend/analytics";
 import type { CompileResult, DeclaredTypeRef, EditorDocument } from "../program-editor-core";
 
 export type PlayRunState = "idle" | "running" | "paused";
@@ -81,6 +82,7 @@ export interface PlaySessionController {
 export interface PlaySessionDependencies {
   levelRepository: LevelRepository;
   progressRepository: ProgressRepository;
+  analyticsRepository?: AnalyticsRepository;
 }
 
 export interface PersistedProgressData {

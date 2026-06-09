@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, DialogTrigger } from "react-aria-components";
-import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
+import { LocalProgressRepository } from "@thesis/storage";
 import { Screen } from "@thesis/ui-editor";
 import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
+import { analyticsRepository, catalogLevelRepository } from "../../backend";
 import {
   compileEditorDocument,
   createEditorDocument,
@@ -27,7 +28,6 @@ import { BoardPanel } from "./BoardPanel";
 import { normalizeBlockLimits } from "../../play-editor/block-limits";
 import { countEditorBlocks } from "../../play-editor/block-count";
 
-const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
 
 const initialSessionState = (): PlaySessionState => ({
@@ -60,6 +60,7 @@ export function PlayLevelScreen() {
   const controllerRef = useRef<PlaySessionController | null>(null);
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
   const previousStatusRef = useRef<string>("");
+  const uiSessionIdRef = useRef<string>(crypto.randomUUID());
 
   const dialog = useDialogManager();
   const isCompactLayout = viewportWidth <= 640;
@@ -71,7 +72,11 @@ export function PlayLevelScreen() {
 
   const controller = useMemo(() => {
     if (!controllerRef.current) {
-      controllerRef.current = createPlaySessionController({ levelRepository, progressRepository });
+      controllerRef.current = createPlaySessionController({
+        levelRepository: catalogLevelRepository,
+        progressRepository,
+        analyticsRepository
+      });
     }
     return controllerRef.current;
   }, []);
@@ -318,8 +323,22 @@ export function PlayLevelScreen() {
             levelId={level.id}
             isCompleted={sessionState.completedLevelIds.includes(level.id)}
             isShowingGoalPreview={isShowingGoalPreview}
-            onPreviewPointerDown={() => setIsShowingGoalPreview(true)}
-            onPreviewPointerUp={() => setIsShowingGoalPreview(false)}
+            onPreviewPointerDown={() => {
+              setIsShowingGoalPreview(true);
+              void analyticsRepository.logEvent({
+                sessionId: uiSessionIdRef.current,
+                levelId: level.id,
+                eventType: "goal_preview_started"
+              });
+            }}
+            onPreviewPointerUp={() => {
+              setIsShowingGoalPreview(false);
+              void analyticsRepository.logEvent({
+                sessionId: uiSessionIdRef.current,
+                levelId: level.id,
+                eventType: "goal_preview_ended"
+              });
+            }}
             onPreviewPointerLeave={() => setIsShowingGoalPreview(false)}
             onPreviewPointerCancel={() => setIsShowingGoalPreview(false)}
             onReset={() => controller.reset()}

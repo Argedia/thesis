@@ -1,10 +1,11 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
 import type { StructureSnapshot } from "@thesis/core-engine";
 import type { EditorDocument, CompiledRoutine } from "../program-editor-core/types";
 import { PlayEditorSurface } from "../../play-editor/PlayEditorSurface";
 import type { DialogManager } from "./useDialogManager";
+import { tutorialAnchorProps } from "../tutorial/anchors";
 
 interface IdePanelProps {
   document: EditorDocument;
@@ -101,15 +102,22 @@ export function IdePanel({
 }: IdePanelProps) {
   const { t } = useTranslation();
   const routineTabsRef = useRef<HTMLDivElement | null>(null);
+  const outputBodyRef = useRef<HTMLDivElement | null>(null);
   const isOutputVisible = outputMode !== "hidden";
   const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!isOutputCollapsed && outputBodyRef.current) {
+      outputBodyRef.current.scrollTop = outputBodyRef.current.scrollHeight;
+    }
+  }, [events, isOutputCollapsed]);
   const addScriptLabel = t("actions.addScript");
   const outputToggleLabel = isOutputCollapsed ? t("board.expandOutput") : t("board.collapseOutput");
   const maxBlocksForSurface = Math.max(0, Math.floor(maxBlocksForActiveRoutine ?? maxSteps));
   const maxBlocksForCounter = Math.max(0, Math.floor(maxBlocksForDisplay ?? maxSteps));
 
   return (
-    <aside className="device-shell terminal-device">
+    <aside className="device-shell terminal-device" {...tutorialAnchorProps("editor-ide-panel")}>
       <div className="device-header terminal-header">
         <span className="device-label">{t("board.programConsole")}</span>
         <div className="terminal-header-actions">
@@ -205,25 +213,28 @@ export function IdePanel({
                   </span>
                 ) : null}
               </div>
-              <div className="ide-output-body" hidden={isOutputCollapsed}>
-                <div className="ide-output-line primary">{translateDiagnostic(status)}</div>
+              <div ref={outputBodyRef} className="ide-output-body" hidden={isOutputCollapsed}>
                 {outputMode === "diagnostics" ? (
-                  activeRoutineCompiled.diagnostics.length > 0 ? (
-                    activeRoutineCompiled.diagnostics.slice(0, 6).map((d, i) => (
-                      <div key={`${d}-${i}`} className="ide-output-line">{translateDiagnostic(d)}</div>
-                    ))
-                  ) : (
-                    <div className="ide-output-line muted">{t("board.runHint")}</div>
-                  )
-                ) : events.length === 0 ? (
-                  <div className="ide-output-line muted">{t("board.runHint")}</div>
+                  <>
+                    <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
+                    {activeRoutineCompiled.diagnostics.length > 0 ? (
+                      activeRoutineCompiled.diagnostics.map((d, i) => (
+                        <div key={`${d}-${i}`} className="ide-output-line console-error">
+                          <span className="console-badge badge-error">ERR</span>
+                          <span>{translateDiagnostic(d)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="ide-output-line console-muted">{t("board.runHint")}</div>
+                    )}
+                  </>
                 ) : (
-                  events.slice(-6).map((event, i) => (
-                    <div key={`${event.stepId}-${event.type}-${i}`} className="ide-output-line">
-                      {event.type} · {event.structureId}
-                      {event.value !== undefined ? ` · ${event.value}` : ""}
-                    </div>
-                  ))
+                  <>
+                    <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
+                    {events.length === 0 ? (
+                      <div className="ide-output-line console-muted">{t("board.runHint")}</div>
+                    ) : null}
+                  </>
                 )}
               </div>
             </div>

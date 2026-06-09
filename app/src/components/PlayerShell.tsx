@@ -8,7 +8,8 @@ import {
   VisualExecutionEngine
 } from "@thesis/core-engine";
 import type { LevelDefinition, PlayerPanelId } from "@thesis/game-system";
-import { JsonLevelRepository, LocalProgressRepository, type ProgressData } from "@thesis/storage";
+import { LocalProgressRepository, type ProgressData } from "@thesis/storage";
+import { catalogLevelRepository } from "../backend";
 import {
   CollapsiblePanel,
   LargeActionButton,
@@ -22,7 +23,6 @@ import {
 import { APP_ROUTES } from "../types/routes";
 import { useUiLayoutStore } from "../store/useUiLayoutStore";
 
-const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
 
 const transferProgram: ProgramDefinition = {
@@ -57,7 +57,7 @@ export function PlayerShell(_props: PlayerShellProps) {
     let unsubscribe: (() => void) | null = null;
 
     const load = async () => {
-      const loadedLevel = await levelRepository.getLevel("intro-transfer");
+      const loadedLevel = await catalogLevelRepository.getLevel("intro-transfer");
       if (!active) {
         return;
       }

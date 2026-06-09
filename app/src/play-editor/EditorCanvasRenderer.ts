@@ -1,5 +1,6 @@
 import type { DataValue } from "@thesis/core-engine";
 import { t } from "../i18n-helpers";
+import { setTutorialAnchor } from "../features/tutorial/anchors";
 import { buildEditorLineLayout } from "./model";
 import type { PreviewDescriptor } from "./contracts/types";
 import type {
@@ -75,6 +76,7 @@ export class EditorCanvasRenderer {
 
     const programBody = document.createElement("div");
     programBody.className = "editor-program-body";
+    setTutorialAnchor(programBody, "editor-program-body");
     this.ctx.setEditorLane(programBody);
     this.ctx.resetRenderRefs();
     this.editorLineNumber = 0;

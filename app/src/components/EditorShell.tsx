@@ -13,7 +13,7 @@ import {
   type LevelOperationState,
   type StructureTag
 } from "@thesis/game-system";
-import { JsonLevelRepository, LocalProgressRepository } from "@thesis/storage";
+import { LocalProgressRepository } from "@thesis/storage";
 import {
   addRoutine,
   compileEditorDocument,
@@ -35,6 +35,12 @@ import { BoardPanel } from "../features/play-ui/BoardPanel";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
 import { AppDialogs } from "../features/play-ui/AppDialogs";
 import { usePanelResize } from "../features/play-ui/usePanelResize";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
+import { useTutorial } from "../features/tutorial/TutorialProvider";
+import {
+  localLevelRepository,
+  publishingLevelRepository
+} from "../backend";
 import {
   createDefaultBlockLimits,
   toLegacyForbiddenBlocks,
@@ -50,7 +56,6 @@ import {
   saveEditorDraftRecord
 } from "../features/level-editor-drafts/storage";
 
-const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
 
 const toDraftTestLevelId = (signature: string): string => {
@@ -278,6 +283,7 @@ function ToggleSwitch({ checked, onChange, ariaLabel }: ToggleSwitchProps) {
 export function EditorShell(_props: EditorShellProps) {
   const { draftId } = useParams<{ draftId: string }>();
   const navigate = useNavigate();
+  const { startTutorial } = useTutorial();
   const dialog = useDialogManager();
   const [draftName, setDraftName] = useState("Nivel sin nombre");
   const [isBootstrapped, setIsBootstrapped] = useState(false);
@@ -736,7 +742,7 @@ export function EditorShell(_props: EditorShellProps) {
     if (!isDraftSolvedByCreator) {
       const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, "Borrador de prueba");
       try {
-        await levelRepository.importLevel(draftLevelToTest);
+        await localLevelRepository.importLevel(draftLevelToTest);
         setStatusMessage("Debes resolver el nivel para publicarlo. Te llevo a Probar nivel.");
         navigate(`${APP_ROUTES.play}/${draftTestLevelId}`);
       } catch (error) {
@@ -759,7 +765,7 @@ export function EditorShell(_props: EditorShellProps) {
 
     setIsSaving(true);
     try {
-      await levelRepository.importLevel(levelToSave);
+      await publishingLevelRepository.importLevel(levelToSave);
       setSavedLevelId(levelToSave.id);
       setSavedLevelTitle(levelToSave.title);
       persistDraft({
@@ -782,7 +788,7 @@ export function EditorShell(_props: EditorShellProps) {
     persistDraft();
     const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, "Borrador de prueba");
     try {
-      await levelRepository.importLevel(draftLevelToTest);
+      await localLevelRepository.importLevel(draftLevelToTest);
       setStatusMessage("Borrador preparado. Resuélvelo para habilitar Publicar.");
       navigate(`${APP_ROUTES.play}/${draftTestLevelId}`);
     } catch (error) {
@@ -858,15 +864,25 @@ export function EditorShell(_props: EditorShellProps) {
               <h1>{draftName}</h1>
             </div>
           </div>
-          <div className="level-editor-actions-right">
+          <div className="level-editor-actions-right" {...tutorialAnchorProps("editor-actions")}>
             <span className={`mini-tag ${savedLevelId ? "is-published" : "is-draft"}`}>
               {savedLevelId ? "Publicado" : "Borrador"}
             </span>
+            <button
+              type="button"
+              {...tutorialAnchorProps("editor-start-tutorial")}
+              onClick={() => {
+                void startTutorial("editor-basics");
+              }}
+            >
+              Tutorial
+            </button>
             <button type="button" disabled={!isBootstrapped} onClick={handleExportJson}>
               Exportar JSON
             </button>
             <button
               type="button"
+              {...tutorialAnchorProps("editor-test-level")}
               disabled={!canPlay}
               onClick={() => {
                 if (!canPlay) return;
@@ -1202,7 +1218,10 @@ export function EditorShell(_props: EditorShellProps) {
               </aside>
             ) : null}
             {isConfigOpen ? (
-              <aside className="level-editor-config-overlay">
+              <aside
+                className="level-editor-config-overlay"
+                {...tutorialAnchorProps("editor-board-config-panel")}
+              >
                 <div className="level-editor-config-body">
                   <details className="level-editor-details">
                     <summary>Política de operaciones</summary>
