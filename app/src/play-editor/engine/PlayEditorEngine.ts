@@ -36,6 +36,7 @@ import { EngineServiceRegistry, type EngineRegistryDeps } from "./engine-service
 import {
 	assignLiteralExpressionIntoSlot,
 	clearExpressionSlot,
+	convertConditionalKind,
 	removeBlockWithSideEffects,
 	removeProjectedBlockById,
 	replaceProjectedBlockById,
@@ -254,6 +255,8 @@ export class PlayEditorEngine {
 				this.selection.select(blockId);
 				this.render();
 			},
+			convertConditionalKind: (blockId, toKind) =>
+				convertConditionalKind(this.buildHelperDeps(), blockId, toKind),
 			moveBlocksAfter: (_document, afterBlockId, blockIds) => {
 				// Operate on block tree: remove blockIds then insert after afterBlockId
 				let blocks = this.getBlocks();

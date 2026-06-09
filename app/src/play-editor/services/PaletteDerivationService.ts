@@ -185,15 +185,6 @@ export class PaletteDerivationService {
 				label: "If"
 			},
 			{
-				id: "palette-else",
-				kind: "else" as const,
-				color: "#f3b2d5",
-				outputType: "none" as const,
-				valueType: null,
-				literalValue: null,
-				label: "Else"
-			},
-			{
 				id: "palette-while",
 				kind: "while" as const,
 				color: "#e892c3",

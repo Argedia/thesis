@@ -103,22 +103,6 @@ const visitBlockLines = (
 			);
 		}
 
-		if (block.kind === "else" && (block.bodyBlocks?.length ?? 0) > 0) {
-			visitBlockLines(
-				block.bodyBlocks ?? [],
-				depth + 1,
-				[...bodyOwnerPath, block.id],
-				[...controlPath, { ownerId: block.id, branch: "body" }],
-				lines,
-				pushDropLine,
-				state,
-				{
-					branchOwnerId: block.id,
-					branch: "body",
-					rootTopLevelIndex: effectiveTopLevelIndex
-				}
-			);
-		}
 
 		if (index === currentBlocks.length - 1) {
 			pushDropLine({

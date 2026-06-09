@@ -12,6 +12,48 @@ import type {
 } from "./types";
 import { collectRoutineDeclarationTypes, type CompileContext, compileStatement } from "./compiler-statement";
 
+// Merges standalone `mode: "else"` statements into the elseBody of the preceding if-statement.
+// This normalizes the editor's standalone else representation into proper if-else AST for compilation.
+const mergeElseStatements = (statements: StatementNode[]): StatementNode[] => {
+	const result: StatementNode[] = [];
+	for (const stmt of statements) {
+		const normalized: StatementNode =
+			stmt.kind === "if"
+				? {
+					...stmt,
+					thenBody: mergeElseStatements(stmt.thenBody),
+					elseBody: stmt.elseBody ? mergeElseStatements(stmt.elseBody) : null
+				  }
+				: stmt.kind === "while"
+				  ? { ...stmt, body: mergeElseStatements(stmt.body) }
+				  : stmt.kind === "for-each"
+				    ? { ...stmt, body: mergeElseStatements(stmt.body) }
+				    : stmt;
+
+		if (normalized.kind === "if" && normalized.mode === "else") {
+			const prev = result[result.length - 1];
+			if (prev?.kind === "if" && prev.mode !== "else") {
+				result[result.length - 1] = {
+					...prev,
+					elseBody: normalized.thenBody,
+					mode: "if-else"
+				};
+				continue;
+			}
+		}
+		result.push(normalized);
+	}
+	return result;
+};
+
+const normalizeDocument = (document: EditorDocument): EditorDocument => ({
+	...document,
+	routines: document.routines.map((routine) => ({
+		...routine,
+		program: { ...routine.program, statements: mergeElseStatements(routine.program.statements) }
+	}))
+});
+
 const collectReturnStatements = (
 	statements: StatementNode[],
 	bucket: Array<Extract<StatementNode, { kind: "return" }>> = []
@@ -96,6 +138,7 @@ const compileRoutine = (
 };
 
 export const compileEditorDocument = (document: EditorDocument): CompileResult => {
+	document = normalizeDocument(document);
 	const signatures = analyzeDocumentRoutines(document);
 	const typeSignatures = analyzeDocumentTypes(document);
 	const routines = Object.fromEntries(

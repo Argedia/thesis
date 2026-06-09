@@ -347,6 +347,23 @@ export class DefaultPlaySessionController implements PlaySessionController {
   // Execution lifecycle
   // ---------------------------------------------------------------------------
 
+  private static findOrphanElse(statements: import("../program-editor-core").StatementNode[]): boolean {
+    for (let i = 0; i < statements.length; i++) {
+      const stmt = statements[i]!;
+      if (stmt.kind === "if" && stmt.mode === "else") {
+        const prev = statements[i - 1];
+        if (!prev || prev.kind !== "if" || prev.mode === "else") return true;
+      }
+      if (stmt.kind === "if") {
+        if (DefaultPlaySessionController.findOrphanElse(stmt.thenBody)) return true;
+        if (stmt.elseBody && DefaultPlaySessionController.findOrphanElse(stmt.elseBody)) return true;
+      }
+      if (stmt.kind === "while" && DefaultPlaySessionController.findOrphanElse(stmt.body)) return true;
+      if (stmt.kind === "for-each" && DefaultPlaySessionController.findOrphanElse(stmt.body)) return true;
+    }
+    return false;
+  }
+
   private prepareExecution(): CompileResult | null {
     if (!this.engine) return null;
 
@@ -356,6 +373,11 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     if (activeRoutine.program.statements.length === 0) {
       this.patchState({ status: "Drag at least one block into the editor." });
+      return null;
+    }
+
+    if (DefaultPlaySessionController.findOrphanElse(activeRoutine.program.statements)) {
+      this.patchState({ status: "Cada bloque 'Sino' debe ir inmediatamente después de un bloque 'Si'." });
       return null;
     }
 

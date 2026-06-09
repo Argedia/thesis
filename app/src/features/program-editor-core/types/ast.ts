@@ -22,7 +22,7 @@ export type BuilderOperation =
 	| "REVERSE"
 	| "CLEAR";
 
-export type ConditionalMode = "if" | "if-else";
+export type ConditionalMode = "if" | "if-else" | "else";
 export type VariableOperationMode =
 	| "value"
 	| "assign"

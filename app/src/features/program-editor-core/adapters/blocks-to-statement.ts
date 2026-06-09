@@ -40,14 +40,13 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 	}
 
 	if (block.kind === "else") {
-		// Synthesized by blocksToStatements into the preceding if's elseBody — never emitted standalone
 		return {
 			id: block.id,
 			kind: "if",
 			condition: null,
-			thenBody: [],
+			thenBody: blocksToStatements(block.bodyBlocks ?? []),
 			elseBody: null,
-			mode: "if",
+			mode: "else",
 			visual: cloneVisual(block.color)
 		};
 	}
@@ -253,26 +252,8 @@ const normalizeEditorBlock = (block: EditorBlock): EditorBlock => {
  * Converts a block list to statements, merging an `else` block immediately following
  * a `conditional` into that conditional's `elseBody`. Also recurses into control bodies.
  */
-blocksToStatements = (blocks: EditorBlock[]): import("../types").StatementNode[] => {
-	const result: import("../types").StatementNode[] = [];
-	for (let i = 0; i < blocks.length; i++) {
-		const block = normalizeEditorBlock(blocks[i]!);
-		if (block.kind === "else") continue; // consumed by preceding conditional
-		const next = blocks[i + 1];
-		if (block.kind === "conditional" && next?.kind === "else") {
-			const baseStmt = editorBlockToStatement(block) as import("../types").IfStatement;
-			result.push({
-				...baseStmt,
-				elseBody: blocksToStatements(next.bodyBlocks ?? []),
-				mode: "if-else"
-			});
-			i++; // skip the else block
-		} else {
-			result.push(editorBlockToStatement(block));
-		}
-	}
-	return result;
-};
+blocksToStatements = (blocks: EditorBlock[]): import("../types").StatementNode[] =>
+	blocks.map(normalizeEditorBlock).map(editorBlockToStatement);
 
 export const migrateEditorBlocksToProgram = (
 	blocks: EditorBlock[],

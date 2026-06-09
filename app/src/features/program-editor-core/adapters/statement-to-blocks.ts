@@ -199,6 +199,19 @@ const statementToEditorBlock = (
 	}
 
 	if (statement.kind === "if") {
+		if (statement.mode === "else") {
+			return {
+				id: statement.id,
+				kind: "else",
+				color: statement.visual?.color,
+				operation: null,
+				outputType: "none",
+				valueType: null,
+				literalValue: null,
+				inputBlock: null,
+				bodyBlocks: statementsToEditorBlocks(statement.thenBody, declarations, signatures)
+			};
+		}
 		return {
 			id: statement.id,
 			kind: "conditional",

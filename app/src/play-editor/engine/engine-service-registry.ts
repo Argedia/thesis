@@ -151,6 +151,7 @@ export interface EngineRegistryDeps {
 	getMultiDragIds: (blockId: string) => string[] | null;
 	moveBlocksAfter: (document: import("../model").EditorDocument, afterBlockId: string, blockIds: string[]) => import("../model").EditorDocument;
 	onBlockTap: (blockId: string) => void;
+	convertConditionalKind: (blockId: string, toKind: "conditional" | "else") => void;
 }
 
 export class EngineServiceRegistry {
@@ -552,8 +553,8 @@ export class EngineServiceRegistry {
 						(sig) => sig.typeRoutineId === typeRoutineId
 					)?.typeName ?? null,
 				convertConditionalKind: (blockId, toKind) => {
-					this.getBlockActionController().convertConditionalKind(blockId, toKind);
-					this.deps.emitStatus(toKind === "else" ? "Converted to else block." : "Converted to if block.");
+					this.deps.convertConditionalKind(blockId, toKind);
+					this.deps.emitStatus(toKind === "else" ? "Bloque else añadido." : "Bloque else eliminado.");
 				}
 			};
 			this.blockInstanceRenderer = new BlockInstanceRenderer(context);

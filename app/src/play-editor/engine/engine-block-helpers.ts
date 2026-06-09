@@ -19,6 +19,7 @@ import {
 	replaceExpression,
 	replaceExpressionNode,
 	replaceStatementNode,
+	updateStatementNode,
 	projectDocumentToEditorBlocks
 } from "../operations";
 import { synchronizeVariableLabels as synchronizeVariableLabelsExternal } from "./engine-block-sync";
@@ -70,6 +71,27 @@ export const replaceProjectedBlockById = (
 			)
 		);
 	}
+};
+
+export const convertConditionalKind = (
+	deps: BlockHelperDeps,
+	blockId: string,
+	toKind: "conditional" | "else"
+): void => {
+	const activeProgram = getActiveProgram(deps.getProps().value);
+	if (!findNode(activeProgram, blockId)) return;
+	deps.setDocument(
+		replaceActiveProgram(
+			deps.getProps().value,
+			updateStatementNode(activeProgram, blockId, (stmt) => {
+				if (stmt.kind !== "if") return stmt;
+				if (toKind === "else") {
+					return { ...stmt, condition: null, mode: "else" as const };
+				}
+				return { ...stmt, mode: "if" as const };
+			})
+		)
+	);
 };
 
 export const clearExpressionSlot = (
