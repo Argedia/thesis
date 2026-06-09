@@ -37,6 +37,7 @@ export interface BlockInstanceRendererContext {
 	toggleWheel(blockId: string): void;
 	hasWheelOptions(block: EditorBlock): boolean;
 	updateVariableOperationMode(blockId: string, mode: import("../model").VariableOperationMode): void;
+	convertConditionalKind(blockId: string, toKind: "conditional" | "else"): void;
 	registerSlotRef(slotKey: string, element: HTMLDivElement): void;
 	registerBlockRef(blockId: string, element: HTMLDivElement): void;
 	resolveTypeName(typeRoutineId: string): string | null;
@@ -238,6 +239,72 @@ export class BlockInstanceRenderer {
 		return wrapper;
 	}
 
+	private renderConditionalKindSelect(block: EditorBlock): HTMLElement {
+		const isIf = block.kind === "conditional";
+		const options = [
+			{ label: "Si", value: "conditional" as const },
+			{ label: "Sino", value: "else" as const }
+		];
+
+		const wrapper = document.createElement("div");
+		wrapper.className = "editor-operator-dropdown";
+
+		const trigger = document.createElement("button");
+		trigger.type = "button";
+		trigger.className = "editor-operator-trigger";
+		trigger.textContent = isIf ? "Si" : "Sino";
+		wrapper.appendChild(trigger);
+
+		const closeDropdown = () => {
+			document.querySelector(`.editor-operator-popover[data-block-id="${block.id}"]`)?.remove();
+		};
+
+		trigger.addEventListener("pointerdown", (e) => {
+			if (e.button !== 0) return;
+			e.stopPropagation();
+			e.preventDefault();
+
+			const existing = document.querySelector(`.editor-operator-popover[data-block-id="${block.id}"]`);
+			if (existing) { existing.remove(); return; }
+			document.querySelector(".editor-operator-popover")?.remove();
+
+			const popover = document.createElement("div");
+			popover.className = "editor-operator-popover";
+			popover.dataset.blockId = block.id;
+
+			for (const opt of options) {
+				const item = document.createElement("button");
+				item.type = "button";
+				item.className = "editor-operator-popover-item" + (opt.value === block.kind ? " active" : "");
+				item.textContent = opt.label;
+				item.addEventListener("pointerdown", (ev) => {
+					if (ev.button !== 0) return;
+					ev.stopPropagation();
+					closeDropdown();
+					if (opt.value !== block.kind) {
+						this.ctx.convertConditionalKind(block.id, opt.value);
+					}
+				});
+				popover.appendChild(item);
+			}
+
+			document.body.appendChild(popover);
+			const rect = trigger.getBoundingClientRect();
+			popover.style.left = `${rect.left + rect.width / 2 - popover.offsetWidth / 2}px`;
+			popover.style.top = `${rect.bottom + 4}px`;
+
+			const onOutside = (ev: PointerEvent) => {
+				if (!popover.contains(ev.target as Node) && ev.target !== trigger) {
+					closeDropdown();
+					document.removeEventListener("pointerdown", onOutside, true);
+				}
+			};
+			document.addEventListener("pointerdown", onOutside, true);
+		});
+
+		return wrapper;
+	}
+
 	private getLiteralKind(value: EditorBlock["literalValue"]): "bool" | "int" | "double" | "string" {
 		if (typeof value === "boolean") {
 			return "bool";
@@ -303,8 +370,6 @@ export class BlockInstanceRenderer {
 
 		const needsHandle = (() => {
 			if (
-				block.kind === "conditional" ||
-				block.kind === "else" ||
 				block.kind === "var_assign" ||
 				block.kind === "var_operation" ||
 				block.kind === "routine_call" ||
@@ -582,6 +647,14 @@ export class BlockInstanceRenderer {
 			}
 		}
 
+		if ((block.kind === "conditional" || block.kind === "else") && !options.ghost) {
+			main.appendChild(this.renderConditionalKindSelect(block));
+			getBlockInputSlots(block).forEach((slotDefinition) => {
+				main.appendChild(this.renderInlineInputSlot(block, slotDefinition));
+			});
+			return;
+		}
+
 		const label = document.createElement("strong");
 		label.className = "editor-block-instance-label";
 		label.textContent = this.ctx.isControlBlock(block)
@@ -703,7 +776,6 @@ export class BlockInstanceRenderer {
 		if (
 			block.kind !== "structure" &&
 			block.kind !== "conditional" &&
-			block.kind !== "else" &&
 			block.kind !== "var" &&
 			block.kind !== "var_reference" &&
 			block.kind !== "var_operation" &&

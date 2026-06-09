@@ -33,7 +33,6 @@ export interface WheelInteractionContext {
     mode: NonNullable<EditorBlock["routineCallMode"]>
   ): void;
   updateBlockOperation(blockId: string, operation: EditorBlock["operation"]): void;
-  convertConditionalKind(blockId: string, toKind: "conditional" | "else"): void;
 }
 
 export class WheelInteractionController {
@@ -60,9 +59,6 @@ export class WheelInteractionController {
     }
     if (block.kind === "structure" && block.structureId && block.structureKind) {
       return this.getStructureOperationWheelOptions(block);
-    }
-    if (block.kind === "conditional" || block.kind === "else") {
-      return this.getConditionalKindWheelOptions(block);
     }
     return null;
   }
@@ -274,27 +270,4 @@ export class WheelInteractionController {
     }));
   }
 
-  private getConditionalKindWheelOptions(block: EditorBlock): WheelOption[] {
-    const isIf = block.kind === "conditional";
-    return [
-      {
-        label: "Si",
-        className: isIf ? "control selected" : "control",
-        onSelect: () => {
-          if (!isIf) this.ctx.convertConditionalKind(block.id, "conditional");
-          this.ctx.closeWheel();
-          this.ctx.rerender();
-        }
-      },
-      {
-        label: "Sino",
-        className: !isIf ? "control selected" : "control",
-        onSelect: () => {
-          if (isIf) this.ctx.convertConditionalKind(block.id, "else");
-          this.ctx.closeWheel();
-          this.ctx.rerender();
-        }
-      }
-    ];
-  }
 }

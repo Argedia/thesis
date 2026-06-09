@@ -445,11 +445,7 @@ export class EngineServiceRegistry {
 				updateRoutineCallMode: (blockId, mode) =>
 					this.getBlockActionController().updateRoutineCallMode(blockId, mode),
 				updateBlockOperation: (blockId, operation) =>
-					this.getBlockActionController().updateBlockOperation(blockId, operation),
-				convertConditionalKind: (blockId, toKind) => {
-					this.getBlockActionController().convertConditionalKind(blockId, toKind);
-					this.deps.emitStatus(toKind === "else" ? "Converted to else block." : "Converted to if block.");
-				}
+					this.getBlockActionController().updateBlockOperation(blockId, operation)
 			};
 			this.wheelInteraction = new WheelInteractionController(context);
 		}
@@ -555,6 +551,10 @@ export class EngineServiceRegistry {
 					listTypeSignatures(this.deps.getProps().value).find(
 						(sig) => sig.typeRoutineId === typeRoutineId
 					)?.typeName ?? null,
+				convertConditionalKind: (blockId, toKind) => {
+					this.getBlockActionController().convertConditionalKind(blockId, toKind);
+					this.deps.emitStatus(toKind === "else" ? "Converted to else block." : "Converted to if block.");
+				}
 			};
 			this.blockInstanceRenderer = new BlockInstanceRenderer(context);
 		}
