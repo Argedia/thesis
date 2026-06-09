@@ -13,7 +13,7 @@ const scan = (dir) => {
       continue;
     }
 
-    if (entry.name.endsWith(".js") || entry.name.endsWith(".d.ts")) {
+    if (entry.name.endsWith(".js") || (entry.name.endsWith(".d.ts") && entry.name !== "vite-env.d.ts")) {
       blocked.push(relative(root, nextPath));
     }
   }
