@@ -36,6 +36,35 @@ export function AppDialogs({ dialog }: AppDialogsProps) {
         </AppDialog>
       ) : null}
 
+      {dialogState?.kind === "level-complete" ? (
+        <AppDialog title={dialogState.title}>
+          <p className="app-dialog-message">{dialogState.message}</p>
+          <div className="app-dialog-actions">
+            <Button
+              className="app-dialog-button secondary"
+              onPress={() => { dialogState.resolve("levels"); dismissDialog(); }}
+            >
+              {t("common.levels")}
+            </Button>
+            {dialogState.nextLevelId ? (
+              <Button
+                className="app-dialog-button"
+                onPress={() => { dialogState.resolve("next"); dismissDialog(); }}
+              >
+                {t("common.nextLevel")}
+              </Button>
+            ) : (
+              <Button
+                className="app-dialog-button"
+                onPress={() => { dialogState.resolve("levels"); dismissDialog(); }}
+              >
+                {t("common.levels")}
+              </Button>
+            )}
+          </div>
+        </AppDialog>
+      ) : null}
+
       {dialogState?.kind === "select" ? (
         <AppDialog title={dialogState.title}>
           <label className="app-text-dialog-label" htmlFor="app-select-dialog-input">{dialogState.title}</label>

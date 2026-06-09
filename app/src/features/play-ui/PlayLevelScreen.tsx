@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, DialogTrigger } from "react-aria-components";
 import { LocalProgressRepository } from "@thesis/storage";
@@ -61,6 +61,7 @@ const initialSessionState = (): PlaySessionState => ({
 export function PlayLevelScreen() {
   const { t } = useTranslation();
   const { levelId } = useParams<{ levelId: string }>();
+  const navigate = useNavigate();
   const [sessionState, setSessionState] = useState<PlaySessionState>(initialSessionState);
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
   const [isLevelInfoOpen, setIsLevelInfoOpen] = useState(false);
@@ -139,14 +140,40 @@ export function PlayLevelScreen() {
     const currentStatus = sessionState.status;
 
     if (previousStatus !== successStatus && currentStatus === successStatus) {
-      void dialog.showAlert({
-        title: t("messages.levelSolvedTitle"),
-        message: t("messages.levelSolvedBody", { level: sessionState.level.title })
-      });
+      const currentLevel = sessionState.level;
+      void (async () => {
+        let nextLevelId: string | null = null;
+        if (currentLevel.id.startsWith("campaign-")) {
+          try {
+            const allLevels = await catalogLevelRepository.listLevels();
+            const campaignLevels = allLevels
+              .filter((l) => l.id.startsWith("campaign-") && !l.metadata.hidden)
+              .sort((a, b) => {
+                const aNum = Number(a.title.match(/(\d+)/)?.[1] ?? Number.MAX_SAFE_INTEGER);
+                const bNum = Number(b.title.match(/(\d+)/)?.[1] ?? Number.MAX_SAFE_INTEGER);
+                return aNum - bNum;
+              });
+            const idx = campaignLevels.findIndex((l) => l.id === currentLevel.id);
+            nextLevelId = campaignLevels[idx + 1]?.id ?? null;
+          } catch {
+            // ignore — no next level
+          }
+        }
+        const action = await dialog.showLevelComplete({
+          title: t("messages.levelSolvedTitle"),
+          message: t("messages.levelSolvedBody", { level: currentLevel.title }),
+          nextLevelId
+        });
+        if (action === "next" && nextLevelId) {
+          navigate(`${APP_ROUTES.play}/${nextLevelId}`);
+        } else {
+          navigate(APP_ROUTES.campaign);
+        }
+      })();
     }
 
     previousStatusRef.current = currentStatus;
-  }, [dialog, sessionState.level, sessionState.status, t]);
+  }, [dialog, navigate, sessionState.level, sessionState.status, t]);
 
   useEffect(() => {
     if (!sessionState.level) {

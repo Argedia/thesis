@@ -54,7 +54,8 @@ const resources = {
 				ok: "OK",
 				cancel: "Cancel",
 				save: "Save",
-				notice: "Notice"
+				notice: "Notice",
+				nextLevel: "Next Level"
 			},
 			actions: {
 				play: "Play",
@@ -353,7 +354,8 @@ const resources = {
 				ok: "Aceptar",
 				cancel: "Cancelar",
 				save: "Guardar",
-				notice: "Aviso"
+				notice: "Aviso",
+				nextLevel: "Siguiente nivel"
 			},
 			actions: {
 				play: "Ejecutar",

@@ -17,6 +17,13 @@ export type DialogState =
       resolve: () => void;
     }
   | {
+      kind: "level-complete";
+      title: string;
+      message: string;
+      nextLevelId: string | null;
+      resolve: (action: "next" | "levels") => void;
+    }
+  | {
       kind: "select";
       title: string;
       options: Array<{ value: string; label: string }>;
@@ -60,6 +67,7 @@ export interface DialogManager {
     options: Array<{ value: string; label: string }>;
   }) => Promise<{ name: string; typeValue: string } | null>;
   showAlert: (options: { title?: string; message: string }) => Promise<void>;
+  showLevelComplete: (options: { title: string; message: string; nextLevelId: string | null }) => Promise<"next" | "levels">;
   setDialogValue: (value: string) => void;
   setDialogSecondaryValue: (value: string) => void;
 }
@@ -81,6 +89,7 @@ export const useDialogManager = (): DialogManager => {
   const dismissDialog = () => {
     if (!dialogState) return;
     if (dialogState.kind === "alert") dialogState.resolve();
+    else if (dialogState.kind === "level-complete") dialogState.resolve("levels");
     else dialogState.resolve(null);
     closeDialog();
   };
@@ -135,6 +144,13 @@ export const useDialogManager = (): DialogManager => {
       });
     });
 
+  const showLevelComplete = (options: { title: string; message: string; nextLevelId: string | null }) =>
+    new Promise<"next" | "levels">((resolve) => {
+      setDialogValue("");
+      setDialogError("");
+      setDialogState({ kind: "level-complete", ...options, resolve });
+    });
+
   const handleDialogSubmit = () => {
     if (!dialogState) return;
 
@@ -176,6 +192,7 @@ export const useDialogManager = (): DialogManager => {
     requestSelectInput,
     requestDeclarationInput,
     showAlert,
+    showLevelComplete,
     setDialogValue,
     setDialogSecondaryValue
   };
