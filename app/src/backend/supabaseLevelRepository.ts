@@ -15,7 +15,7 @@ interface PublishedLevelRow {
 export class SupabasePublishedLevelRepository implements LevelRepository {
   public constructor(
     private readonly client: SupabaseClient,
-    private readonly authReady: Promise<void>,
+    private readonly ensureAuth: () => Promise<void>,
     private readonly bundledRepository: LevelRepository = new JsonLevelRepository(
       "levels",
       "__supabase_backend_ignore_local_imports__"
@@ -26,7 +26,7 @@ export class SupabasePublishedLevelRepository implements LevelRepository {
     try {
       return await this.bundledRepository.getLevel(id);
     } catch {
-      await this.authReady;
+      await this.ensureAuth();
       const { data, error } = await this.client
         .from("levels")
         .select("id, title, definition")
@@ -46,7 +46,7 @@ export class SupabasePublishedLevelRepository implements LevelRepository {
     const bundledLevels = await this.bundledRepository.listLevels();
 
     try {
-      await this.authReady;
+      await this.ensureAuth();
       const { data, error } = await this.client
         .from("levels")
         .select("id, title, definition")
@@ -68,7 +68,7 @@ export class SupabasePublishedLevelRepository implements LevelRepository {
   }
 
   public async importLevel(level: LevelDefinition): Promise<void> {
-    await this.authReady;
+    await this.ensureAuth();
 
     const normalizedLevel = parseLevelDefinition({
       ...level,

@@ -13,7 +13,7 @@ export const localLevelRepository = new JsonLevelRepository();
 export const progressRepository = new LocalProgressRepository();
 
 const remoteLevelRepository = isSupabaseConfigured
-  ? new SupabasePublishedLevelRepository(getSupabaseClient(), ensureSupabaseAnonymousSession())
+  ? new SupabasePublishedLevelRepository(getSupabaseClient(), ensureSupabaseAnonymousSession)
   : null;
 
 export const catalogLevelRepository = remoteLevelRepository
@@ -23,7 +23,7 @@ export const catalogLevelRepository = remoteLevelRepository
 export const publishingLevelRepository = remoteLevelRepository ?? localLevelRepository;
 
 export const analyticsRepository = isSupabaseConfigured
-  ? new SupabaseAnalyticsRepository(getSupabaseClient(), ensureSupabaseAnonymousSession())
+  ? new SupabaseAnalyticsRepository(getSupabaseClient(), ensureSupabaseAnonymousSession)
   : new NoopAnalyticsRepository();
 
 export { isSupabaseConfigured, ensureSupabaseAnonymousSession };

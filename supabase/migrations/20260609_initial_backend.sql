@@ -85,11 +85,18 @@ alter table public.levels enable row level security;
 alter table public.level_attempts enable row level security;
 alter table public.interaction_logs enable row level security;
 
+grant usage on schema public to authenticated, anon;
+grant select on public.levels to authenticated, anon;
+grant insert, update, delete on public.levels to authenticated;
+grant select, insert, update on public.level_attempts to authenticated, anon;
+grant select, insert on public.interaction_logs to authenticated, anon;
+grant select on public.level_public_stats to authenticated, anon;
+
 drop policy if exists "levels_select_published" on public.levels;
 create policy "levels_select_published"
 on public.levels
 for select
-to authenticated
+to authenticated, anon
 using (published = true);
 
 drop policy if exists "levels_insert_own" on public.levels;
@@ -118,34 +125,34 @@ drop policy if exists "attempts_select_own" on public.level_attempts;
 create policy "attempts_select_own"
 on public.level_attempts
 for select
-to authenticated
-using (user_id = auth.uid());
+to authenticated, anon
+using (user_id = auth.uid() or user_id is null);
 
 drop policy if exists "attempts_insert_own" on public.level_attempts;
 create policy "attempts_insert_own"
 on public.level_attempts
 for insert
-to authenticated
-with check (user_id = auth.uid());
+to authenticated, anon
+with check (user_id = auth.uid() or user_id is null);
 
 drop policy if exists "attempts_update_own" on public.level_attempts;
 create policy "attempts_update_own"
 on public.level_attempts
 for update
-to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+to authenticated, anon
+using (user_id = auth.uid() or user_id is null)
+with check (user_id = auth.uid() or user_id is null);
 
 drop policy if exists "logs_select_own" on public.interaction_logs;
 create policy "logs_select_own"
 on public.interaction_logs
 for select
-to authenticated
-using (user_id = auth.uid());
+to authenticated, anon
+using (user_id = auth.uid() or user_id is null);
 
 drop policy if exists "logs_insert_own" on public.interaction_logs;
 create policy "logs_insert_own"
 on public.interaction_logs
 for insert
-to authenticated
-with check (user_id = auth.uid());
+to authenticated, anon
+with check (user_id = auth.uid() or user_id is null);

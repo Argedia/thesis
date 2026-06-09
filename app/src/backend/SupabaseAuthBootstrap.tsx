@@ -7,8 +7,8 @@ export function SupabaseAuthBootstrap() {
       return;
     }
 
-    void ensureSupabaseAnonymousSession().catch((error) => {
-      console.error("Supabase anonymous auth bootstrap failed.", error);
+    void ensureSupabaseAnonymousSession().catch(() => {
+      // Anonymous session is best-effort; analytics will be skipped if unavailable.
     });
   }, []);
 

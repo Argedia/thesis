@@ -45,11 +45,11 @@ export const ensureSupabaseAnonymousSession = async (): Promise<void> => {
         throw sessionError;
       }
 
-      if (sessionData.session) {
+      if (sessionData.session?.user?.id) {
         return;
       }
 
-      const { error } = await client.auth.signInAnonymously();
+      const { data: anonData, error } = await client.auth.signInAnonymously();
       if (error) {
         throw error;
       }
