@@ -175,6 +175,8 @@ export function StructuresBoard({
   const cardPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // per-card custom sizes (card-id → {w,h} in content space)
   const cardSizesRef = useRef<Map<string, { w: number; h: number }>>(new Map());
+  // localStorage key for this board layout (derived from stable structure+variable ids)
+  const layoutStorageKeyRef = useRef<string | null>(null);
   // card drag state
   const cardDragRef = useRef<{ id: string; startCx: number; startCy: number; startCardX: number; startCardY: number } | null>(null);
   // card resize state
@@ -238,6 +240,30 @@ export function StructuresBoard({
     const canvas = canvasRef.current;
     if (!host || !canvas) {
       return;
+    }
+
+    // Derive stable localStorage key from sorted structure+variable ids
+    const layoutKey = "board-layout:" + [...structures.map((s) => s.id), ...variables.map((v) => v.id)].sort().join(",");
+    if (layoutStorageKeyRef.current !== layoutKey) {
+      layoutStorageKeyRef.current = layoutKey;
+      // Load persisted layout for this board configuration
+      try {
+        const saved = localStorage.getItem(layoutKey);
+        if (saved) {
+          const parsed = JSON.parse(saved) as {
+            positions?: Record<string, { x: number; y: number }>;
+            sizes?: Record<string, { w: number; h: number }>;
+          };
+          if (parsed.positions) {
+            cardPositionsRef.current = new Map(Object.entries(parsed.positions));
+          }
+          if (parsed.sizes) {
+            cardSizesRef.current = new Map(Object.entries(parsed.sizes));
+          }
+        }
+      } catch {
+        // ignore malformed storage
+      }
     }
 
     const normalizedForTransition = structures.map((structure) => normalizeStructureSnapshot(structure));
@@ -446,18 +472,57 @@ export function StructuresBoard({
 
       const newHitboxes: Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number }> = [];
 
+      // Compute ideal sizes for all structures (used for bin-pack and getCardSize defaults)
+      const HEADER_H = 70;
+      const MARGIN = 2;
+      const idealSizes = normalizedStructures.map((structure) => {
+        const n = structure.values.length;
+        let w: number;
+        let h: number;
+        if (structure.kind === "stack") {
+          w = 220;
+          h = HEADER_H + 22 + (n + MARGIN) * (34 + 6) + 16;
+        } else if (structure.kind === "queue") {
+          w = 28 + (n + MARGIN) * (58 + 8) + 20;
+          h = 220;
+        } else {
+          w = 30 + (n + MARGIN) * (58 + 16) + 24;
+          h = 220;
+        }
+        return { w: Math.max(200, Math.min(600, w)), h: Math.max(180, Math.min(500, h)) };
+      });
+
+      // Bin-pack positions: row by row, wrap when exceeding max canvas width
+      const BIN_MAX_W = Math.max(800, vw * 1.4);
+      const binPackedPositions = (() => {
+        const positions: Array<{ x: number; y: number }> = [];
+        let curX = PAD;
+        let curY = PAD;
+        let rowH = 0;
+        for (const { w, h } of idealSizes) {
+          if (curX > PAD && curX + w > BIN_MAX_W) {
+            curX = PAD;
+            curY += rowH + GUTTER;
+            rowH = 0;
+          }
+          positions.push({ x: curX, y: curY });
+          curX += w + GUTTER;
+          rowH = Math.max(rowH, h);
+        }
+        return positions;
+      })();
+
       normalizedStructures.forEach((structure, index) => {
-        const column = index % columns;
-        const row = Math.floor(index / columns);
-        const defX = horizontalPadding + column * (cellWidth + gutter);
-        const defY = verticalPadding + row * (cellHeight + gutter);
-        const pos = getCardPos(`structure:${structure.id}`, defX, defY);
-        const sz = getCardSize(`structure:${structure.id}`, cellWidth, cellHeight);
+        const packed = binPackedPositions[index] ?? { x: PAD, y: PAD };
+        const pos = getCardPos(`structure:${structure.id}`, packed.x, packed.y);
+
+        const { w: defW, h: defH } = idealSizes[index] ?? { w: cellWidth, h: cellHeight };
+        const sz = getCardSize(`structure:${structure.id}`, defW, defH);
         const frameX = pos.x;
         const frameY = pos.y;
         const frameWidth = sz.w;
         const frameHeight = sz.h;
-        newHitboxes.push({ id: `structure:${structure.id}`, x: frameX, y: frameY, w: frameWidth, h: frameHeight, minW: 180, minH: 140 });
+        newHitboxes.push({ id: `structure:${structure.id}`, x: frameX, y: frameY, w: frameWidth, h: frameHeight, minW: 200, minH: 180 });
         const structureColor =
           structure.properties?.color ??
           (structure.kind === "stack"
@@ -472,41 +537,78 @@ export function StructuresBoard({
               ? "#2f7cb8"
               : "#7c52ba";
 
+        const radius = Math.round(26 * layoutScale);
+        const labelFont = Math.max(10, Math.round(13 * layoutScale));
+        const titleFont = Math.max(22, Math.round(30 * layoutScale));
+        const metaFont = Math.max(11, Math.round(14 * layoutScale));
+        const labelPad = Math.round(18 * layoutScale);
+        const headerH = Math.round(70 * layoutScale);
+        const graphicTop = frameY + headerH;
+
+        // Card background
         ctx.fillStyle = "rgba(255,255,255,0.9)";
-        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, Math.round(26 * layoutScale));
+        drawRoundedRect(ctx, frameX, frameY, frameWidth, frameHeight, radius);
         ctx.fill();
         ctx.strokeStyle = "#d3e4f4";
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        const labelFont = Math.max(10, Math.round(13 * layoutScale));
-        const titleFont = Math.max(22, Math.round(30 * layoutScale));
-        const metaFont = Math.max(11, Math.round(14 * layoutScale));
+        // Header band background (top rounded, flat bottom)
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(frameX + radius, frameY);
+        ctx.lineTo(frameX + frameWidth - radius, frameY);
+        ctx.arcTo(frameX + frameWidth, frameY, frameX + frameWidth, frameY + radius, radius);
+        ctx.lineTo(frameX + frameWidth, graphicTop);
+        ctx.lineTo(frameX, graphicTop);
+        ctx.arcTo(frameX, frameY + radius, frameX + radius, frameY, radius);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(240,246,252,0.95)";
+        ctx.fill();
+        ctx.restore();
+
+        // Separator line between header and body
+        ctx.strokeStyle = "#d3e4f4";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(frameX + Math.round(12 * layoutScale), graphicTop);
+        ctx.lineTo(frameX + frameWidth - Math.round(12 * layoutScale), graphicTop);
+        ctx.stroke();
+
+        // Kind label (row 1, left)
         ctx.font = `800 ${labelFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
         ctx.fillStyle = labelColor;
-        ctx.fillText(
-          t(`structures.${structure.kind}`).toUpperCase(),
-          frameX + Math.round(20 * layoutScale),
-          frameY + Math.round(24 * layoutScale)
-        );
+        const countText = `${structure.values.length} ${t("common.items")}`;
+        ctx.font = `700 ${metaFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        const countWidth = ctx.measureText(countText).width;
+        ctx.font = `800 ${labelFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        const kindLabel = t(`structures.${structure.kind}`).toUpperCase();
+        const maxLabelWidth = frameWidth - labelPad * 2 - countWidth - Math.round(10 * layoutScale);
+        const row1Y = frameY + Math.round(22 * layoutScale);
+        ctx.fillStyle = labelColor;
+        ctx.fillText(kindLabel, frameX + labelPad, row1Y, maxLabelWidth);
 
+        // Count (row 1, right)
+        ctx.font = `700 ${metaFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+        ctx.fillStyle = "#6d8297";
+        ctx.textAlign = "right";
+        ctx.fillText(countText, frameX + frameWidth - labelPad, row1Y);
+        ctx.textAlign = "start";
+
+        // Structure ID (row 2, left — always within header band)
         ctx.font = `900 ${titleFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
         ctx.fillStyle = "#355070";
         ctx.fillText(
           structure.id,
-          frameX + Math.round(18 * layoutScale),
-          frameY + Math.round(58 * layoutScale)
+          frameX + Math.round(16 * layoutScale),
+          frameY + Math.round(56 * layoutScale)
         );
 
-        ctx.font = `700 ${metaFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
-        ctx.fillStyle = "#6d8297";
-        ctx.textAlign = "right";
-        ctx.fillText(
-          `${structure.values.length} ${t("common.items")}`,
-          frameX + frameWidth - Math.round(18 * layoutScale),
-          frameY + Math.round(24 * layoutScale)
-        );
-        ctx.textAlign = "start";
+        // Clip all subsequent drawing to the body region (below header)
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(frameX, graphicTop, frameWidth, frameHeight - headerH);
+        ctx.clip();
 
         if (showStructureConfigActions) {
           const actionWidth = Math.max(24, Math.round(28 * layoutScale));
@@ -539,9 +641,18 @@ export function StructuresBoard({
         if (structure.kind === "stack") {
           const slotWidth = Math.min(Math.round(120 * layoutScale), frameWidth * 0.34);
           const slotHeight = Math.max(24, Math.round(34 * layoutScale));
+          const slotGap = Math.round(6 * layoutScale);
           const towerX = frameX + frameWidth * 0.5 - slotWidth * 0.5;
           const baseY = frameY + frameHeight - Math.round(22 * layoutScale);
-          const topY = frameY + Math.round(76 * layoutScale);
+          const topY = graphicTop + Math.round(4 * layoutScale);
+          const bodyH = baseY - topY;
+          const maxFit = Math.max(1, Math.floor(bodyH / (slotHeight + slotGap)));
+          const totalItems = structure.values.length;
+          // Reserve one slot for "+N" label when overflow exists
+          const hasOverflow = totalItems > maxFit;
+          const maxVisible = hasOverflow ? Math.max(1, maxFit - 1) : maxFit;
+          const hiddenCount = Math.max(0, totalItems - maxVisible);
+          const visibleValues = structure.values.slice(hiddenCount);
 
           ctx.strokeStyle = "#7b93ab";
           ctx.lineWidth = Math.max(3, Math.round(5 * layoutScale));
@@ -554,8 +665,8 @@ export function StructuresBoard({
           ctx.lineTo(towerX + slotWidth + Math.round(10 * layoutScale), baseY);
           ctx.stroke();
 
-          structure.values.forEach((node, valueIndex) => {
-            const itemY = baseY - slotHeight - valueIndex * (slotHeight + Math.round(6 * layoutScale));
+          visibleValues.forEach((node, valueIndex) => {
+            const itemY = baseY - slotHeight - valueIndex * (slotHeight + slotGap);
             const item = node as DataNode;
             ctx.fillStyle = item.color ?? structureColor;
             drawRoundedRect(
@@ -581,11 +692,24 @@ export function StructuresBoard({
             );
             ctx.textAlign = "start";
           });
+
+          if (hiddenCount > 0) {
+            const overflowSlotY = baseY - slotHeight - maxVisible * (slotHeight + slotGap);
+            ctx.fillStyle = "#6d8297";
+            ctx.font = `700 ${Math.max(11, Math.round(13 * layoutScale))}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText(
+              `+${hiddenCount}`,
+              towerX + slotWidth / 2,
+              overflowSlotY + Math.round(slotHeight * 0.66)
+            );
+            ctx.textAlign = "start";
+          }
         } else if (structure.kind === "queue") {
           const itemWidth = Math.max(36, Math.round(58 * layoutScale));
           const itemHeight = itemWidth;
           const laneX = frameX + Math.round(20 * layoutScale);
-          const laneY = frameY + Math.round(122 * layoutScale);
+          const laneY = frameY + frameHeight - Math.round(22 * layoutScale);
           const startX = frameX + Math.round(28 * layoutScale);
           const maxVisible = Math.max(
             1,
@@ -627,14 +751,14 @@ export function StructuresBoard({
             ctx.fillText(
               `+${structure.values.length - maxVisible}`,
               frameX + frameWidth - Math.round(54 * layoutScale),
-              frameY + Math.round(96 * layoutScale)
+              graphicTop + Math.round(24 * layoutScale)
             );
           }
         } else {
           const itemWidth = Math.max(36, Math.round(58 * layoutScale));
           const itemHeight = Math.max(28, Math.round(42 * layoutScale));
           const laneX = frameX + Math.round(26 * layoutScale);
-          const laneY = frameY + Math.round(126 * layoutScale);
+          const laneY = frameY + frameHeight - Math.round(22 * layoutScale);
           const startX = frameX + Math.round(30 * layoutScale);
           const maxVisible = Math.max(
             1,
@@ -1185,9 +1309,9 @@ export function StructuresBoard({
                   drawRoundedRect(
                     ctx,
                     frameX + Math.round(14 * layoutScale),
-                    frameY + Math.round(70 * layoutScale),
+                    graphicTop + Math.round(4 * layoutScale),
                     frameWidth - Math.round(28 * layoutScale),
-                    frameHeight - Math.round(84 * layoutScale),
+                    frameHeight - headerH - Math.round(16 * layoutScale),
                     Math.max(10, Math.round(14 * layoutScale))
                   );
                   ctx.fill();
@@ -1232,7 +1356,7 @@ export function StructuresBoard({
             ctx.fillText(
               `+${structure.values.length - maxVisible}`,
               frameX + frameWidth - Math.round(54 * layoutScale),
-              frameY + Math.round(96 * layoutScale)
+              graphicTop + Math.round(24 * layoutScale)
             );
           }
         }
@@ -1244,10 +1368,13 @@ export function StructuresBoard({
           ctx.fillText(
             t("common.empty"),
             frameX + frameWidth / 2,
-            frameY + frameHeight / 2 + Math.round(18 * layoutScale)
+            graphicTop + (frameHeight - headerH) / 2 + Math.round(8 * layoutScale)
           );
           ctx.textAlign = "start";
         }
+
+        // End body clip
+        ctx.restore();
 
         drawResizeHandle(frameX, frameY, frameWidth, frameHeight);
       });
@@ -1551,6 +1678,19 @@ export function StructuresBoard({
           cy >= hb.y + hb.h - HANDLE_PX && cy <= hb.y + hb.h
       ) ?? null;
 
+    const saveLayout = () => {
+      const key = layoutStorageKeyRef.current;
+      if (!key) return;
+      try {
+        localStorage.setItem(key, JSON.stringify({
+          positions: Object.fromEntries(cardPositionsRef.current),
+          sizes: Object.fromEntries(cardSizesRef.current)
+        }));
+      } catch {
+        // storage full or unavailable
+      }
+    };
+
     const handlePointerDown = (event: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
       const px = event.clientX - rect.left;
@@ -1660,12 +1800,14 @@ export function StructuresBoard({
     const handlePointerUp = (event: PointerEvent) => {
       if (cardResizeRef.current) {
         cardResizeRef.current = null;
+        saveLayout();
         canvas.releasePointerCapture(event.pointerId);
         canvas.style.cursor = "default";
         return;
       }
       if (cardDragRef.current) {
         cardDragRef.current = null;
+        saveLayout();
         canvas.releasePointerCapture(event.pointerId);
         canvas.style.cursor = "default";
         return;
