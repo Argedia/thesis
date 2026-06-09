@@ -8,10 +8,12 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.0",
     "@thesis/core-engine": "0.1.0",
     "@thesis/game-system": "0.1.0",
     "@thesis/storage": "0.1.0",
     "@thesis/ui-editor": "0.1.0",
+    "driver.js": "^1.4.0",
     "i18next": "^26.0.4",
     "immer": "^11.1.4",
     "react": "^18.3.1",

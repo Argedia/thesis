@@ -6,10 +6,10 @@ import type {
   StructureTag
 } from "@thesis/game-system";
 import {
-  JsonLevelRepository,
   LocalProgressRepository,
   parseImportedLevelDefinition
 } from "@thesis/storage";
+import { catalogLevelRepository, localLevelRepository } from "../../backend";
 import {
   filterAndSortLevels,
   toggleFilterValue,
@@ -17,7 +17,6 @@ import {
   type SortMode
 } from "./catalog";
 
-const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
 const isCampaignLevel = (level: LevelDefinition): boolean =>
   level.id.startsWith("campaign-");
@@ -58,7 +57,7 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
 
   const loadData = useCallback(async () => {
     const [loadedLevels, progress] = await Promise.all([
-      levelRepository.listLevels(),
+      catalogLevelRepository.listLevels(),
       progressRepository.loadProgress()
     ]);
     const communityLevels = loadedLevels.filter((level) => !isCampaignLevel(level));
@@ -116,7 +115,7 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
     try {
       const raw = await file.text();
       const normalizedLevel = parseImportedLevelDefinition(JSON.parse(raw) as unknown);
-      await levelRepository.importLevel(normalizedLevel);
+      await localLevelRepository.importLevel(normalizedLevel);
       setErrorMessage("");
       await loadData();
       setSourceFilter("my-levels");
