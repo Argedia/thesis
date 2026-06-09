@@ -1,6 +1,3 @@
----
-render_with_liquid: false
----
 # Plan Maestro de Sistema de UI y Theme
 
 ## 1. Propósito del documento
@@ -950,7 +947,7 @@ Mitigación:
 - builds individuales de `ui-editor` y `app`;
 - revisión de imports huérfanos;
 - búsqueda de hex nuevos con `rg "#[0-9a-fA-F]{3,8}"`;
-- búsqueda de `style={{` fuera de módulos permitidos.
+- búsqueda de `style={% raw %}{{{% endraw %}` fuera de módulos permitidos.
 
 ### 19.2 Validación estructural
 
