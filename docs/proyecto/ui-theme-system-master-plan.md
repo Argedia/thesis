@@ -1,3 +1,6 @@
+---
+render_with_liquid: false
+---
 # Plan Maestro de Sistema de UI y Theme
 
 ## 1. Propósito del documento
