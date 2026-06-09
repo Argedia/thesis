@@ -77,7 +77,7 @@ export interface LevelConstraints {
 }
 
 export type LevelSource = "community" | "my-levels";
-export type StructureTag = "stack" | "queue" | "list";
+export type StructureTag = "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list";
 export type LevelDifficulty = "easy" | "medium" | "hard";
 
 export type PlayerPanelId = "board" | "steps" | "timeline";

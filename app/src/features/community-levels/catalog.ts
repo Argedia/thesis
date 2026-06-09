@@ -23,7 +23,7 @@ export interface CommunityLevelFilters {
   structureFilters: StructureTag[];
 }
 
-export const structureOptions: StructureTag[] = ["stack", "queue", "list"];
+export const structureOptions: StructureTag[] = ["stack", "queue", "list", "doubly-linked-list", "circular-list"];
 export const difficultyOptions: LevelDifficulty[] = ["easy", "medium", "hard"];
 export const sourceOptions: Array<LevelSource | "all"> = ["all", "community", "my-levels"];
 

@@ -42,9 +42,9 @@ export interface UiPreferencesRepository {
 
 const playerPanelIdSchema = z.enum(["board", "steps", "timeline"]);
 const editorPanelIdSchema = z.enum(["palette", "canvas", "inspector", "preview", "timeline"]);
-const structureKindSchema = z.enum(["stack", "queue", "list"]);
+const structureKindSchema = z.enum(["stack", "queue", "list", "doubly-linked-list", "circular-list"]);
 const levelSourceSchema = z.enum(["community", "my-levels"]);
-const structureTagSchema = z.enum(["stack", "queue", "list"]);
+const structureTagSchema = z.enum(["stack", "queue", "list", "doubly-linked-list", "circular-list"]);
 const levelDifficultySchema = z.enum(["easy", "medium", "hard"]);
 const dataValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 const levelOperationStateSchema = z.enum(["forbidden", "permitted", "required"]);
@@ -60,15 +60,15 @@ const operationPolicySchema = z.object({
   GET_HEAD: levelOperationStateSchema,
   GET_TAIL: levelOperationStateSchema,
   SIZE: levelOperationStateSchema,
-  PEEK: levelOperationStateSchema,
-  IS_EMPTY: levelOperationStateSchema,
-  GET_AT: levelOperationStateSchema,
-  INSERT_AT: levelOperationStateSchema,
-  REMOVE_AT: levelOperationStateSchema,
-  CONTAINS: levelOperationStateSchema,
-  FIND: levelOperationStateSchema,
-  REVERSE: levelOperationStateSchema,
-  CLEAR: levelOperationStateSchema
+  PEEK: levelOperationStateSchema.default("permitted"),
+  IS_EMPTY: levelOperationStateSchema.default("permitted"),
+  GET_AT: levelOperationStateSchema.default("permitted"),
+  INSERT_AT: levelOperationStateSchema.default("permitted"),
+  REMOVE_AT: levelOperationStateSchema.default("permitted"),
+  CONTAINS: levelOperationStateSchema.default("permitted"),
+  FIND: levelOperationStateSchema.default("permitted"),
+  REVERSE: levelOperationStateSchema.default("permitted"),
+  CLEAR: levelOperationStateSchema.default("permitted")
 });
 
 const importedOperationPolicySchema = z.object({
