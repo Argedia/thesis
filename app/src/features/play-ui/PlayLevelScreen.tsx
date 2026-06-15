@@ -277,13 +277,13 @@ export function PlayLevelScreen() {
   const maxBlocksByRoutine = level.constraints.maxBlocksByRoutine ?? {};
   const activeRoutineLimit = Math.max(
     0,
-    Math.floor(maxBlocksByRoutine[sessionState.document.activeRoutineId] ?? 99)
+    Math.floor(maxBlocksByRoutine[sessionState.document.activeRoutineId] ?? maxBlocksGlobal)
   );
   const otherRoutineBlocks = Math.max(0, totalDocumentBlocks - visibleRoutineOperations);
   const effectiveActiveRoutineBlockLimit = allowAdditionalRoutines
     ? Math.max(0, maxBlocksGlobal - otherRoutineBlocks)
     : activeRoutineLimit;
-  const effectiveDisplayBlockLimit = allowAdditionalRoutines ? maxBlocksGlobal : activeRoutineLimit;
+  const effectiveDisplayBlockLimit = effectiveActiveRoutineBlockLimit;
   const disableCreateRoutine =
     !allowAdditionalRoutines || sessionState.document.routines.length >= maxRoutineCount;
 
@@ -434,6 +434,7 @@ export function PlayLevelScreen() {
             maxSteps={level.constraints.maxSteps}
             maxBlocksForActiveRoutine={effectiveActiveRoutineBlockLimit}
             maxBlocksForDisplay={effectiveDisplayBlockLimit}
+            hideOutputBlocksCounter={effectiveDisplayBlockLimit >= 99}
             outputMode={outputMode}
             visibleRoutineOperations={visibleRoutineOperations}
             dialog={dialog}

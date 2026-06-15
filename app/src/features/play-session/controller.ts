@@ -264,8 +264,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       }
 
       const operationUsageSnapshot = new Map(this.runtimeOperationUsage);
+      const routineCallCountSnapshot = this.runtimeRoutineCallCount;
       this.finishExecution();
-      await this.evaluateProgress(operationUsageSnapshot);
+      await this.evaluateProgress(operationUsageSnapshot, routineCallCountSnapshot);
     } catch (error) {
       const message = error instanceof Error ? error.message : t("playSession.programRunError");
       const outcome = this.resolveFailureOutcome(message);
@@ -293,8 +294,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       const executedInstruction = executeVisibleInstruction(this.buildCtx(prepared), prepared);
       if (!executedInstruction) {
         const operationUsageSnapshot = new Map(this.runtimeOperationUsage);
+        const routineCallCountSnapshot = this.runtimeRoutineCallCount;
         this.finishExecution();
-        await this.evaluateProgress(operationUsageSnapshot);
+        await this.evaluateProgress(operationUsageSnapshot, routineCallCountSnapshot);
         return;
       }
       this.runtimeVisibleStepCount += 1;
@@ -497,7 +499,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     this.resetRuntimeState();
   }
 
-  private async evaluateProgress(operationUsage: ReadonlyMap<string, number>): Promise<void> {
+  private async evaluateProgress(operationUsage: ReadonlyMap<string, number>, routineCallCount = 0): Promise<void> {
     if (!this.state.level || !this.engine) return;
 
     const missingRequiredOperations = getMissingRequiredOperations({
@@ -520,7 +522,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const routineConstraintError = checkRoutineConstraints({
       constraints: this.state.level.constraints,
       routineCount: this.state.document.routines.length,
-      routineCallCount: this.runtimeRoutineCallCount
+      routineCallCount
     });
     if (routineConstraintError) {
       await this.finishAnalyticsAttempt("missing_required_ops", {});

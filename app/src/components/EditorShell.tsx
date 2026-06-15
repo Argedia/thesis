@@ -704,9 +704,7 @@ export function EditorShell(_props: EditorShellProps) {
   const effectiveActiveRoutineBlockLimit = allowAdditionalRoutines
     ? Math.max(0, Math.floor(maxBlocksGlobal) - otherRoutineBlocks)
     : activeRoutineLimit;
-  const effectiveDisplayBlockLimit = allowAdditionalRoutines
-    ? Math.max(0, Math.floor(maxBlocksGlobal))
-    : activeRoutineLimit;
+  const effectiveDisplayBlockLimit = effectiveActiveRoutineBlockLimit;
   const canCreateMoreRoutinesInEditor = allowAdditionalRoutines
     ? document.routines.length < Math.max(1, Math.floor(maxRoutineCount))
     : true;

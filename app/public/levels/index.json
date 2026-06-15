@@ -870,7 +870,10 @@
         "SIZE": "forbidden"
       },
       "forbiddenBlocks": [],
-      "maxSteps": 10
+      "maxSteps": 20,
+      "maxBlocksGlobal": 6,
+      "minRoutineCount": 2,
+      "requiresRoutineCall": true
     },
     "playLayout": {
       "panelOrder": [
@@ -906,7 +909,50 @@
       "availableStructures": [
         "stack"
       ],
-      "advancedToolsEnabled": true
+      "advancedToolsEnabled": true,
+      "starterDocumentJson": "{\"version\":3,\"activeRoutineId\":\"routine-main-05\",\"routines\":[{\"id\":\"routine-main-05\",\"name\":\"principal\",\"program\":{\"id\":\"program-main-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-while-05\",\"kind\":\"while\",\"condition\":null,\"body\":[{\"id\":\"stmt-call-05\",\"kind\":\"routine-call\",\"routineId\":\"routine-helper-05\",\"routineName\":\"mover\",\"args\":[],\"returnKind\":\"none\"}]}]}},{\"id\":\"routine-helper-05\",\"name\":\"mover\",\"program\":{\"id\":\"program-helper-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-funcdef-05\",\"kind\":\"function-definition\",\"routineId\":\"routine-helper-05\",\"name\":\"mover\"}]}}]}",
+      "lockedBlockIds": [
+        "stmt-while-05",
+        "stmt-call-05",
+        "stmt-funcdef-05"
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "custom functions",
+        "naming a reusable action",
+        "abstraction over repeated steps"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces custom functions",
+          "body": "A function lets you name a sequence you want to reuse. Here, the important idea is not only moving values, but packaging that move into a helper so the program becomes repeatable and easier to control.",
+          "concepts": [
+            "function",
+            "reuse",
+            "abstraction"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "The helper should do one clear job",
+          "body": "If the function is hard to reuse, it may be doing too much. A good first function here is a small transfer action that can be called again when needed.",
+          "concepts": [
+            "single responsibility",
+            "helper action"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Reuse beats copy-paste thinking",
+          "body": "This level teaches a structural idea: once a sequence is valid, you should call it again instead of rebuilding the same logic each time in the main flow.",
+          "concepts": [
+            "call again",
+            "main flow vs helper"
+          ]
+        }
+      ]
     }
   },
   {

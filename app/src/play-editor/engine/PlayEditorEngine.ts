@@ -9,7 +9,7 @@ import type {
 import { SelectionState } from "../SelectionState";
 import { ContextMenuRenderer } from "../render/ContextMenuRenderer";
 import { BlockSelectionService } from "../services/BlockSelectionService";
-import { analyzeDocumentRoutines, projectDocumentToEditorBlocks } from "../operations";
+import { analyzeDocumentRoutines, projectDocumentToEditorBlocks, projectProgramToEditorBlocks } from "../operations";
 import { buildEditorLineLayout } from "../model";
 import { HostInteractionController } from "../interaction/HostInteractionController";
 import { t } from "../../i18n-helpers";
@@ -211,7 +211,7 @@ export class PlayEditorEngine {
 					return { allowed: true };
 				}
 				const limit = this.getBlockLimitValue(limitKey);
-				const used = countBlockLimitUsageFromBlocks(this.getBlocks(), limitKey);
+				const used = countBlockLimitUsageFromBlocks(this.getAllRoutineBlocks(), limitKey);
 				const isLevelEditorMode = !!this.props.onSetBlockLimit;
 				if (isLevelEditorMode) {
 					if (limit <= 0 || used >= limit) {
@@ -327,7 +327,7 @@ export class PlayEditorEngine {
 				hide: false
 			};
 		}
-		const used = countBlockLimitUsageFromBlocks(this.getBlocks(), key);
+		const used = countBlockLimitUsageFromBlocks(this.getAllRoutineBlocks(), key);
 		const remaining = Math.max(0, limit - used);
 		return {
 			limit,
@@ -471,6 +471,13 @@ export class PlayEditorEngine {
 
 	private getBlocks(): EditorBlock[] {
 		return projectDocumentToEditorBlocks(this.props.value);
+	}
+
+	private getAllRoutineBlocks(): EditorBlock[] {
+		const signatures = analyzeDocumentRoutines(this.props.value);
+		return this.props.value.routines.flatMap((r) =>
+			projectProgramToEditorBlocks(r.program, signatures)
+		);
 	}
 
 	private isBlockLocked(blockId: string): boolean {

@@ -13,6 +13,10 @@ interface BoardPanelProps {
   isCompleted: boolean;
   isShowingGoalPreview: boolean;
   onTogglePreview?: () => void;
+  onPreviewPointerDown?: () => void;
+  onPreviewPointerUp?: () => void;
+  onPreviewPointerLeave?: () => void;
+  onPreviewPointerCancel?: () => void;
   structures: StructureSnapshot[];
   goalState: StructureSnapshot[];
   variableSnapshots: RuntimeVariableSnapshot[];
@@ -32,6 +36,10 @@ export function BoardPanel({
   isCompleted,
   isShowingGoalPreview,
   onTogglePreview,
+  onPreviewPointerDown,
+  onPreviewPointerUp,
+  onPreviewPointerLeave,
+  onPreviewPointerCancel,
   structures,
   goalState,
   variableSnapshots,
@@ -80,6 +88,10 @@ export function BoardPanel({
             className={`board-preview-action${isShowingGoalPreview ? " is-active" : ""}`}
             {...tutorialAnchorProps("play-preview-goal")}
             onClick={onTogglePreview}
+            onPointerDown={onPreviewPointerDown}
+            onPointerUp={onPreviewPointerUp}
+            onPointerLeave={onPreviewPointerLeave}
+            onPointerCancel={onPreviewPointerCancel}
           >
             {isShowingGoalPreview ? t("common.hideResult") : t("common.previewResult")}
           </button>
