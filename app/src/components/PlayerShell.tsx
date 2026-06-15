@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   type EngineEvent,
   type ExecutionStep,
@@ -30,18 +31,19 @@ const transferProgram: ProgramDefinition = {
 };
 
 const playerTabs: TabBarItem<PlayerPanelId>[] = [
-  { id: "board", label: "Puzzle" },
-  { id: "steps", label: "Steps" },
-  { id: "timeline", label: "Timeline" }
+  { id: "board", label: "" },
+  { id: "steps", label: "" },
+  { id: "timeline", label: "" }
 ];
 
 export interface PlayerShellProps {}
 
 export function PlayerShell(_props: PlayerShellProps) {
+  const { t } = useTranslation();
   const [level, setLevel] = useState<LevelDefinition | null>(null);
   const [structures, setStructures] = useState<StructureSnapshot[]>([]);
   const [events, setEvents] = useState<EngineEvent[]>([]);
-  const [status, setStatus] = useState("Loading puzzle...");
+  const [status, setStatus] = useState(t("player.status.loading"));
   const engineRef = useRef<VisualExecutionEngine | null>(null);
   const activePanel = useUiLayoutStore((state) => state.player.activePanel);
   const isSecondaryPanelOpen = useUiLayoutStore(
@@ -74,7 +76,7 @@ export function PlayerShell(_props: PlayerShellProps) {
         setEvents((current) => [...current, event]);
       });
       engineRef.current = engine;
-      setStatus("Ready to play step by step.");
+      setStatus(t("player.status.ready"));
     };
 
     void load();
@@ -103,7 +105,7 @@ export function PlayerShell(_props: PlayerShellProps) {
     engine.loadProgram(transferProgram);
     setEvents([]);
     syncFromEngine();
-    setStatus("Puzzle reset.");
+    setStatus(t("player.status.reset"));
   };
 
   const runOneStep = () => {
@@ -116,11 +118,11 @@ export function PlayerShell(_props: PlayerShellProps) {
     syncFromEngine();
 
     if (!result) {
-      setStatus("No more steps available.");
+      setStatus(t("player.status.noMoreSteps"));
       return;
     }
 
-    setStatus(`Executed ${result.action.toLowerCase()} step.`);
+    setStatus(t("player.status.executedStep", { action: result.action.toLowerCase() }));
   };
 
   const runAll = async () => {
@@ -145,13 +147,19 @@ export function PlayerShell(_props: PlayerShellProps) {
       lastPlayedLevelId: level?.id
     };
     await progressRepository.saveProgress(progress);
-    setStatus("Finished puzzle run.");
+    setStatus(t("player.status.finished"));
   };
+
+  const tabs = useMemo<TabBarItem<PlayerPanelId>[]>(() => ([
+    { id: "board", label: t("player.tabs.puzzle") },
+    { id: "steps", label: t("player.tabs.steps") },
+    { id: "timeline", label: t("player.tabs.timeline") }
+  ]), [t]);
 
   const panelContent = useMemo(() => {
     if (activePanel === "steps") {
       return (
-        <Panel title="Step Controls" accent="#fff7e8">
+        <Panel title={t("player.panels.stepControls")} accent="#fff7e8">
           <StepControls onStep={() => void runOneStep()} onRun={() => void runAll()} onReset={resetEngine} />
         </Panel>
       );
@@ -159,9 +167,9 @@ export function PlayerShell(_props: PlayerShellProps) {
 
     if (activePanel === "timeline") {
       return (
-        <Panel title="Timeline" accent="#f5fbff">
+        <Panel title={t("player.panels.timeline")} accent="#f5fbff">
           <div className="timeline-list">
-            {events.length === 0 ? <p>No actions yet.</p> : null}
+            {events.length === 0 ? <p>{t("player.noActionsYet")}</p> : null}
             {events.map((event) => (
               <div key={`${event.stepId}-${event.type}-${event.structureId}`} className="timeline-entry">
                 {event.type} · {event.structureId}
@@ -174,40 +182,40 @@ export function PlayerShell(_props: PlayerShellProps) {
     }
 
     return (
-      <Panel title={level?.title ?? "Puzzle"} accent="#ffffff">
+      <Panel title={level?.title ?? t("player.tabs.puzzle")} accent="#ffffff">
         <PuzzleBoard structures={structures} />
       </Panel>
     );
-  }, [activePanel, events, level?.title, structures]);
+  }, [activePanel, events, level?.title, structures, t]);
 
   return (
     <Screen mode="player">
       <div className="player-shell">
         <header className="topbar">
           <Link className="back-link" to={APP_ROUTES.home}>
-            Menu
+            {t("common.menu")}
           </Link>
           <div>
-            <p className="eyebrow">Player Mode</p>
-            <h1>{level?.title ?? "Loading puzzle"}</h1>
+            <p className="eyebrow">{t("player.mode")}</p>
+            <h1>{level?.title ?? t("player.status.loading")}</h1>
           </div>
         </header>
 
         <section className="player-status">
           <p>{status}</p>
           <LargeActionButton
-            label={isSecondaryPanelOpen ? "Hide Extra Panel" : "Show Extra Panel"}
+            label={isSecondaryPanelOpen ? t("player.hideExtraPanel") : t("player.showExtraPanel")}
             onClick={togglePlayerSecondaryPanel}
             tone="secondary"
           />
         </section>
 
-        <TabBar items={playerTabs} activeId={activePanel} onSelect={setPlayerActivePanel} />
+        <TabBar items={tabs} activeId={activePanel} onSelect={setPlayerActivePanel} />
 
         <section className="player-main-panel">{panelContent}</section>
 
         <CollapsiblePanel
-          title="Quick Controls"
+          title={t("player.panels.quickControls")}
           isOpen={isSecondaryPanelOpen}
           onToggle={togglePlayerSecondaryPanel}
         >

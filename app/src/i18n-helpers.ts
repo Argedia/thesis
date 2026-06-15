@@ -10,3 +10,6 @@ export const translateStructureKind = (kind: StructureKind): string =>
 
 export const translateOperationName = (operation: BuilderOperation): string =>
 	t(`operations.${operation}`);
+
+export const translateDifficulty = (difficulty: string): string =>
+	t(`preview.difficultyOption.${difficulty}`);

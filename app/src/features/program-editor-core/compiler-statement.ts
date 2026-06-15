@@ -15,6 +15,7 @@ import {
 	type DeclarationTypeLookup
 } from "./compiler-type-inference";
 import { compileExpression, expressionCanExecuteAtRuntime, expressionProvidesValue } from "./compiler-expression";
+import { t } from "../../i18n-helpers";
 
 export interface CompileContext {
 	routineId: string;
@@ -393,7 +394,7 @@ export const compileStatement = (
 			});
 			loopStack.pop();
 			if (!expressionCanExecuteAtRuntime(statement.condition, signatures)) {
-				context.diagnostics.push("Loop blocks need a complete condition input.");
+				context.diagnostics.push(t("diagnostics.loopConditionIncomplete"));
 			}
 			return;
 		}
@@ -404,10 +405,10 @@ export const compileStatement = (
 				statement.sourceStructureKind !== "queue" &&
 				statement.sourceStructureKind !== "list"
 			) {
-				context.diagnostics.push("For-each only supports linear structures in this version.");
+				context.diagnostics.push(t("diagnostics.forEachLinearOnly"));
 			}
 			if (!statement.sourceStructureId?.trim()) {
-				context.diagnostics.push("For-each needs a source structure.");
+				context.diagnostics.push(t("diagnostics.forEachNeedsSource"));
 			}
 
 			const forEachFrame: LoopCompileFrame = { breakInstructionIps: [] };

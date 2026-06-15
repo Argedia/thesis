@@ -2,6 +2,7 @@ import type { ExpressionNode, RoutineSignature, TypeSignature } from "./types";
 import type { OperationDefinition } from "@thesis/core-engine";
 import { structureExpressionSupportsValue, isSourceOperation, createSourceOperation } from "./compiler-structure-ops";
 import { inferExpressionTypeRef, isTypeCompatible, type DeclarationTypeLookup } from "./compiler-type-inference";
+import { t } from "../../i18n-helpers";
 
 export const expressionProvidesValue = (expression: ExpressionNode | null): boolean => {
 	if (!expression) return false;
@@ -256,7 +257,10 @@ export const compileExpression = (
 				unsupportedFeatures: [],
 				diagnostics: isComplete
 					? []
-					: [`${expression.routineName}.${expression.memberName} is not executable yet.`]
+					: [t("diagnostics.routineMemberNotExecutable", {
+						name: expression.routineName,
+						member: expression.memberName
+					})]
 			};
 		}
 

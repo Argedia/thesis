@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { LevelDefinition } from "@thesis/game-system";
 import { LocalProgressRepository } from "@thesis/storage";
 import { catalogLevelRepository } from "../backend";
 import { Screen } from "@thesis/ui-editor";
 import { APP_ROUTES } from "../types/routes";
+import { translateDifficulty } from "../i18n-helpers";
 
 const progressRepository = new LocalProgressRepository();
 
@@ -21,6 +23,7 @@ const parseCampaignOrder = (level: LevelDefinition): number => {
 };
 
 export function CampaignScreen() {
+  const { t } = useTranslation();
   const [levels, setLevels] = useState<LevelDefinition[]>([]);
   const [completedLevelIds, setCompletedLevelIds] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -55,7 +58,7 @@ export function CampaignScreen() {
       <div className="community-shell campaign-shell">
         <header className="topbar community-topbar campaign-topbar primary-screen-topbar">
           <Link className="back-link" to={APP_ROUTES.home}>
-            Menu
+            {t("common.menu")}
           </Link>
         </header>
 
@@ -63,7 +66,7 @@ export function CampaignScreen() {
 
         {levels.length === 0 ? (
           <section className="campaign-empty">
-            <p>No campaign levels found yet.</p>
+            <p>{t("campaign.empty")}</p>
           </section>
         ) : (
           <section className="campaign-road">
@@ -82,18 +85,18 @@ export function CampaignScreen() {
                   </div>
                   <div className="campaign-card">
                     <h2>{level.title}</h2>
-                    <p>{level.metadata.description ?? "No description."}</p>
+                    <p>{level.metadata.description ?? t("campaign.noDescription")}</p>
                     <div className="campaign-meta">
-                      <span className="mini-tag">{level.metadata.difficulty}</span>
-                      <span className="mini-tag">max {level.constraints.maxSteps} steps</span>
+                      <span className="mini-tag">{translateDifficulty(level.metadata.difficulty)}</span>
+                      <span className="mini-tag">{t("campaign.maxSteps", { count: level.constraints.maxSteps })}</span>
                     </div>
                     {isUnlocked ? (
                       <Link className="menu-link campaign-play-link" to={`${APP_ROUTES.play}/${level.id}`}>
-                        {isCompleted ? "Replay" : "Play"}
+                        {isCompleted ? t("campaign.replay") : t("actions.play")}
                       </Link>
                     ) : (
                       <button className="menu-link campaign-play-link is-locked" type="button" disabled>
-                        Locked
+                        {t("campaign.locked")}
                       </button>
                     )}
                   </div>
