@@ -29,7 +29,8 @@ export class PaletteDerivationService {
 			id: `palette-level-structure-var-${structure.id}`,
 			kind: "var" as const,
 			color: structure.properties?.color ?? "#d8f3dc",
-			outputType: "none" as const,
+			// Structure variables are expression-producing reads and must be slot-eligible.
+			outputType: "value" as const,
 			valueType: null,
 			literalValue: null,
 			declaredTypeRef: { kind: "structure", structureKind: structure.kind },
