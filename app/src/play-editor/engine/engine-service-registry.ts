@@ -337,6 +337,7 @@ export class EngineServiceRegistry {
 						default: return t("editor.paletteLaneBase");
 					}
 				},
+				getPaletteSidePanelLabel: () => t("editor.paletteLaneSidePanel"),
 				getEmptyPaletteLaneText: () => t("editor.paletteLaneEmpty"),
 				isPaletteGroupExpanded: (lane, groupId) =>
 					this.deps.getExpandedPaletteGroupIds().has(`${lane}:${groupId}`),
@@ -518,14 +519,14 @@ export class EngineServiceRegistry {
 					this.getBlockActionController().assignLiteralIntoSlot(slotKey, value, expectedType),
 				clearSlot: (slotKey) => {
 					this.getBlockActionController().clearSlot(slotKey);
-					this.deps.emitStatus("Slot cleared.");
+					this.deps.emitStatus(t("messages.slotCleared"));
 				},
 				onStartProgramPress: (event, block, rect) =>
 					this.getDragInteraction().startProgramPress(event, block, rect),
 				onRemoveBlock: (blockId) => {
 					this.deps.setBlocks(this.deps.removeBlockWithSideEffects(blockId));
 					this.deps.closeWheel();
-					this.deps.emitStatus("Block removed.");
+					this.deps.emitStatus(t("messages.blockRemoved"));
 				},
 				editValueBlock: (blockId, currentValue) => this.deps.editValueBlock(blockId, currentValue),
 				editVariableName: (blockId, currentName) =>
@@ -544,7 +545,7 @@ export class EngineServiceRegistry {
 				},
 				updateVariableOperationMode: (blockId, mode) => {
 					this.getBlockActionController().updateVariableOperationMode(blockId, mode);
-					this.deps.emitStatus("Operation updated.");
+					this.deps.emitStatus(t("messages.operationUpdated"));
 				},
 				registerSlotRef: (slotKey, element) => this.deps.getSlotRefs().set(slotKey, element),
 				registerBlockRef: (blockId, element) => this.deps.getBlockRefs().set(blockId, element),
@@ -554,7 +555,7 @@ export class EngineServiceRegistry {
 					)?.typeName ?? null,
 				convertConditionalKind: (blockId, toKind) => {
 					this.deps.convertConditionalKind(blockId, toKind);
-					this.deps.emitStatus(toKind === "else" ? "Bloque else añadido." : "Bloque else eliminado.");
+					this.deps.emitStatus(toKind === "else" ? t("messages.elseBlockAdded") : t("messages.elseBlockRemoved"));
 				}
 			};
 			this.blockInstanceRenderer = new BlockInstanceRenderer(context);

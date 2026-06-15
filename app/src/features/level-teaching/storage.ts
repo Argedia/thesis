@@ -16,7 +16,8 @@ const loadState = (): LevelTeachingProgressState => {
     const parsed = JSON.parse(raw) as LevelTeachingProgressState;
     return {
       failureCountByLevel: parsed.failureCountByLevel ?? {},
-      completedToursByLevel: parsed.completedToursByLevel ?? {}
+      completedToursByLevel: parsed.completedToursByLevel ?? {},
+      hasSeenPlayLevelBasicsTutorial: parsed.hasSeenPlayLevelBasicsTutorial
     };
   } catch {
     return { failureCountByLevel: {}, completedToursByLevel: {} };

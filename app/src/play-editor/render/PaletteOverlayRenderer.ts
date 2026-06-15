@@ -1,4 +1,5 @@
 import type { WheelOption, WheelState } from "../contracts/types";
+import { t } from "../../i18n-helpers";
 
 const OP_GROUPS: Record<string, string> = {
   PUSH: "Insertar", ENQUEUE: "Insertar", APPEND: "Insertar",
@@ -95,7 +96,7 @@ export class PaletteOverlayRenderer {
       if (filtered.length === 0) {
         const empty = document.createElement("div");
         empty.className = "op-palette-empty";
-        empty.textContent = "Sin resultados";
+        empty.textContent = t("messages.noResults");
         listEl.appendChild(empty);
         this.activeIndex = 0;
         return;

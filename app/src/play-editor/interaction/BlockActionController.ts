@@ -15,9 +15,10 @@ import {
   convertVariableBlock,
   convertVarBlockToFieldAssign,
   convertVarBlockToFieldRead,
-  retargetTypedFieldBlock,
-  retargetVariableBlock
+	retargetTypedFieldBlock,
+	retargetVariableBlock
 } from "./blockActionTransforms";
+import { t } from "../../i18n-helpers";
 
 export interface BlockActionContext {
   isLocked(): boolean;
@@ -137,7 +138,7 @@ export class BlockActionController {
       }
       this.ctx.renameRoutine(block.routineId ?? "routine", nextName);
       this.ctx.emitStatus(
-        block.kind === "type_definition" ? "Type definition renamed." : "Definition renamed."
+        block.kind === "type_definition" ? t("messages.typeDefinitionRenamed") : t("messages.definitionRenamed")
       );
       return;
     }
@@ -153,7 +154,7 @@ export class BlockActionController {
         block.variableSourceId?.startsWith("__level_structure__") &&
         block.declaredTypeRef?.kind === "structure"
       ) {
-        this.ctx.emitStatus("Level structures are pre-instantiated and cannot be retargeted.");
+        this.ctx.emitStatus(t("messages.levelStructuresPreinstantiated"));
         return;
       }
       const target = await this.ctx.promptForScopeVariableTarget(
@@ -167,10 +168,10 @@ export class BlockActionController {
       this.applyBlockUpdate(blockId, (currentBlock) => retargetVariableBlock(currentBlock, target));
       this.ctx.emitStatus(
         block.kind === "var_reference"
-          ? "Reference target selected."
+          ? t("messages.referenceTargetSelected")
           : block.kind === "var_assign"
-            ? "Assignment target selected."
-            : "Variable target selected."
+            ? t("messages.assignmentTargetSelected")
+            : t("messages.variableTargetSelected")
       );
       return;
     }
@@ -184,7 +185,7 @@ export class BlockActionController {
         return;
       }
       this.applyBlockUpdate(blockId, (currentBlock) => retargetTypedFieldBlock(currentBlock, target));
-      this.ctx.emitStatus("Type field target selected.");
+      this.ctx.emitStatus(t("messages.typeFieldTargetSelected"));
       return;
     }
 
@@ -196,7 +197,7 @@ export class BlockActionController {
       ...currentBlock,
       variableName: normalizedName
     }));
-    this.ctx.emitStatus("Variable renamed.");
+    this.ctx.emitStatus(t("messages.variableRenamed"));
   }
 
   public clearSlot(slotKey: string): void {
@@ -224,7 +225,7 @@ export class BlockActionController {
     }
 
     this.ctx.assignLiteralExpressionIntoSlot(slotKey, trimmed, expectedType);
-    this.ctx.emitStatus("Value inserted.");
+    this.ctx.emitStatus(t("messages.valueInserted"));
   }
 
   public async editValueBlock(
@@ -241,6 +242,6 @@ export class BlockActionController {
     const normalizedValue = this.ctx.parseLiteralInput(rawValue);
 
     this.applyBlockUpdate(blockId, (currentBlock) => applyLiteralValueToBlock(currentBlock, normalizedValue));
-    this.ctx.emitStatus("Value updated.");
+    this.ctx.emitStatus(t("messages.valueUpdated"));
   }
 }

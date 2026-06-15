@@ -12,10 +12,7 @@ interface BoardPanelProps {
   levelId: string;
   isCompleted: boolean;
   isShowingGoalPreview: boolean;
-  onPreviewPointerDown?: () => void;
-  onPreviewPointerUp?: () => void;
-  onPreviewPointerLeave?: () => void;
-  onPreviewPointerCancel?: () => void;
+  onTogglePreview?: () => void;
   structures: StructureSnapshot[];
   goalState: StructureSnapshot[];
   variableSnapshots: RuntimeVariableSnapshot[];
@@ -34,10 +31,7 @@ export function BoardPanel({
   levelId: _levelId,
   isCompleted,
   isShowingGoalPreview,
-  onPreviewPointerDown,
-  onPreviewPointerUp,
-  onPreviewPointerLeave,
-  onPreviewPointerCancel,
+  onTogglePreview,
   structures,
   goalState,
   variableSnapshots,
@@ -52,7 +46,7 @@ export function BoardPanel({
   onToggleConfig
 }: BoardPanelProps) {
   const { t } = useTranslation();
-  const [isConsoleExpanded, setIsConsoleExpanded] = useState(false);
+  const [isConsoleExpanded, setIsConsoleExpanded] = useState(true);
   const consoleBodyRef = useRef<HTMLDivElement | null>(null);
   const addStructureLabel = t("board.addStructure");
   const configureBoardLabel = t("board.configureBoard");
@@ -83,14 +77,11 @@ export function BoardPanel({
           ) : null}
           <button
             type="button"
-            className="board-preview-action"
+            className={`board-preview-action${isShowingGoalPreview ? " is-active" : ""}`}
             {...tutorialAnchorProps("play-preview-goal")}
-            onPointerDown={onPreviewPointerDown}
-            onPointerUp={onPreviewPointerUp}
-            onPointerLeave={onPreviewPointerLeave}
-            onPointerCancel={onPreviewPointerCancel}
+            onClick={onTogglePreview}
           >
-            {t("common.previewResult")}
+            {isShowingGoalPreview ? t("common.hideResult") : t("common.previewResult")}
           </button>
           {onToggleConfig ? (
             <TooltipTrigger delay={200} closeDelay={80}>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, DialogTrigger } from "react-aria-components";
+import { Button } from "react-aria-components";
 import { LocalProgressRepository } from "@thesis/storage";
 import { Screen } from "@thesis/ui-editor";
 import {
@@ -22,7 +22,7 @@ import {
 } from "../play-session";
 import { APP_ROUTES } from "../../types/routes";
 import { t as translate } from "../../i18n-helpers";
-import { AppDialog, AppModal, AppPopover } from "../../components/ui/AppOverlay";
+import { AppDialog, AppModal } from "../../components/ui/AppOverlay";
 import { useDialogManager } from "./useDialogManager";
 import { usePanelResize } from "./usePanelResize";
 import { AppDialogs } from "./AppDialogs";
@@ -64,7 +64,7 @@ export function PlayLevelScreen() {
   const navigate = useNavigate();
   const [sessionState, setSessionState] = useState<PlaySessionState>(initialSessionState);
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
-  const [isLevelInfoOpen, setIsLevelInfoOpen] = useState(false);
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
   const [activeTeachingMessage, setActiveTeachingMessage] = useState<LevelTeachingMessage | null>(null);
   const [outputMode, setOutputMode] = useState<"hidden" | "runtime" | "diagnostics">("diagnostics");
   const [viewportWidth, setViewportWidth] = useState(() =>
@@ -75,8 +75,7 @@ export function PlayLevelScreen() {
   const previousStatusRef = useRef<string>("");
   const previousOutcomeRef = useRef(sessionState.lastEvaluationOutcome);
   const uiSessionIdRef = useRef<string>(crypto.randomUUID());
-  const pendingLevelStartTeachingRef = useRef(false);
-  const { activeTutorialId, startTutorial } = useTutorial();
+  const { activeTutorialId: _activeTutorialId, startTutorial } = useTutorial();
 
   const dialog = useDialogManager();
   const isCompactLayout = viewportWidth <= 640;
@@ -109,7 +108,10 @@ export function PlayLevelScreen() {
   }, []);
 
   useEffect(() => {
-    if (levelId) void controller.loadLevel(levelId);
+    if (levelId) {
+      void controller.loadLevel(levelId);
+      setIsInstructionsOpen(true);
+    }
   }, [controller, levelId]);
 
   useEffect(() => {
@@ -135,7 +137,7 @@ export function PlayLevelScreen() {
 
   useEffect(() => {
     if (!sessionState.level) return;
-    const successStatus = "Success! You solved the level.";
+    const successStatus = t("playSession.successSolved");
     const previousStatus = previousStatusRef.current;
     const currentStatus = sessionState.status;
 
@@ -181,42 +183,17 @@ export function PlayLevelScreen() {
     }
 
     const shouldShowFirstLevelWalkthrough = !hasSeenPlayLevelBasicsTutorial();
-    const startMessage =
-      sessionState.level.teaching?.messages.find((message) => message.trigger === "level_start") ?? null;
 
     if (shouldShowFirstLevelWalkthrough) {
-      setActiveTeachingMessage(null);
       window.setTimeout(() => {
         void startTutorial("campaign-level-basics").then((didStart) => {
-          if (!didStart) {
-            setActiveTeachingMessage(startMessage);
-            return;
-          }
-
-          markPlayLevelBasicsTutorialSeen();
-          pendingLevelStartTeachingRef.current = startMessage !== null;
+          if (didStart) markPlayLevelBasicsTutorialSeen();
         });
       }, 120);
-      previousOutcomeRef.current = null;
-      return;
     }
 
-    setActiveTeachingMessage(startMessage);
     previousOutcomeRef.current = null;
   }, [sessionState.level, startTutorial]);
-
-  useEffect(() => {
-    if (
-      activeTutorialId === null &&
-      pendingLevelStartTeachingRef.current &&
-      sessionState.level
-    ) {
-      const startMessage =
-        sessionState.level.teaching?.messages.find((message) => message.trigger === "level_start") ?? null;
-      setActiveTeachingMessage(startMessage);
-      pendingLevelStartTeachingRef.current = false;
-    }
-  }, [activeTutorialId, sessionState.level]);
 
   useEffect(() => {
     if (!sessionState.level) {
@@ -374,53 +351,38 @@ export function PlayLevelScreen() {
   return (
     <Screen mode="player">
       <div className="play-shell">
-        <div className="level-info-dock">
-          <DialogTrigger isOpen={isLevelInfoOpen} onOpenChange={setIsLevelInfoOpen}>
-            <Button
-              className="level-info-toggle"
-              aria-label={isLevelInfoOpen ? t("common.hideLevelInfo") : t("common.showLevelInfo")}
-            >
-              i
-            </Button>
-            <AppPopover className="level-info-popover" placement="bottom end">
-              <AppDialog aria-label={t("common.playMode")} className="level-info-panel">
-                <div className="level-info-header">
-                  <div className="level-info-title-group">
-                    <p className="eyebrow">{t("common.playMode")}</p>
-                    <h1>{level.title}</h1>
-                  </div>
-                  <Link className="back-link level-info-back" to={APP_ROUTES.play}>{t("common.levels")}</Link>
-                </div>
-                <div className="level-info-actions">
-                  <span className="mini-tag">{t("common.goal")}</span>
-                  <span className="mini-tag">{t("common.maxSteps")}: {level.constraints.maxSteps}</span>
-                </div>
-                <div className="level-info-actions">
-                  {permittedOperations.map((op) => (
-                    <span key={op} className="mini-tag">{t(`operations.${op}`)}</span>
-                  ))}
-                </div>
-                <p className="level-info-description">
-                  {level.metadata.description ?? t("common.solvePuzzle")}
-                </p>
-                {level.teaching ? (
-                  <div className="app-dialog-actions">
-                    <Button
-                      className="app-dialog-button"
-                      onPress={() => {
-                        const startMessage =
-                          level.teaching?.messages.find((message) => message.trigger === "level_start") ?? null;
-                        setActiveTeachingMessage(startMessage);
-                        setIsLevelInfoOpen(false);
-                      }}
-                    >
-                      What this level introduces
-                    </Button>
-                  </div>
-                ) : null}
-              </AppDialog>
-            </AppPopover>
-          </DialogTrigger>
+        <div className="topbar primary-screen-topbar play-level-topbar">
+          <div className="play-level-topbar-left">
+            <Link className="back-link" to={APP_ROUTES.campaign}>{t("common.levels")}</Link>
+            <div className="play-level-title-group">
+              <p className="eyebrow">{level.id.startsWith("campaign-") ? t("menu.campaign") : t("common.playMode")}</p>
+              <h1>{level.title}</h1>
+            </div>
+          </div>
+          {(() => {
+            const startMessage = level.teaching?.messages.find((m) => m.trigger === "level_start");
+            if (!startMessage) return null;
+            return (
+              <div className={`play-level-instructions${isInstructionsOpen ? "" : " is-collapsed"}`}>
+                <button
+                  type="button"
+                  className="play-level-instructions-toggle"
+                  onClick={() => setIsInstructionsOpen((v) => !v)}
+                  aria-label={isInstructionsOpen ? "Collapse instructions" : "Expand instructions"}
+                >
+                  {isInstructionsOpen ? "▸" : "▸"}
+                </button>
+                {isInstructionsOpen ? (
+                  <>
+                    <p className="play-level-instructions-title">{startMessage.title}</p>
+                    <p className="play-level-instructions-body">{startMessage.body}</p>
+                  </>
+                ) : (
+                  <p className="play-level-instructions-title">{startMessage.title}</p>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <AppModal
@@ -503,24 +465,15 @@ export function PlayLevelScreen() {
             levelId={level.id}
             isCompleted={sessionState.completedLevelIds.includes(level.id)}
             isShowingGoalPreview={isShowingGoalPreview}
-            onPreviewPointerDown={() => {
-              setIsShowingGoalPreview(true);
+            onTogglePreview={() => {
+              const next = !isShowingGoalPreview;
+              setIsShowingGoalPreview(next);
               void analyticsRepository.logEvent({
                 sessionId: uiSessionIdRef.current,
                 levelId: level.id,
-                eventType: "goal_preview_started"
+                eventType: next ? "goal_preview_started" : "goal_preview_ended"
               });
             }}
-            onPreviewPointerUp={() => {
-              setIsShowingGoalPreview(false);
-              void analyticsRepository.logEvent({
-                sessionId: uiSessionIdRef.current,
-                levelId: level.id,
-                eventType: "goal_preview_ended"
-              });
-            }}
-            onPreviewPointerLeave={() => setIsShowingGoalPreview(false)}
-            onPreviewPointerCancel={() => setIsShowingGoalPreview(false)}
             onReset={() => controller.reset()}
             isRunning={sessionState.runState === "running"}
             structures={sessionState.structures}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
-const DEFAULT_LEFT_PANE_RATIO = 0.75;
+const DEFAULT_LEFT_PANE_RATIO = 0.60;
 
 const clampLeftPaneWidth = (requestedWidth: number, containerWidth: number): number => {
   const splitterWidth = 8;

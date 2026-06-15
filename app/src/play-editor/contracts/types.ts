@@ -3,6 +3,8 @@ import type { EditorBlock, PaletteBlock, ControlBodyKey } from "../model";
 export interface PendingPress {
   pointerId: number;
   blockId: string;
+  paletteBlock?: PaletteBlock;
+  isPalette?: boolean;
   blockKind: EditorBlock["kind"];
   structureId?: string;
   structureKind?: PaletteBlock["structureKind"];

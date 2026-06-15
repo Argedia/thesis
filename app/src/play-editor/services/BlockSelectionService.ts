@@ -2,6 +2,7 @@ import { produce } from "immer";
 import type { EditorBlock } from "../model";
 import type { SelectionState } from "../SelectionState";
 import { findParentBodyOf } from "./blockTreeSearch";
+import { t } from "../../i18n-helpers";
 
 const generateId = (): string =>
   `blk-${Math.random().toString(36).slice(2, 9)}-${Date.now().toString(36)}`;
@@ -38,7 +39,9 @@ export class BlockSelectionService {
     }
     this.ctx.setBlocks(blocks);
     selection.clear();
-    this.ctx.emitStatus(topIds.length === 1 ? "Block removed." : `${topIds.length} blocks removed.`);
+    this.ctx.emitStatus(
+      topIds.length === 1 ? t("messages.blockRemoved") : t("messages.blocksRemoved", { count: topIds.length })
+    );
   }
 
   /** Duplicate selected top-level blocks, inserting clones after the last selected block. */
@@ -60,7 +63,9 @@ export class BlockSelectionService {
     // Select the newly created clones
     selection.clear();
     clones.forEach((c) => selection.ctrlToggle(c.id));
-    this.ctx.emitStatus(clones.length === 1 ? "Block duplicated." : `${clones.length} blocks duplicated.`);
+    this.ctx.emitStatus(
+      clones.length === 1 ? t("messages.blockDuplicated") : t("messages.blocksDuplicated", { count: clones.length })
+    );
   }
 }
 

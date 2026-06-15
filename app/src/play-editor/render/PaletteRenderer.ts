@@ -25,6 +25,7 @@ export interface PaletteRendererContext {
   getIsSidePaletteCollapsed(): boolean;
   setIsSidePaletteCollapsed(collapsed: boolean): void;
   getPaletteLaneLabel(lane: PaletteLaneId): string;
+  getPaletteSidePanelLabel(): string;
   getEmptyPaletteLaneText(): string;
   isPaletteGroupExpanded(lane: PaletteLaneId, groupId: PaletteGroupId): boolean;
   togglePaletteGroupExpanded(lane: PaletteLaneId, groupId: PaletteGroupId): void;
@@ -45,14 +46,24 @@ export interface PaletteRendererContext {
 export class PaletteRenderer {
   public constructor(private readonly ctx: PaletteRendererContext) {}
 
+  private hasVisibleBlocksInLane(...lanes: PaletteLaneId[]): boolean {
+    return lanes.some((lane) =>
+      this.getFilteredBlocksByLane(lane).some(
+        (block) => !this.ctx.getPaletteBlockLimitState(block)?.hide
+      )
+    );
+  }
+
   private createPanelHeader(
     title: string,
     isCollapsed: boolean,
+    isEmpty: boolean,
     side: "left" | "right",
     onToggle: () => void
   ): HTMLDivElement {
     const header = document.createElement("div");
     header.className = "ide-output-tabs palette-panel-tabs";
+    if (isEmpty) header.classList.add("palette-panel-tabs-empty");
 
     const label = document.createElement("span");
     label.className = "ide-output-tab active palette-panel-title";
@@ -64,6 +75,9 @@ export class PaletteRenderer {
     toggle.className = "ide-output-toggle palette-panel-toggle";
     toggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
     toggle.setAttribute("aria-label", isCollapsed ? "Expand panel" : "Collapse panel");
+    if (isEmpty) {
+      toggle.disabled = true;
+    }
     if (side === "left") {
       toggle.textContent = isCollapsed ? "▸" : "◂";
     } else {
@@ -125,6 +139,11 @@ export class PaletteRenderer {
       button.classList.add("palette-declaration-function-ready");
     }
     this.ctx.applyBlockColor(button, block.color);
+
+    const dragDots = document.createElement("span");
+    dragDots.className = "block-drag-handle";
+    dragDots.setAttribute("aria-hidden", "true");
+    button.appendChild(dragDots);
 
     const descriptor = this.ctx.getDefinitionDescriptor(block);
     if (descriptor.chip) {
@@ -310,7 +329,9 @@ export class PaletteRenderer {
   }
 
   public renderLeft(container: HTMLElement): void {
-    container.classList.toggle("palette-left-collapsed", this.ctx.getIsBasePaletteCollapsed());
+    const isEmpty = !this.hasVisibleBlocksInLane("base");
+    const isCollapsed = this.ctx.getIsBasePaletteCollapsed();
+    container.classList.toggle("palette-left-collapsed", isCollapsed || isEmpty);
     const palette = document.createElement("aside");
     palette.className = "scratch-palette scratch-palette-left";
     setTutorialAnchor(palette, "editor-palette-base");
@@ -320,20 +341,18 @@ export class PaletteRenderer {
     if (this.ctx.getIsActiveRoutineType()) {
       palette.classList.add("type-routine");
     }
-    if (this.ctx.getIsBasePaletteCollapsed()) {
+    if (isCollapsed || isEmpty) {
       palette.classList.add("collapsed");
     }
-
-    const isCollapsed = this.ctx.getIsBasePaletteCollapsed();
     palette.appendChild(
-      this.createPanelHeader(this.ctx.getPaletteLaneLabel("base"), isCollapsed, "left", () => {
+      this.createPanelHeader(this.ctx.getPaletteLaneLabel("base"), isCollapsed || isEmpty, isEmpty, "left", () => {
         this.ctx.setIsBasePaletteCollapsed(!isCollapsed);
       })
     );
 
     const body = document.createElement("div");
     body.className = "palette-panel-body";
-    if (!isCollapsed) {
+    if (!isCollapsed && !isEmpty) {
       const heading = document.createElement("div");
       heading.className = "builder-heading";
       heading.innerHTML = `<strong>${this.ctx.getBlocksHeadingText()}</strong><span>${this.ctx.getDragHintText()}</span>`;
@@ -347,7 +366,9 @@ export class PaletteRenderer {
   }
 
   public renderRight(container: HTMLElement): void {
-    container.classList.toggle("palette-right-collapsed", this.ctx.getIsSidePaletteCollapsed());
+    const isEmpty = !this.hasVisibleBlocksInLane("scope", "created");
+    const isCollapsed = this.ctx.getIsSidePaletteCollapsed();
+    container.classList.toggle("palette-right-collapsed", isCollapsed || isEmpty);
     const palette = document.createElement("aside");
     palette.className = "scratch-palette scratch-palette-right";
     setTutorialAnchor(palette, "editor-palette-side");
@@ -357,15 +378,14 @@ export class PaletteRenderer {
     if (this.ctx.getIsActiveRoutineType()) {
       palette.classList.add("type-routine");
     }
-    if (this.ctx.getIsSidePaletteCollapsed()) {
+    if (isCollapsed || isEmpty) {
       palette.classList.add("collapsed");
     }
-
-    const isCollapsed = this.ctx.getIsSidePaletteCollapsed();
     palette.appendChild(
       this.createPanelHeader(
-        `${this.ctx.getPaletteLaneLabel("scope")} + ${this.ctx.getPaletteLaneLabel("created")}`,
-        isCollapsed,
+        this.ctx.getPaletteSidePanelLabel(),
+        isCollapsed || isEmpty,
+        isEmpty,
         "right",
         () => {
           this.ctx.setIsSidePaletteCollapsed(!isCollapsed);
@@ -375,32 +395,18 @@ export class PaletteRenderer {
 
     const body = document.createElement("div");
       body.className = "palette-panel-body";
-      if (!isCollapsed) {
+      if (!isCollapsed && !isEmpty) {
         const sideStack = document.createElement("div");
         sideStack.className = "palette-side-stack";
 
-      const scopeGroups = this.createLaneGroupsContainer("scope", "palette-groups palette-side-groups");
-      if (scopeGroups.childElementCount > 0) {
-        const scopeSection = document.createElement("section");
-        scopeSection.className = "palette-side-section";
-        const scopeHeading = document.createElement("h4");
-        scopeHeading.className = "palette-side-heading";
-        scopeHeading.textContent = this.ctx.getPaletteLaneLabel("scope");
-        scopeSection.appendChild(scopeHeading);
-        scopeSection.appendChild(scopeGroups);
-        sideStack.appendChild(scopeSection);
+      if (this.hasVisibleBlocksInLane("scope")) {
+        const scopeGroups = this.createLaneGroupsContainer("scope", "palette-groups palette-side-groups");
+        sideStack.appendChild(scopeGroups);
       }
 
-      const createdGroups = this.createLaneGroupsContainer("created", "palette-groups palette-side-groups");
-      if (createdGroups.childElementCount > 0) {
-        const createdSection = document.createElement("section");
-        createdSection.className = "palette-side-section";
-        const createdHeading = document.createElement("h4");
-        createdHeading.className = "palette-side-heading";
-        createdHeading.textContent = this.ctx.getPaletteLaneLabel("created");
-        createdSection.appendChild(createdHeading);
-        createdSection.appendChild(createdGroups);
-        sideStack.appendChild(createdSection);
+      if (this.hasVisibleBlocksInLane("created")) {
+        const createdGroups = this.createLaneGroupsContainer("created", "palette-groups palette-side-groups");
+        sideStack.appendChild(createdGroups);
       }
 
       body.appendChild(sideStack);

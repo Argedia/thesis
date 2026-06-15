@@ -8,6 +8,7 @@ import type {
 	VariableOperationMode
 } from "../types";
 import { blockColorClass } from "./block-descriptors";
+import { t } from "../../../i18n-helpers";
 import {
 	VARIABLE_BINARY_OPERATION_MODES,
 	VARIABLE_UNARY_OPERATION_MODES,
@@ -60,7 +61,7 @@ export const buildWheelOptions = (
 		})),
 		{
 			operation: null,
-			label: "Base",
+			label: t("editor.base"),
 			className: "sky",
 			disabled: false
 		}
@@ -72,12 +73,12 @@ export const buildConditionalWheelOptions = (
 ): ConditionalWheelOption[] => [
 		{
 			mode: "if",
-			label: "If Only",
+			label: t("editor.conditionalIfOnly"),
 			className: currentMode === "if" ? "rose" : "sky"
 		},
 		{
 			mode: "if-else",
-			label: "If / Else",
+			label: t("editor.conditionalIfElse"),
 			className: currentMode === "if-else" ? "rose" : "sky"
 		}
 	];
@@ -218,12 +219,12 @@ export const buildDeclarationBindingWheelOptions = (
 ): DeclarationBindingWheelOption[] => [
 		{
 			bindingKind: "declare",
-			label: "declare",
+			label: t("bindings.declare"),
 			className: currentBindingKind === "declare" ? "mint selected" : "mint"
 		},
 		{
 			bindingKind: "expect",
-			label: "expect",
+			label: t("bindings.expect"),
 			className: currentBindingKind === "expect" ? "sky selected" : "sky"
 		}
 	];

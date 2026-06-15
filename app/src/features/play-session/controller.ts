@@ -21,6 +21,7 @@ import type {
   PlaySessionDependencies,
   PlaySessionState
 } from "./types";
+import { t } from "../../i18n-helpers";
 import { goalMatches } from "./runtime/progress";
 import {
   getHeapSnapshots,
@@ -49,7 +50,7 @@ const createInitialState = (): PlaySessionState => {
     stepCursor: 0,
     breakpointNodeIds: [],
     highlightedNodeId: null,
-    status: "Loading level...",
+    status: t("playSession.loadingLevel"),
     lastEvaluationOutcome: null,
     completedLevelIds: [],
     compiledProgram: compileEditorDocument(document),
@@ -162,7 +163,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       highlightedNodeId: null,
       runState: "idle",
       lastEvaluationOutcome: null,
-      status: "Drag blocks into the editor and choose an action with the arrow tab."
+      status: t("playSession.dragBlocksHint")
     });
     await this.ensureAnalyticsAttempt(loadedLevel.id, loadedLevel.title);
     await this.logAnalyticsEvent("level_loaded", {
@@ -200,7 +201,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
     const nextDocument = addRoutine(this.state.document, name);
     const nextRoutine = getActiveRoutine(nextDocument);
     this.setDocument(nextDocument);
-    this.patchState({ status: `Routine "${nextRoutine.name}" created.` });
+    this.patchState({ status: t("playSession.routineCreated", { name: nextRoutine.name }) });
     void this.logAnalyticsEvent("routine_created", {
       routineId: nextRoutine.id,
       routineName: nextRoutine.name
@@ -246,7 +247,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
           currentPoint.instruction.breakpointable &&
           this.state.breakpointNodeIds.includes(currentPoint.instruction.nodeId)
         ) {
-          this.patchState({ runState: "paused", status: "Paused at breakpoint." });
+          this.patchState({ runState: "paused", status: t("playSession.pausedAtBreakpoint") });
           return;
         }
 
@@ -258,7 +259,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       }
 
       if (this.runAbort) {
-        this.patchState({ status: "Paused." });
+        this.patchState({ status: t("playSession.paused") });
         return;
       }
 
@@ -266,7 +267,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.finishExecution();
       await this.evaluateProgress(operationUsageSnapshot);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "The program could not run.";
+      const message = error instanceof Error ? error.message : t("playSession.programRunError");
       const outcome = this.resolveFailureOutcome(message);
       await this.finishAnalyticsAttempt(outcome, {
         errorMessage: message
@@ -301,11 +302,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.patchState({
         status:
           executedInstruction.kind === "eval-condition"
-            ? `Condition evaluated to ${this.lastConditionResult ? "true" : "false"}.`
-            : "One block executed."
+            ? t("playSession.conditionEvaluated", {
+                result: this.lastConditionResult ? t("playSession.conditionTrue") : t("playSession.conditionFalse")
+              })
+            : t("playSession.oneBlockExecuted")
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "The program could not run.";
+      const message = error instanceof Error ? error.message : t("playSession.programRunError");
       const outcome = this.resolveFailureOutcome(message);
       await this.finishAnalyticsAttempt(outcome, {
         errorMessage: message
@@ -317,7 +320,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
   public pause(): void {
     this.runAbort = true;
-    this.patchState({ runState: "paused", status: "Paused." });
+    this.patchState({ runState: "paused", status: t("playSession.paused") });
     void this.logAnalyticsEvent("run_paused", {
       visibleSteps: this.runtimeVisibleStepCount
     });
@@ -336,7 +339,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       document: this.restoreSelectedRoutine(this.state.document),
       structures: this.state.level.initialState,
       lastEvaluationOutcome: null,
-      status: "Reset. Try a different sequence."
+      status: t("playSession.resetTryDifferent")
     });
     void this.logAnalyticsEvent("level_reset", {
       visibleSteps: this.runtimeVisibleStepCount
@@ -371,7 +374,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       highlightedNodeId: null,
       structures: this.state.level?.initialState ?? [],
       lastEvaluationOutcome: null,
-      status: "Editor cleared."
+      status: t("playSession.editorCleared")
     });
     void this.logAnalyticsEvent("editor_cleared");
   }
@@ -446,17 +449,17 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.state.compiledProgram.routines[activeRoutine.id] ?? this.state.compiledProgram;
 
     if (activeRoutine.program.statements.length === 0) {
-      this.patchState({ status: "Drag at least one block into the editor." });
+      this.patchState({ status: t("playSession.dragOneBlock") });
       return null;
     }
 
     if (DefaultPlaySessionController.findOrphanElse(activeRoutine.program.statements)) {
-      this.patchState({ status: "Cada bloque 'Sino' debe ir inmediatamente después de un bloque 'Si'." });
+      this.patchState({ status: t("playSession.orphanElse") });
       return null;
     }
 
     if (!activeCompiled.isComplete) {
-      const diagnostic = activeCompiled.diagnostics[0] ?? "Finish each block and fill any missing value slots.";
+      const diagnostic = activeCompiled.diagnostics[0] ?? t("playSession.finishBlocksHint");
       this.patchState({ status: diagnostic });
       return null;
     }
@@ -507,7 +510,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
       });
       this.patchState({
         lastEvaluationOutcome: "missing_required_ops",
-        status: `Missing required operations: ${missingRequiredOperations.join(", ")}.`
+        status: t("playSession.missingRequiredOperations", {
+          operations: missingRequiredOperations.join(", ")
+        })
       });
       return;
     }
@@ -530,13 +535,13 @@ export class DefaultPlaySessionController implements PlaySessionController {
     if (goalMatches(nextStructures, this.state.level.goalState)) {
       await this.finishAnalyticsAttempt("success");
       await this.persistCompletion();
-      this.patchState({ lastEvaluationOutcome: "success", status: "Success! You solved the level." });
+      this.patchState({ lastEvaluationOutcome: "success", status: t("playSession.successSolved") });
       return;
     }
     await this.finishAnalyticsAttempt("goal_mismatch");
     this.patchState({
       lastEvaluationOutcome: "goal_mismatch",
-      status: "Your program finished, but it does not match the goal yet."
+      status: t("playSession.goalMismatch")
     });
   }
 

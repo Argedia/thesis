@@ -177,7 +177,7 @@ export class EditorCanvasRenderer {
 
     const elseTag = document.createElement("div");
     elseTag.className = "editor-else-pill";
-    elseTag.textContent = "else";
+    elseTag.textContent = t("blocks.else").toLowerCase();
     if (block.color) {
       elseTag.style.backgroundColor = block.color;
       elseTag.style.borderColor = block.color;
@@ -303,7 +303,7 @@ export class EditorCanvasRenderer {
     element.addEventListener("contextmenu", (event) => {
       event.preventDefault();
       if (blockLocked) {
-        this.ctx.emitStatus("This block is locked by level configuration.");
+        this.ctx.emitStatus(t("messages.lockedBlockByLevel"));
         return;
       }
       this.ctx.onBlockRightClick(event as unknown as PointerEvent, block);

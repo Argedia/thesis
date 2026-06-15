@@ -11,6 +11,7 @@ import type {
 	TypeSignature
 } from "./types";
 import { collectRoutineDeclarationTypes, type CompileContext, compileStatement } from "./compiler-statement";
+import { t } from "../../i18n-helpers";
 
 // Merges standalone `mode: "else"` statements into the elseBody of the preceding if-statement.
 // This normalizes the editor's standalone else representation into proper if-else AST for compilation.
@@ -157,11 +158,11 @@ export const compileEditorDocument = (document: EditorDocument): CompileResult =
 			) return;
 			const targetRoutine = routines[instruction.routineId];
 			if (!targetRoutine) {
-				extraDiagnostics.push("A routine call points to a missing routine.");
+				extraDiagnostics.push(t("diagnostics.missingRoutineCallTarget"));
 				return;
 			}
 			if (!targetRoutine.isComplete) {
-				extraDiagnostics.push(`${targetRoutine.routineName} is not executable yet.`);
+				extraDiagnostics.push(t("diagnostics.routineNotExecutable", { name: targetRoutine.routineName }));
 			}
 		});
 		if (extraDiagnostics.length > 0) {

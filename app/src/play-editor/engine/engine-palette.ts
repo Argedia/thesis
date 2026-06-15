@@ -43,7 +43,7 @@ export const createBlockFromPalette = async (options: {
 		}
 		const alreadyExists = options.getBlocks().some((currentBlock) => currentBlock.kind === "function_definition");
 		if (alreadyExists) {
-			options.emitStatus("Only one definition block is allowed per routine.");
+			options.emitStatus(t("messages.definitionBlockExists"));
 			return null;
 		}
 		const routineId = block.routineId ?? options.props.value.activeRoutineId;
@@ -59,7 +59,7 @@ export const createBlockFromPalette = async (options: {
 		}
 		const alreadyExists = options.getBlocks().some((currentBlock) => currentBlock.kind === "type_definition");
 		if (alreadyExists) {
-			options.emitStatus("Only one type definition block is allowed per routine.");
+			options.emitStatus(t("messages.typeDefinitionBlockExists"));
 			return null;
 		}
 		const routineId = block.routineId ?? options.props.value.activeRoutineId;
@@ -78,7 +78,7 @@ export const createBlockFromPalette = async (options: {
 	}
 	if (block.kind === "for_each") {
 		if (!block.forEachSourceStructureId || !block.forEachSourceStructureKind) {
-			options.emitStatus("For-each source structure is missing.");
+			options.emitStatus(t("messages.forEachSourceMissing"));
 			return null;
 		}
 		return createForEachBlock(
@@ -154,7 +154,7 @@ export const createBlockFromPalette = async (options: {
 	if (block.kind === "value") {
 		const literalValue = await options.promptForValueText(block.literalValue ?? "item");
 		if (literalValue === null) {
-			options.emitStatus("Value block cancelled.");
+			options.emitStatus(t("messages.valueBlockCancelled"));
 			return null;
 		}
 		return createValueBlock(options.parseLiteralInput(literalValue));
@@ -162,7 +162,7 @@ export const createBlockFromPalette = async (options: {
 	if (block.kind === "return") {
 		const hasDefinition = options.getBlocks().some((currentBlock) => currentBlock.kind === "function_definition");
 		if (!hasDefinition) {
-			options.emitStatus("Return requires a definition block in this routine.");
+			options.emitStatus(t("messages.returnRequiresDefinition"));
 			return null;
 		}
 		return createReturnBlock(block.color);
@@ -205,7 +205,7 @@ export const createBlockFromPalette = async (options: {
 		return createEditorBlock(block.structureId, block.structureKind, block.color);
 	}
 
-	options.emitStatus(`Unsupported palette block kind: ${block.kind}`);
+	options.emitStatus(t("messages.unsupportedPaletteBlockKind", { kind: block.kind }));
 	return null;
 };
 
@@ -239,7 +239,7 @@ export const handlePaletteBlockInserted = async (options: {
 		});
 		if (!declarationSpec) {
 			options.removeProjectedBlockById(block.id);
-			options.emitStatus("Variable declaration cancelled.");
+			options.emitStatus(t("messages.variableDeclarationCancelled"));
 			return;
 		}
 		options.replaceProjectedBlockById(block.id, (currentBlock) => ({
@@ -247,7 +247,7 @@ export const handlePaletteBlockInserted = async (options: {
 			variableName: declarationSpec.name,
 			declaredTypeRef: declarationSpec.declaredTypeRef
 		}));
-		options.emitStatus("Variable created.");
+		options.emitStatus(t("messages.variableCreated"));
 		return;
 	}
 
@@ -258,14 +258,14 @@ export const handlePaletteBlockInserted = async (options: {
 		);
 		if (!itemName) {
 			options.removeProjectedBlockById(block.id);
-			options.emitStatus("For-each creation cancelled.");
+			options.emitStatus(t("messages.forEachCreationCancelled"));
 			return;
 		}
 		options.replaceProjectedBlockById(block.id, (currentBlock) => ({
 			...currentBlock,
 			forEachItemName: itemName
 		}));
-		options.emitStatus("For-each created.");
+		options.emitStatus(t("messages.forEachCreated"));
 		return;
 	}
 
@@ -273,7 +273,7 @@ export const handlePaletteBlockInserted = async (options: {
 		const target = await options.promptForScopeVariableTarget(block.variableSourceId);
 		if (!target) {
 			options.removeProjectedBlockById(block.id);
-			options.emitStatus("Assignment creation cancelled.");
+			options.emitStatus(t("messages.assignmentCreationCancelled"));
 			return;
 		}
 		options.replaceProjectedBlockById(block.id, (currentBlock) => ({
@@ -281,7 +281,7 @@ export const handlePaletteBlockInserted = async (options: {
 			variableName: target.name,
 			variableSourceId: target.id
 		}));
-		options.emitStatus("Assignment created.");
+		options.emitStatus(t("messages.assignmentCreated"));
 		return;
 	}
 
@@ -289,7 +289,7 @@ export const handlePaletteBlockInserted = async (options: {
 		const target = await options.promptForScopeVariableTarget(block.referenceTargetId);
 		if (!target) {
 			options.removeProjectedBlockById(block.id);
-			options.emitStatus("Reference creation cancelled.");
+			options.emitStatus(t("messages.referenceCreationCancelled"));
 			return;
 		}
 		options.replaceProjectedBlockById(block.id, (currentBlock) => ({
@@ -298,7 +298,7 @@ export const handlePaletteBlockInserted = async (options: {
 			referenceTargetKind: "variable",
 			referenceTargetId: target.id
 		}));
-		options.emitStatus("Reference created.");
+		options.emitStatus(t("messages.referenceCreated"));
 		return;
 	}
 
@@ -309,7 +309,7 @@ export const handlePaletteBlockInserted = async (options: {
 		});
 		if (!target) {
 			options.removeProjectedBlockById(block.id);
-			options.emitStatus("Type field block creation cancelled.");
+			options.emitStatus(t("messages.typeFieldCreationCancelled"));
 			return;
 		}
 		options.replaceProjectedBlockById(block.id, (currentBlock) => ({
@@ -318,6 +318,6 @@ export const handlePaletteBlockInserted = async (options: {
 			variableName: target.variableName,
 			typeFieldName: target.fieldName
 		}));
-		options.emitStatus("Type field block created.");
+		options.emitStatus(t("messages.typeFieldCreated"));
 	}
 };

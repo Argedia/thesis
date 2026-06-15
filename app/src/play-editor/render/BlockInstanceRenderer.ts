@@ -363,6 +363,13 @@ export class BlockInstanceRenderer {
       }`.trim();
 		this.ctx.applyBlockColor(element, block.color);
 
+		if (!nested) {
+			const dragDots = document.createElement("span");
+			dragDots.className = "block-drag-handle";
+			dragDots.setAttribute("aria-hidden", "true");
+			element.appendChild(dragDots);
+		}
+
 		const main = document.createElement("div");
 		main.className = "editor-block-instance-main";
 		this.appendBlockInstanceContent(block, main, { ghost });

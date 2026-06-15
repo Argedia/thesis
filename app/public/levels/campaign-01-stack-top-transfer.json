@@ -61,7 +61,8 @@
       "var_reference": 0,
       "var_operation": 0
     },
-    "maxSteps": 6
+    "maxSteps": 6,
+    "allowAdditionalRoutines": false
   },
   "playLayout": {
     "panelOrder": ["board", "steps", "timeline"],

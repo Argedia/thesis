@@ -527,6 +527,14 @@
 	margin: 0;
 }
 
+.palette-panel-tabs-empty {
+	opacity: 0.45;
+}
+
+.palette-panel-tabs-empty .palette-panel-toggle {
+	visibility: hidden;
+}
+
 .ide-editor-frame .palette-side-shell {
 	min-height: 0;
 	max-height: 100%;
@@ -674,7 +682,7 @@
 	align-items: baseline;
 	gap: 0.45rem;
 	color: #2a3a4a;
-	font-size: 0.8rem;
+	font-size: 0.92rem;
 	line-height: 1.5;
 	min-width: 0;
 }
@@ -685,7 +693,7 @@
 
 /* console-specific */
 .console-muted  { color: #7a8ea8; font-style: italic; }
-.console-status { color: #1a7a45; font-weight: 600; padding-top: 0.2rem; border-top: 1px solid #c8d8ec; margin-top: 0.1rem; }
+.console-status { color: #1a7a45; font-weight: 600; }
 .console-error  { color: #c0302a; }
 
 .console-step {
@@ -1046,7 +1054,7 @@
 .editor-empty-hint {
 	padding: 0.6rem 0.2rem 0.2rem;
 	color: #6f859a;
-	font-size: 0.86rem;
+	font-size: 1.1rem;
 	font-weight: 700;
 }
 
@@ -1250,6 +1258,22 @@
 	user-select: none;
 }
 
+.block-drag-handle {
+	flex-shrink: 0;
+	width: 8px;
+	height: 12px;
+	opacity: 0.35;
+	pointer-events: none;
+	background-image: radial-gradient(circle, currentColor 1.2px, transparent 1.2px);
+	background-size: 4px 4px;
+	background-repeat: repeat;
+	border-radius: 1px;
+}
+
+.editor-block:hover .block-drag-handle {
+	opacity: 0.6;
+}
+
 .editor-block.palette {
 	min-height: var(--editor-palette-block-height);
 	height: auto;
@@ -1363,7 +1387,7 @@
 }
 
 .editor-block-instance {
-	gap: 0;
+	gap: 0.45rem;
 	padding: 0 0.56rem 0 0.56rem;
 	border: 0;
 	display: inline-flex;

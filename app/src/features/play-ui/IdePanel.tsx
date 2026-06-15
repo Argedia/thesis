@@ -145,17 +145,19 @@ export function IdePanel({
                   {routine.name}
                 </button>
               ))}
-              <TooltipTrigger delay={200} closeDelay={80}>
-                <Button
-                  className="routine-chip routine-chip-add"
-                  aria-label={addScriptLabel}
-                  isDisabled={runState === "running" || disableCreateRoutine}
-                  onPress={onCreateRoutine}
-                >
-                  +
-                </Button>
-                <Tooltip className="app-tooltip">{addScriptLabel}</Tooltip>
-              </TooltipTrigger>
+              {!disableCreateRoutine && (
+                <TooltipTrigger delay={200} closeDelay={80}>
+                  <Button
+                    className="routine-chip routine-chip-add"
+                    aria-label={addScriptLabel}
+                    isDisabled={runState === "running"}
+                    onPress={onCreateRoutine}
+                  >
+                    +
+                  </Button>
+                  <Tooltip className="app-tooltip">{addScriptLabel}</Tooltip>
+                </TooltipTrigger>
+              )}
             </div>
             {topbarControls ? (
               <div className="ide-topbar-controls">

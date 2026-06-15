@@ -8,10 +8,11 @@ import {
   buildVariableBinaryOperationWheelOptions,
   buildDeclarationBindingWheelOptions,
   inferExpressionFamilyFromOperationMode,
-  buildVariableOperationWheelOptions,
-  buildWheelOptions
+	buildVariableOperationWheelOptions,
+	buildWheelOptions
 } from "../operations";
 import type { WheelOption } from "../contracts/types";
+import { t } from "../../i18n-helpers";
 
 export interface WheelInteractionContext {
   canShowDeclarationBindingWheel(block: EditorBlock): boolean;
@@ -71,7 +72,7 @@ export class WheelInteractionController {
         this.ctx.updateVariableOperationMode(block.id, option.mode);
         this.ctx.closeWheel();
         this.ctx.rerender();
-        this.ctx.emitStatus("Variable block updated.");
+        this.ctx.emitStatus(t("messages.variableBlockUpdated"));
       }
     }));
   }
@@ -90,7 +91,7 @@ export class WheelInteractionController {
         this.ctx.updateVariableOperationMode(block.id, option.mode);
         this.ctx.closeWheel();
         this.ctx.rerender();
-        this.ctx.emitStatus("Operation block updated.");
+        this.ctx.emitStatus(t("messages.operationBlockUpdated"));
       }
     }));
   }
@@ -105,8 +106,8 @@ export class WheelInteractionController {
         this.ctx.rerender();
         this.ctx.emitStatus(
           option.bindingKind === "expect"
-            ? "Declaration converted to function input."
-            : "Function input converted to declaration."
+            ? t("messages.declarationToInput")
+            : t("messages.inputToDeclaration")
         );
       }
     }));
@@ -132,7 +133,7 @@ export class WheelInteractionController {
         this.ctx.convertVariableBlockKind(block.id, option.kind);
         this.ctx.closeWheel();
         this.ctx.rerender();
-        this.ctx.emitStatus("Variable block updated.");
+        this.ctx.emitStatus(t("messages.variableBlockUpdated"));
       }
     }));
 
@@ -153,7 +154,7 @@ export class WheelInteractionController {
               this.ctx.convertBlockToFieldRead(block.id, fieldName);
               this.ctx.closeWheel();
               this.ctx.rerender();
-              this.ctx.emitStatus(`Reading field ${fieldName}.`);
+              this.ctx.emitStatus(t("messages.readingField", { field: fieldName }));
             }
           },
           {
@@ -163,7 +164,7 @@ export class WheelInteractionController {
               this.ctx.convertBlockToFieldAssign(block.id, fieldName);
               this.ctx.closeWheel();
               this.ctx.rerender();
-              this.ctx.emitStatus(`Assigning field ${fieldName}.`);
+              this.ctx.emitStatus(t("messages.assigningField", { field: fieldName }));
             }
           }
         ];
@@ -195,7 +196,7 @@ export class WheelInteractionController {
           this.ctx.updateBlockOperation(block.id, option.operation);
           this.ctx.closeWheel();
           this.ctx.rerender();
-          this.ctx.emitStatus("Variable block updated.");
+          this.ctx.emitStatus(t("messages.variableBlockUpdated"));
         }
       }));
 
@@ -211,7 +212,7 @@ export class WheelInteractionController {
           this.ctx.updateRoutineCallMode(block.id, "call");
           this.ctx.closeWheel();
           this.ctx.rerender();
-          this.ctx.emitStatus("Function block switched to call mode.");
+          this.ctx.emitStatus(t("messages.functionCallMode"));
         }
       },
       {
@@ -221,7 +222,7 @@ export class WheelInteractionController {
           this.ctx.updateRoutineCallMode(block.id, "reference");
           this.ctx.closeWheel();
           this.ctx.rerender();
-          this.ctx.emitStatus("Function block switched to reference mode.");
+          this.ctx.emitStatus(t("messages.functionReferenceMode"));
         }
       }
     ];
@@ -236,7 +237,7 @@ export class WheelInteractionController {
           this.ctx.updateRoutineCallMode(block.id, "call");
           this.ctx.closeWheel();
           this.ctx.rerender();
-          this.ctx.emitStatus("Member block switched to call mode.");
+          this.ctx.emitStatus(t("messages.memberCallMode"));
         }
       },
       {
@@ -246,7 +247,7 @@ export class WheelInteractionController {
           this.ctx.updateRoutineCallMode(block.id, "reference");
           this.ctx.closeWheel();
           this.ctx.rerender();
-          this.ctx.emitStatus("Member block switched to reference mode.");
+          this.ctx.emitStatus(t("messages.memberReferenceMode"));
         }
       }
     ];
@@ -265,7 +266,7 @@ export class WheelInteractionController {
         this.ctx.updateBlockOperation(block.id, option.operation);
         this.ctx.closeWheel();
         this.ctx.rerender();
-        this.ctx.emitStatus(option.operation ? "Block updated." : "Block reset.");
+        this.ctx.emitStatus(option.operation ? t("messages.blockUpdated") : t("messages.blockReset"));
       }
     }));
   }
