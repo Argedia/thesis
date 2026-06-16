@@ -665,6 +665,19 @@
 	color: #6f859a;
 	font-size: 0.78rem;
 	font-weight: 700;
+	transition: color 0.2s ease;
+}
+
+.ide-output-meta--green {
+	color: #2d9b5a;
+}
+
+.ide-output-meta--yellow {
+	color: #c47f00;
+}
+
+.ide-output-meta--red {
+	color: #c0392b;
 }
 
 .ide-output-body {
@@ -1086,17 +1099,6 @@
 .editor-program-row-active > * {
 	position: relative;
 	z-index: 1;
-}
-
-.editor-branch-tail-hint {
-	width: 3rem;
-	min-height: var(--editor-block-height);
-	margin-left: 0.55rem;
-	border-radius: 22px;
-	background: var(--branch-shadow-color, #f4b6d8);
-	opacity: 0.18;
-	pointer-events: none;
-	flex: 0 0 auto;
 }
 
 .editor-line-indicator {
@@ -1905,22 +1907,6 @@
 
 .editor-drop-indicator.active.branch-else {
 	background: #f4b6d8;
-}
-
-.drop-target-body,
-.drop-target-else {
-	outline: 2.5px solid transparent;
-	outline-offset: 2px;
-	border-radius: 999px;
-	transition: outline-color 100ms ease;
-}
-
-.drop-target-body {
-	outline-color: #5aaae0;
-}
-
-.drop-target-else {
-	outline-color: #e87dba;
 }
 
 .operation-wheel {

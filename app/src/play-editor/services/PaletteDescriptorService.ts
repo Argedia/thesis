@@ -6,17 +6,17 @@ export class PaletteDescriptorService {
   private getStructureChip(structureKind: PaletteBlock["structureKind"]): string {
     switch (structureKind) {
       case "stack":
-        return "PIL";
+        return "⊟";
       case "queue":
-        return "COL";
+        return "⇒";
       case "list":
-        return "LIS";
+        return "☰";
       case "doubly-linked-list":
-        return "DLL";
+        return "⇄";
       case "circular-list":
-        return "CIR";
+        return "↻";
       default:
-        return "EDS";
+        return "◈";
     }
   }
 

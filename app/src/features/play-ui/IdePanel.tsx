@@ -213,7 +213,7 @@ export function IdePanel({
                 </TooltipTrigger>
                 {outputMetaControl}
                 {!hideOutputBlocksCounter ? (
-                  <span className="ide-output-meta">
+                  <span className={`ide-output-meta ide-output-meta--${maxBlocksForCounter <= 0 ? "green" : visibleRoutineOperations / maxBlocksForCounter > 0.8 ? "red" : visibleRoutineOperations / maxBlocksForCounter > 0.5 ? "yellow" : "green"}`}>
                     {t("board.blocksCount", { count: visibleRoutineOperations, max: maxBlocksForCounter })}
                   </span>
                 ) : null}
