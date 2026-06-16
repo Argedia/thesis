@@ -1,12 +1,14 @@
 import { ghostGeometry, type DragDropGeometryService } from "./DragDropGeometry";
 import { buildEditorLineLayout } from "./model";
 import type {
+  ControlBodyKey,
   EditorBlock,
   EditorDocument,
   EditorDragState,
   PaletteBlock
 } from "./model";
 import { getOutputType } from "../features/program-editor-core/adapters/block-slots";
+import { t } from "../i18n-helpers";
 import type { PendingPress, ResolvedDropPlacement } from "./contracts/types";
 
 export interface DragInteractionControllerContext {
@@ -49,6 +51,8 @@ export interface DragInteractionControllerContext {
       slotTargetId?: string | null;
       visualLineIndex?: number;
       chosenIndent?: number;
+      branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
+      beforeBlockId?: string | null;
     }
   ): { nextDocument: EditorDocument; status: string };
   setDocument(nextDocument: EditorDocument): void;
@@ -93,7 +97,7 @@ export class DragInteractionController {
     const { index, visualLineIndex, isOverEditor } =
       this.ctx.getGeometryService().currentDropWithPoint(dragGeometry, lineLayouts);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
-      dragGeometry.placementX,
+      event.clientX,
       visualLineIndex,
       lineLayouts
     );
@@ -143,6 +147,9 @@ export class DragInteractionController {
       chosenIndent,
       isOverEditor,
       slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry),
+      dropBeforeBlockId: this.ctx
+        .getGeometryService()
+        .currentBeforeBlockId(this.ctx.getBlocks(), visualLineIndex, lineLayouts, chosenIndent),
       branchTarget: this.ctx
         .getGeometryService()
         .currentBranchTarget(this.ctx.getBlocks(), visualLineIndex, lineLayouts, chosenIndent)
@@ -239,7 +246,7 @@ export class DragInteractionController {
             .getGeometryService()
             .currentDropWithPoint(dragGeometry, lineLayouts);
         const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
-          dragGeometry.placementX,
+          event.clientX,
           visualLineIndex,
           lineLayouts
         );
@@ -297,6 +304,9 @@ export class DragInteractionController {
             this.ctx.getBlocks(),
             pendingPress.blockId
           ),
+          dropBeforeBlockId: this.ctx
+            .getGeometryService()
+            .currentBeforeBlockId(this.ctx.getBlocks(), visualLineIndex, lineLayouts, chosenIndent),
           branchTarget: this.ctx
             .getGeometryService()
             .currentBranchTarget(this.ctx.getBlocks(), visualLineIndex, lineLayouts, chosenIndent)
@@ -327,7 +337,7 @@ export class DragInteractionController {
       .getGeometryService()
       .currentDropWithPoint(dragGeometry, lineLayouts);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
-      dragGeometry.placementX,
+      event.clientX,
       visualLineIndex,
       lineLayouts
     );
@@ -341,6 +351,9 @@ export class DragInteractionController {
       isOverEditor,
       slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry),
       originSlotOwnerId: dragState.originSlotOwnerId ?? null,
+      dropBeforeBlockId: this.ctx
+        .getGeometryService()
+        .currentBeforeBlockId(renderedBlocks, visualLineIndex, lineLayouts, chosenIndent),
       branchTarget: this.ctx
         .getGeometryService()
         .currentBranchTarget(renderedBlocks, visualLineIndex, lineLayouts, chosenIndent)
@@ -474,7 +487,9 @@ export class DragInteractionController {
         !slotTargetId &&
         this.ctx.getBlocks().length >= this.ctx.getMaxBlocks();
       if (exceedsTopLevelBlockLimit) {
-        this.ctx.emitStatus(`This level allows up to ${this.ctx.getMaxBlocks()} blocks.`);
+        this.ctx.emitStatus(
+          t("messages.activeRoutineBlockLimit", { count: this.ctx.getMaxBlocks() })
+        );
       } else {
         if (dragState.source === "palette") {
           const insertValidation = this.ctx.canInsertPaletteBlock(dragState);
@@ -503,7 +518,14 @@ export class DragInteractionController {
           const result = this.ctx.applyDropDestination(baseDocument, insertedBlock, {
             slotTargetId: effectiveSlotTargetId,
             visualLineIndex: dragState.visualLineIndex,
-            chosenIndent: dragState.chosenIndent
+            chosenIndent: dragState.chosenIndent,
+            branchTarget: dragState.branchTarget ?? undefined,
+            beforeBlockId:
+              dragState.dropBeforeBlockId &&
+              dragState.dropBeforeBlockId !== dragState.blockId &&
+              !(dragState.multiDragIds?.includes(dragState.dropBeforeBlockId) ?? false)
+                ? dragState.dropBeforeBlockId
+                : undefined
           });
           let finalDocument = result.nextDocument;
 

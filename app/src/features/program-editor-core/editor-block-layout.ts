@@ -1,7 +1,12 @@
 import type { ControlBodyKey, EditorBlock, EditorLineLayout } from "./types";
+import { ELSE_BLOCK_ID_SUFFIX } from "./editor-layout-constants";
 
 const isControlBlock = (block: EditorBlock) =>
-	block.kind === "conditional" || block.kind === "else" || block.kind === "while" || block.kind === "for_each";
+	block.kind === "conditional" || block.kind === "while" || block.kind === "for_each";
+
+// else blocks render as a header line at the same depth as their sibling if-block;
+// their bodyBlocks are visited at depth+1 just like any control body.
+const isElseBlock = (block: EditorBlock) => block.kind === "else";
 
 const createDropLinePusher = (lines: EditorLineLayout[]) => {
 	let dropLineId = 0;
@@ -14,6 +19,11 @@ const createDropLinePusher = (lines: EditorLineLayout[]) => {
 		beforeBlockId?: string;
 		branchOwnerId?: string;
 		branch?: ControlBodyKey;
+		promotedBranchTarget?: {
+			indent: number;
+			ownerId: string;
+			branch: ControlBodyKey;
+		};
 	}) => {
 		const dedupedPotential = Array.from(new Set(config.indentPotential)).sort((a, b) => a - b);
 		lines.push({
@@ -30,7 +40,8 @@ const createDropLinePusher = (lines: EditorLineLayout[]) => {
 			branchOwnerId: config.branchOwnerId,
 			branch: config.branch,
 			beforeBlockId: config.beforeBlockId,
-			insertionRootIndex: config.insertionRootIndex
+			insertionRootIndex: config.insertionRootIndex,
+			promotedBranchTarget: config.promotedBranchTarget
 		});
 	};
 };
@@ -54,60 +65,134 @@ const visitBlockLines = (
 		const effectiveTopLevelIndex = options?.topLevel ? index : options?.rootTopLevelIndex;
 		const prevBlock = index > 0 ? currentBlocks[index - 1] : null;
 		const prevIsControl = prevBlock ? isControlBlock(prevBlock) : false;
+		const prevIsElse = prevBlock ? isElseBlock(prevBlock) : false;
+
+		// Drop line before this block.
+		// After a control block: allow both depth (sibling) and depth+1 (into body).
+		// After an else block: same treatment.
+		// First block in a nested body: allow unindenting (depth-1) as well.
 		pushDropLine({
 			depth,
 			indentPotential:
 				index === 0
 					? (controlPath.length > 0 ? [depth - 1, depth] : [depth])
-					: prevIsControl ? [depth, depth + 1] : [depth],
+					: (prevIsControl || prevIsElse) ? [depth, depth + 1] : [depth],
 			bodyOwnerPath,
 			controlPath,
 			insertionRootIndex: effectiveTopLevelIndex,
 			beforeBlockId: block.id,
 			branchOwnerId: options?.branchOwnerId,
-			branch: options?.branch
-		});
-
-		lines.push({
-			id: `line-${block.id}`,
-			role: "block",
-			lineNumber: (state.codeLineNumber += 1),
-			depth,
-			indentCurrent: depth,
-			indentPotential: isControlBlock(block) ? [depth, depth + 1] : [depth],
-			increaseNextIndentation: isControlBlock(block),
-			bodyOwnerPath,
-			controlPath,
-			block,
-			blockId: block.id,
-			topLevelIndex: effectiveTopLevelIndex,
-			branchOwnerId: options?.branchOwnerId,
 			branch: options?.branch,
-			isLastInBranch: options?.branchOwnerId ? index === currentBlocks.length - 1 : undefined
+			promotedBranchTarget:
+				(prevIsControl || prevIsElse) && prevBlock
+					? {
+						indent: depth + 1,
+						ownerId: prevBlock.id,
+						branch: "body"
+					}
+					: undefined
 		});
 
-		if ((block.bodyBlocks?.length ?? 0) > 0) {
-			visitBlockLines(
-				block.bodyBlocks ?? [],
-				depth + 1,
-				[...bodyOwnerPath, block.id],
-				[...controlPath, { ownerId: block.id, branch: "body" }],
-				lines,
-				pushDropLine,
-				state,
-				{
+		if (isElseBlock(block)) {
+			// Else blocks emit an else_header line (same depth as sibling if-block),
+			// then visit their bodyBlocks at depth+1.
+			lines.push({
+				id: `line-${block.id}`,
+				role: "else_header",
+				lineNumber: (state.codeLineNumber += 1),
+				depth,
+				indentCurrent: depth,
+				indentPotential: [depth, depth + 1],
+				increaseNextIndentation: true,
+				bodyOwnerPath,
+				controlPath,
+				block,
+				blockId: block.id,
+				topLevelIndex: effectiveTopLevelIndex,
+				branchOwnerId: options?.branchOwnerId,
+				branch: options?.branch,
+				isLastInBranch: options?.branchOwnerId ? index === currentBlocks.length - 1 : undefined
+			});
+
+			if ((block.bodyBlocks?.length ?? 0) > 0) {
+				visitBlockLines(
+					block.bodyBlocks ?? [],
+					depth + 1,
+					[...bodyOwnerPath, block.id],
+					[...controlPath, { ownerId: block.id, branch: "body" }],
+					lines,
+					pushDropLine,
+					state,
+					{
+						branchOwnerId: block.id,
+						branch: "body",
+						rootTopLevelIndex: effectiveTopLevelIndex
+					}
+				);
+			} else {
+				// Empty else body: emit a single drop line inside it
+				pushDropLine({
+					depth: depth + 1,
+					indentPotential: [depth + 1],
+					bodyOwnerPath: [...bodyOwnerPath, block.id],
+					controlPath: [...controlPath, { ownerId: block.id, branch: "body" }],
 					branchOwnerId: block.id,
-					branch: "body",
-					rootTopLevelIndex: effectiveTopLevelIndex
-				}
-			);
+					branch: "body"
+				});
+			}
+		} else {
+			lines.push({
+				id: `line-${block.id}`,
+				role: "block",
+				lineNumber: (state.codeLineNumber += 1),
+				depth,
+				indentCurrent: depth,
+				indentPotential: isControlBlock(block) ? [depth, depth + 1] : [depth],
+				increaseNextIndentation: isControlBlock(block),
+				bodyOwnerPath,
+				controlPath,
+				block,
+				blockId: block.id,
+				topLevelIndex: effectiveTopLevelIndex,
+				branchOwnerId: options?.branchOwnerId,
+				branch: options?.branch,
+				isLastInBranch: options?.branchOwnerId ? index === currentBlocks.length - 1 : undefined
+			});
+
+			if ((block.bodyBlocks?.length ?? 0) > 0) {
+				visitBlockLines(
+					block.bodyBlocks ?? [],
+					depth + 1,
+					[...bodyOwnerPath, block.id],
+					[...controlPath, { ownerId: block.id, branch: "body" }],
+					lines,
+					pushDropLine,
+					state,
+					{
+						branchOwnerId: block.id,
+						branch: "body",
+						rootTopLevelIndex: effectiveTopLevelIndex
+					}
+				);
+			} else if (isControlBlock(block)) {
+				// Empty control body: emit a single drop line inside it
+				pushDropLine({
+					depth: depth + 1,
+					indentPotential: [depth + 1],
+					bodyOwnerPath: [...bodyOwnerPath, block.id],
+					controlPath: [...controlPath, { ownerId: block.id, branch: "body" }],
+					branchOwnerId: block.id,
+					branch: "body"
+				});
+			}
 		}
 
-
 		if (index === currentBlocks.length - 1) {
+			const lastIsControl = isControlBlock(block);
+			const lastIsElse = isElseBlock(block);
 			pushDropLine({
 				depth,
-				indentPotential: isControlBlock(block) ? [depth, depth + 1] : [depth],
+				indentPotential: (lastIsControl || lastIsElse) ? [depth, depth + 1] : [depth],
 				bodyOwnerPath,
 				controlPath,
 				insertionRootIndex:

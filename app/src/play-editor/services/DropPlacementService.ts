@@ -14,6 +14,7 @@ import {
   findNode,
   findParentContainer,
   getActiveProgram,
+  getIfBlockIdFromElse,
   insertNode,
   projectDocumentToEditorBlocks,
   replaceActiveProgram,
@@ -114,6 +115,8 @@ export class DropPlacementService {
       slotTargetId?: string | null;
       visualLineIndex?: number;
       chosenIndent?: number;
+      branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
+      beforeBlockId?: string | null;
     },
     resolveDropPlacement: (
       blocks: EditorBlock[],
@@ -131,12 +134,18 @@ export class DropPlacementService {
 
     const baseBlocks = projectDocumentToEditorBlocks(document);
     const baseLineLayouts = buildEditorLineLayout(baseBlocks);
-    const placement = resolveDropPlacement(
-      baseBlocks,
-      baseLineLayouts,
-      options.visualLineIndex ?? baseLineLayouts.length,
-      options.chosenIndent ?? 0
-    );
+    const placement =
+      options.branchTarget
+        ? {
+            branchTarget: options.branchTarget,
+            beforeBlockId: options.beforeBlockId ?? undefined
+          }
+        : resolveDropPlacement(
+            baseBlocks,
+            baseLineLayouts,
+            options.visualLineIndex ?? baseLineLayouts.length,
+            options.chosenIndent ?? 0
+          );
 
     return {
       nextDocument: this.applyResolvedPlacement(document, placement, insertedBlock),
@@ -165,10 +174,18 @@ export class DropPlacementService {
     ownerId: string,
     branch: ControlBodyKey
   ) {
-    const owner = findNode(activeProgram, ownerId);
     if (branch === "alternateBody") {
       return { kind: "if-else" as const, ownerId };
     }
+
+    // Else blocks in the editor are flat siblings with synthesized ids = `${ifId}-else`.
+    // Inserting into their body means inserting into the real if-node's elseBody.
+    const realIfId = getIfBlockIdFromElse(ownerId);
+    if (realIfId !== null) {
+      return { kind: "if-else" as const, ownerId: realIfId };
+    }
+
+    const owner = findNode(activeProgram, ownerId);
     if (owner?.kind === "if") {
       return { kind: "if-then" as const, ownerId };
     }

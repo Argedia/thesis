@@ -3,6 +3,7 @@ import type { DragGeometry } from "./layout";
 import type { ResolvedDropPlacement } from "./contracts/types";
 import { buildEditorLineLayout } from "./model";
 import { calculateDropIndex } from "./layout";
+import { INDENT_STEP_PX, INDENT_ACTIVATION_INSET_PX } from "../features/program-editor-core/editor-layout-constants";
 
 /**
  * Pure utility functions for drag/drop geometry calculations
@@ -106,13 +107,21 @@ export class DragDropGeometryService {
 			visualLineIndex < lineLayouts.length
 				? lineLayouts[visualLineIndex]
 				: lineLayouts[lineLayouts.length - 1] ?? null;
+		const previousLine =
+			visualLineIndex > 0 ? lineLayouts[Math.min(visualLineIndex - 1, lineLayouts.length - 1)] : null;
+		const inheritedGapLine = this.getInheritedGapLine(lineLayouts, visualLineIndex);
 
 		if (!targetLine) {
 			return 0;
 		}
 
+		const previousRowColumns = this.getLeadingDropLine(targetLine, previousLine)?.indentPotential ?? [];
+		const inheritedGapColumns = inheritedGapLine?.indentPotential ?? [];
+
 		const candidateIndents = Array.from(
 			new Set([
+				...previousRowColumns,
+				...inheritedGapColumns,
 				...targetLine.indentPotential,
 				...(targetLine.increaseNextIndentation ? [targetLine.indentCurrent + 1] : []),
 				...(visualLineIndex >= lineLayouts.length && targetLine.increaseNextIndentation
@@ -126,12 +135,9 @@ export class DragDropGeometryService {
 		}
 
 		let chosenIndent = candidateIndents[0] ?? 0;
-		const indentStep = 28;
-		const activationInset = 12;
-
 		for (let index = 1; index < candidateIndents.length; index += 1) {
 			const indent = candidateIndents[index];
-			const thresholdX = laneLeft + indent * indentStep + activationInset;
+			const thresholdX = laneLeft + indent * INDENT_STEP_PX + INDENT_ACTIVATION_INSET_PX;
 			if (pointerX >= thresholdX) {
 				chosenIndent = indent;
 			}
@@ -150,12 +156,20 @@ export class DragDropGeometryService {
 			visualLineIndex < lineLayouts.length ? lineLayouts[visualLineIndex] : null;
 		const previousLine =
 			visualLineIndex > 0 ? lineLayouts[Math.min(visualLineIndex - 1, lineLayouts.length - 1)] : null;
+		const inheritedGapLine = this.getInheritedGapLine(lineLayouts, visualLineIndex);
 
 		const branchFromLine = (
 			line: EditorLineLayout | null
 		): BranchTarget | null => {
 			if (!line || chosenIndent <= 0) {
 				return null;
+			}
+
+			if (line.promotedBranchTarget && chosenIndent === line.promotedBranchTarget.indent) {
+				return {
+					ownerId: line.promotedBranchTarget.ownerId,
+					branch: line.promotedBranchTarget.branch
+				};
 			}
 
 			if (line.role === "else_header" && chosenIndent === line.indentCurrent + 1) {
@@ -179,6 +193,18 @@ export class DragDropGeometryService {
 			return null;
 		};
 
+		const promotedBranchFromLine = (
+			line: EditorLineLayout | null
+		): BranchTarget | null => {
+			if (!line?.promotedBranchTarget || chosenIndent !== line.promotedBranchTarget.indent) {
+				return null;
+			}
+			return {
+				ownerId: line.promotedBranchTarget.ownerId,
+				branch: line.promotedBranchTarget.branch
+			};
+		};
+
 		if (targetLine) {
 			const targetBranch = branchFromLine(targetLine);
 			if (targetBranch) {
@@ -188,6 +214,23 @@ export class DragDropGeometryService {
 						targetLine.role === "block" && targetLine.controlPath.length >= chosenIndent
 							? targetLine.blockId
 							: undefined
+					};
+			}
+
+			// If the cursor is closest to the next block row instead of the preceding drop row,
+			// preserve indent-as-column behavior by letting the previous row promote the drop
+			// into the prior control body's column.
+			const previousPromotedBranch = promotedBranchFromLine(previousLine);
+			if (previousPromotedBranch && chosenIndent > (targetLine.indentCurrent ?? 0)) {
+				return {
+					branchTarget: previousPromotedBranch
+				};
+			}
+
+			const inheritedGapBranch = branchFromLine(inheritedGapLine);
+			if (inheritedGapBranch) {
+				return {
+					branchTarget: inheritedGapBranch
 				};
 			}
 
@@ -298,6 +341,15 @@ export class DragDropGeometryService {
 		return this.resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent).branchTarget ?? null;
 	}
 
+	currentBeforeBlockId(
+		blocks: EditorBlock[],
+		visualLineIndex: number,
+		lineLayouts: EditorLineLayout[],
+		chosenIndent: number
+	): string | null {
+		return this.resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent).beforeBlockId ?? null;
+	}
+
 	isImplicitBodyTarget(target: BranchTarget | null | undefined): boolean {
 		if (!target || target.branch !== "body") {
 			return false;
@@ -305,5 +357,44 @@ export class DragDropGeometryService {
 
 		const owner = this.findBlockById(this.getBlocks(), target.ownerId);
 		return owner !== null && this.isControlBlock(owner) && (owner.bodyBlocks?.length ?? 0) === 0;
+	}
+
+	private getLeadingDropLine(
+		targetLine: EditorLineLayout,
+		previousLine: EditorLineLayout | null
+	): EditorLineLayout | null {
+		if (
+			targetLine.role === "block" &&
+			previousLine?.role === "drop" &&
+			previousLine.beforeBlockId === targetLine.blockId
+		) {
+			return previousLine;
+		}
+
+		return null;
+	}
+
+	private getInheritedGapLine(
+		lineLayouts: EditorLineLayout[],
+		visualLineIndex: number
+	): EditorLineLayout | null {
+		if (visualLineIndex <= 0 || visualLineIndex >= lineLayouts.length) {
+			return null;
+		}
+
+		const targetLine = lineLayouts[visualLineIndex] ?? null;
+		const previousLine = lineLayouts[visualLineIndex - 1] ?? null;
+		const twoBackLine = visualLineIndex > 1 ? lineLayouts[visualLineIndex - 2] ?? null : null;
+
+		if (
+			targetLine?.role === "drop" &&
+			previousLine?.role === "block" &&
+			twoBackLine?.role === "drop" &&
+			twoBackLine.beforeBlockId === previousLine.blockId
+		) {
+			return twoBackLine;
+		}
+
+		return null;
 	}
 }

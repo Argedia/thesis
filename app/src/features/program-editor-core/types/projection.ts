@@ -68,4 +68,9 @@ export interface EditorLineLayout {
 	isLastInBranch?: boolean;
 	beforeBlockId?: string;
 	insertionRootIndex?: number;
+	promotedBranchTarget?: {
+		indent: number;
+		ownerId: string;
+		branch: ControlBodyKey;
+	};
 }

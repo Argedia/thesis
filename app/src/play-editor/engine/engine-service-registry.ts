@@ -1,4 +1,5 @@
 import type {
+	ControlBodyKey,
 	EditorBlock,
 	EditorDragState,
 	PaletteBlock,
@@ -97,7 +98,13 @@ export interface EngineRegistryDeps {
 	applyDropDestination: (
 		document: PlayEditorSurfaceProps["value"],
 		insertedBlock: EditorBlock,
-		options: { slotTargetId?: string | null; visualLineIndex?: number; chosenIndent?: number }
+		options: {
+			slotTargetId?: string | null;
+			visualLineIndex?: number;
+			chosenIndent?: number;
+			branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
+			beforeBlockId?: string | null;
+		}
 	) => { nextDocument: PlayEditorSurfaceProps["value"]; status: string };
 	resolveInsertedBlockFromDrag: (
 		dragState: EditorDragState,

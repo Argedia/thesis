@@ -2,6 +2,7 @@ export * from "./types";
 export * from "./tree";
 export * from "./adapters/index";
 export * from "./editor-block-layout";
+export * from "./editor-layout-constants";
 export * from "./projection";
 export * from "./compiler";
 export * from "./pseudocode";

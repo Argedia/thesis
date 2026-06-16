@@ -180,6 +180,7 @@ export interface EditorDragState {
 	slotTargetKey?: string | null;
 	originSlotOwnerId?: string | null;
 	branchTarget?: { ownerId: string; branch: import("./ast").ControlBodyKey } | null;
+	dropBeforeBlockId?: string | null;
 	multiDragIds?: string[];
 }
 

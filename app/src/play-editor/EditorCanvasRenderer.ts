@@ -2,6 +2,7 @@ import type { DataValue } from "@thesis/core-engine";
 import { t } from "../i18n-helpers";
 import { setTutorialAnchor } from "../features/tutorial/anchors";
 import { buildEditorLineLayout } from "./model";
+import { INDENT_STEP_PX } from "../features/program-editor-core/editor-layout-constants";
 import type { PreviewDescriptor } from "./contracts/types";
 import type {
   ControlBodyKey,
@@ -109,7 +110,7 @@ export class EditorCanvasRenderer {
       } else if (lineLayout.role === "else_header") {
         this.renderEditorElseRow(lineLayout, gutter, programBody);
       } else {
-        this.renderEditorBlockRow(lineLayout, gutter, programBody, previewBlocks);
+        this.renderEditorBlockRow(lineLayout, gutter, programBody);
       }
     });
 
@@ -173,7 +174,7 @@ export class EditorCanvasRenderer {
     this.appendEditorLineNumber(gutter, { lineNumber: lineLayout.lineNumber });
     const elseRow = document.createElement("div");
     elseRow.className = "editor-program-row editor-conditional-divider";
-    elseRow.style.paddingLeft = `${lineLayout.depth * 28}px`;
+    elseRow.style.paddingLeft = `${lineLayout.depth * INDENT_STEP_PX}px`;
 
     const elseTag = document.createElement("div");
     elseTag.className = "editor-else-pill";
@@ -202,7 +203,7 @@ export class EditorCanvasRenderer {
     const dragState = this.ctx.getDragState();
     const previewIndent =
       isActive && dragState ? dragState.chosenIndent : lineLayout.indentPotential[0] ?? 0;
-    line.style.paddingLeft = `${previewIndent * 28}px`;
+    line.style.paddingLeft = `${previewIndent * INDENT_STEP_PX}px`;
     const shouldRenderInlineDropPreview =
       isActive && !!dragState && !dragState.slotTargetKey;
     if (shouldRenderInlineDropPreview) {
@@ -229,8 +230,7 @@ export class EditorCanvasRenderer {
   private renderEditorBlockRow(
     lineLayout: EditorLineLayout,
     gutter: HTMLElement,
-    programBody: HTMLElement,
-    previewBlocks: EditorBlock[]
+    programBody: HTMLElement
   ): void {
     const block = lineLayout.block!;
     const dragState = this.ctx.getDragState();
@@ -239,7 +239,7 @@ export class EditorCanvasRenderer {
     const isPreviewBlock = block.id === this.ctx.getPreviewBlockId();
     const line = document.createElement("div");
     line.className = "editor-program-row";
-    line.style.paddingLeft = `${lineLayout.depth * 28}px`;
+    line.style.paddingLeft = `${lineLayout.depth * INDENT_STEP_PX}px`;
     const isActiveLine = this.ctx.blockContainsId(block, this.ctx.getHighlightedNodeId());
     if (isActiveLine) {
       line.classList.add("editor-program-row-active");
@@ -260,14 +260,6 @@ export class EditorCanvasRenderer {
       blockId: block.id
     });
     const element = this.ctx.createBlockInstanceElement(block, { preview: isPreviewBlock });
-
-    if (dragState?.branchTarget?.ownerId === block.id) {
-      element.classList.add(
-        dragState.branchTarget.branch === "alternateBody"
-          ? "drop-target-else"
-          : "drop-target-body"
-      );
-    }
 
     const blockLocked = this.ctx.isBlockLocked(block.id);
 
@@ -332,21 +324,6 @@ export class EditorCanvasRenderer {
       });
     }
     line.appendChild(element);
-
-    const showContinuationHint =
-      (lineLayout.branchOwnerId && lineLayout.isLastInBranch) ||
-      (this.ctx.isControlBlock(block) && (block.bodyBlocks?.length ?? 0) === 0);
-    if (showContinuationHint) {
-      const hint = document.createElement("div");
-      hint.className = "editor-branch-tail-hint";
-      const hintColor = this.ctx.isControlBlock(block)
-        ? block.color
-        : this.ctx.findBlockById(previewBlocks, lineLayout.branchOwnerId ?? "")?.color;
-      if (hintColor) {
-        hint.style.setProperty("--branch-shadow-color", hintColor);
-      }
-      line.appendChild(hint);
-    }
 
     programBody.appendChild(line);
   }
