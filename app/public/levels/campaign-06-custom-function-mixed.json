@@ -73,6 +73,22 @@
       "CLEAR": "permitted"
     },
     "forbiddenBlocks": [],
+    "blockLimits": {
+      "while": 1,
+      "value": 1,
+      "function_definition": 1,
+      "var_binary_operation:comparison": 1,
+      "conditional": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0,
+      "break": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0
+    },
     "maxSteps": 20,
     "maxBlocksGlobal": 6,
     "minRoutineCount": 2,

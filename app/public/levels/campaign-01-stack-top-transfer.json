@@ -62,6 +62,7 @@
       "var_operation": 0
     },
     "maxSteps": 6,
+    "maxBlocksGlobal": 4,
     "allowAdditionalRoutines": false
   },
   "playLayout": {
