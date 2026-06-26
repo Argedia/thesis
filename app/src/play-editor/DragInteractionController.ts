@@ -21,9 +21,6 @@ export interface DragInteractionControllerContext {
   setPressState(pressState: PendingPress | null): void;
   getDragState(): EditorDragState | null;
   setDragState(dragState: EditorDragState | null): void;
-  setDragBaseLineRects(
-    rects: Array<{ id: string; rect: DOMRect }> | null
-  ): void;
   closeWheel(): void;
   render(): void;
   emitStatus(message: string): void;
@@ -87,13 +84,9 @@ export class DragInteractionController {
       offsetX,
       offsetY,
       rect.width,
-      rect.height,
-      "palette"
+      rect.height
     );
     const lineLayouts = buildEditorLineLayout(this.ctx.getBlocks());
-    this.ctx.setDragBaseLineRects(
-      this.ctx.getGeometryService().captureBaseLineRects(lineLayouts)
-    );
     const { index, rowIndex, isOverEditor } =
       this.ctx.getGeometryService().currentDropWithPoint(dragGeometry, lineLayouts);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
@@ -234,13 +227,9 @@ export class DragInteractionController {
           pendingPress.offsetX,
           pendingPress.offsetY,
           pendingPress.width,
-          pendingPress.height,
-          "program"
+          pendingPress.height
         );
         const lineLayouts = buildEditorLineLayout(this.ctx.getBlocks());
-        this.ctx.setDragBaseLineRects(
-          this.ctx.getGeometryService().captureBaseLineRects(lineLayouts)
-        );
         const { index, rowIndex, isOverEditor } =
           this.ctx
             .getGeometryService()
@@ -330,8 +319,7 @@ export class DragInteractionController {
       dragState.offsetX,
       dragState.offsetY,
       dragState.width,
-      dragState.height,
-      dragState.source
+      dragState.height
     );
     const { index, rowIndex, isOverEditor } = this.ctx
       .getGeometryService()
@@ -376,7 +364,6 @@ export class DragInteractionController {
     // Freeze drag visuals before any async prompt (e.g., variable name dialog).
     // Otherwise pointermove can keep updating the ghost while the dialog is open.
     this.ctx.setDragState(null);
-    this.ctx.setDragBaseLineRects(null);
     this.ctx.render();
 
     const slotTargetId = dragState.slotTargetKey ?? null;

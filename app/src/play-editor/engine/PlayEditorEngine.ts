@@ -59,7 +59,6 @@ export class PlayEditorEngine {
 	private paletteBlocks: PaletteBlock[] = [];
 	private editorLane: HTMLDivElement | null = null;
 	private dragState: EditorDragState | null = null;
-	private dragBaseLineRects: Array<{ id: string; rect: DOMRect }> | null = null;
 	private readonly hostInteraction = new HostInteractionController();
 	private pressState: PendingPress | null = null;
 	private wheelState: WheelState | null = null;
@@ -96,7 +95,6 @@ export class PlayEditorEngine {
 
 	public destroy(): void {
 		this.registry.getDragInteraction().clearPress();
-		this.dragBaseLineRects = null;
 		this.contextMenu.close();
 		this.registry.reset();
 		this.cleanupFns.forEach((fn) => fn());
@@ -116,8 +114,6 @@ export class PlayEditorEngine {
 			getBlocks: () => this.getBlocks(),
 			getDragState: () => this.dragState,
 			setDragState: (s) => { this.dragState = s; },
-			getDragBaseLineRects: () => this.dragBaseLineRects,
-			setDragBaseLineRects: (rects) => { this.dragBaseLineRects = rects; },
 			getPressState: () => this.pressState,
 			setPressState: (s) => { this.pressState = s; },
 			getWheelState: () => this.wheelState,
@@ -370,16 +366,6 @@ export class PlayEditorEngine {
 			registry: this.registry
 		});
 
-		// After render, re-capture line rects using the same layout that was rendered
-		// (preview layout when inline preview is active, base layout otherwise).
-		if (this.dragState?.isOverEditor) {
-			requestAnimationFrame(() => {
-				if (!this.dragState) return;
-				const renderedBlocks = this.buildInlinePreviewBlocks() ?? this.getBlocks();
-				const lineLayouts = buildEditorLineLayout(renderedBlocks);
-				this.dragBaseLineRects = this.registry.getGeometryService().captureBaseLineRects(lineLayouts);
-			});
-		}
 	}
 
 	private ensureShell(): void {

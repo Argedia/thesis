@@ -65,8 +65,6 @@ export interface EngineRegistryDeps {
 	getBlocks: () => EditorBlock[];
 	getDragState: () => EditorDragState | null;
 	setDragState: (state: EditorDragState | null) => void;
-	getDragBaseLineRects: () => Array<{ id: string; rect: DOMRect }> | null;
-	setDragBaseLineRects: (rects: Array<{ id: string; rect: DOMRect }> | null) => void;
 	getPressState: () => PendingPress | null;
 	setPressState: (state: PendingPress | null) => void;
 	getWheelState: () => WheelState | null;
@@ -209,10 +207,8 @@ export class EngineServiceRegistry {
 	public getGeometryService(): DragDropGeometryService {
 		return new DragDropGeometryService(
 			this.deps.getEditorLane(),
-			this.deps.getLineRowRefs(),
 			this.deps.getSlotRefs(),
 			this.deps.getDragState(),
-			this.deps.getDragBaseLineRects(),
 			(key) => this.deps.parseSlotKey(key),
 			(key) => this.deps.canUseSlotTarget(key),
 			(blocks, id) => this.getTreeService().findBlockById(blocks, id),
@@ -279,7 +275,6 @@ export class EngineServiceRegistry {
 				setPressState: (s) => this.deps.setPressState(s),
 				getDragState: () => this.deps.getDragState(),
 				setDragState: (s) => this.deps.setDragState(s),
-				setDragBaseLineRects: (rects) => this.deps.setDragBaseLineRects(rects),
 				closeWheel: () => this.deps.closeWheel(),
 				render: () => this.deps.render(),
 				emitStatus: (msg) => this.deps.emitStatus(msg),

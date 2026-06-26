@@ -1,8 +1,7 @@
 import type { EditorBlock, EditorDragState, EditorLineLayout, ControlBodyKey } from "./model";
 import type { DragGeometry } from "./layout";
 import type { ResolvedDropPlacement } from "./contracts/types";
-import { calculateDropIndex } from "./layout";
-import { INDENT_STEP_PX } from "../features/program-editor-core/editor-layout-constants";
+import { INDENT_STEP_PX, ROW_HEIGHT_PX } from "../features/program-editor-core/editor-layout-constants";
 
 export function ghostGeometry(
 	pointerX: number,
@@ -10,14 +9,12 @@ export function ghostGeometry(
 	offsetX: number,
 	offsetY: number,
 	width: number,
-	height: number,
-	source: "palette" | "program" = "palette"
+	height: number
 ): DragGeometry {
 	const left = pointerX - offsetX;
 	const top = pointerY - offsetY;
 	const placementX = left + Math.min(Math.max(width * 0.12, 10), 22);
-	const verticalRatio = source === "program" ? 0.54 : 0.38;
-	const placementY = top + Math.min(Math.max(height * verticalRatio, 18), Math.max(height - 18, 18));
+	const placementY = top + height / 2;
 
 	return {
 		left,
@@ -27,7 +24,8 @@ export function ghostGeometry(
 		width,
 		height,
 		placementX,
-		placementY
+		placementY,
+		pointerY
 	};
 }
 
@@ -45,10 +43,8 @@ const SENTINEL: Pick<EditorLineLayout, "indentCurrent" | "opensBody" | "controlP
 export class DragDropGeometryService {
 	constructor(
 		private editorLane: HTMLDivElement | null,
-		private lineRowRefs: Map<string, HTMLDivElement>,
 		private slotRefs: Map<string, HTMLDivElement>,
 		private dragState: EditorDragState | null,
-		private dragBaseLineRects: Array<{ id: string; rect: DOMRect }> | null,
 		private parseSlotKey: (key: string) => { ownerId: string; slotId: string },
 		private canUseSlotTarget: (targetSlotKey: string) => boolean,
 		private findBlockById: (blocks: EditorBlock[], blockId: string) => EditorBlock | null,
@@ -56,38 +52,24 @@ export class DragDropGeometryService {
 		private getBlocks: () => EditorBlock[]
 	) { }
 
-	getLineRects(lineLayouts: EditorLineLayout[]): Array<{ id: string; rect: DOMRect }> {
-		return lineLayouts
-			.map((lineLayout) => {
-				const element = this.lineRowRefs.get(lineLayout.id);
-				return element ? { id: lineLayout.id, rect: element.getBoundingClientRect() } : null;
-			})
-			.filter((value): value is { id: string; rect: DOMRect } => value !== null)
-			.sort((left, right) => left.rect.top - right.rect.top);
-	}
-
-	captureBaseLineRects(lineLayouts: EditorLineLayout[]): Array<{ id: string; rect: DOMRect }> {
-		return this.getLineRects(lineLayouts);
-	}
-
 	currentDropWithPoint(
 		drag: DragGeometry,
 		lineLayouts: EditorLineLayout[]
 	): { index: number; rowIndex: number; isOverEditor: boolean } {
-		const { index: rowIndex, isOverEditor } = calculateDropIndex(
-			drag,
-			this.editorLane?.getBoundingClientRect(),
-			this.dragBaseLineRects ?? this.getLineRects(lineLayouts),
-			lineLayouts.length,
-			this.dragState?.rowIndex ?? null
-		);
+		const laneRect = this.editorLane?.getBoundingClientRect();
+		const nearThreshold = 56;
+		const isOverEditor = laneRect != null &&
+			drag.right >= laneRect.left - nearThreshold &&
+			drag.left <= laneRect.right + nearThreshold &&
+			drag.bottom >= laneRect.top - nearThreshold &&
+			drag.top <= laneRect.bottom + nearThreshold;
+
+		const laneLogicalTop = (laneRect?.top ?? 0) - (this.editorLane?.scrollTop ?? 0);
+		const rawRow = Math.floor((drag.pointerY - laneLogicalTop) / ROW_HEIGHT_PX);
+		const rowIndex = Math.max(0, Math.min(rawRow, lineLayouts.length));
 
 		if (rowIndex >= lineLayouts.length) {
-			return {
-				index: this.getBlocks().length,
-				rowIndex,
-				isOverEditor
-			};
+			return { index: this.getBlocks().length, rowIndex, isOverEditor };
 		}
 
 		return {
@@ -103,25 +85,18 @@ export class DragDropGeometryService {
 		lineLayouts: EditorLineLayout[]
 	): number {
 		const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
-		const targetLine =
-			rowIndex < lineLayouts.length
-				? lineLayouts[rowIndex]
-				: lineLayouts[lineLayouts.length - 1] ?? null;
-		const previousLine =
-			rowIndex > 0 ? lineLayouts[Math.min(rowIndex - 1, lineLayouts.length - 1)] : null;
+		const prevLine = rowIndex > 0 ? lineLayouts[rowIndex - 1] : null;
+		const nextLine = rowIndex < lineLayouts.length ? lineLayouts[rowIndex] : null;
 
-		if (!targetLine) {
+		if (!prevLine && !nextLine) {
 			return 0;
 		}
 
-		// Gap is above lineLayouts[rowIndex]:
-		// prevLine = lineLayouts[rowIndex - 1] ?? SENTINEL
-		// nextLine = lineLayouts[rowIndex] ?? SENTINEL (same as targetLine here)
-		const prevLine = previousLine ?? SENTINEL;
-		const nextLine = targetLine;
+		const prev = prevLine ?? SENTINEL;
+		const next = nextLine ?? SENTINEL;
 
-		const maxIndent = prevLine.indentCurrent + (prevLine.opensBody ? 1 : 0);
-		const minIndent = nextLine.indentCurrent;
+		const maxIndent = prev.indentCurrent + (prev.opensBody ? 1 : 0);
+		const minIndent = next.indentCurrent;
 
 		const rawIndent = Math.floor((pointerX - laneLeft) / INDENT_STEP_PX);
 		return Math.min(Math.max(rawIndent, minIndent), maxIndent);
