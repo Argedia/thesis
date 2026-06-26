@@ -35,10 +35,6 @@ import {
 	type BlockInstanceRendererContext
 } from "../render/BlockInstanceRenderer";
 import {
-	PreviewRenderer,
-	type PreviewRendererContext
-} from "../render/PreviewRenderer";
-import {
 	GhostRenderer,
 	type GhostRendererContext
 } from "../render/GhostRenderer";
@@ -177,7 +173,6 @@ export class EngineServiceRegistry {
 	private wheelInteraction: WheelInteractionController | null = null;
 	private blockAction: BlockActionController | null = null;
 	private blockInstanceRenderer: BlockInstanceRenderer | null = null;
-	private previewRenderer: PreviewRenderer | null = null;
 	private ghostRenderer: GhostRenderer | null = null;
 
 	public constructor(deps: EngineRegistryDeps) {
@@ -200,7 +195,6 @@ export class EngineServiceRegistry {
 		this.dropPlacement = null;
 		this.dragInteraction = null;
 		this.blockInstanceRenderer = null;
-		this.previewRenderer = null;
 		this.ghostRenderer = null;
 	}
 
@@ -489,21 +483,6 @@ export class EngineServiceRegistry {
 		return this.blockAction;
 	}
 
-	public getPreviewRenderer(): PreviewRenderer {
-		if (!this.previewRenderer) {
-			const context: PreviewRendererContext = {
-				getDragState: () => this.deps.getDragState(),
-				findBlockById: (blockId) =>
-					this.getTreeService().findBlockById(this.deps.getBlocks(), blockId),
-				isControlBlock: (block) => this.deps.isControlBlock(block),
-				getControlLabel: (block) => this.deps.getControlLabel(block),
-				applyBlockColor: (element, color) => this.deps.applyBlockColor(element, color)
-			};
-			this.previewRenderer = new PreviewRenderer(context);
-		}
-		return this.previewRenderer;
-	}
-
 	public getBlockInstanceRenderer(): BlockInstanceRenderer {
 		if (!this.blockInstanceRenderer) {
 			const context: BlockInstanceRendererContext = {
@@ -568,17 +547,9 @@ export class EngineServiceRegistry {
 		if (!this.ghostRenderer) {
 			const context: GhostRendererContext = {
 				getDragState: () => this.deps.getDragState(),
-				findDraggingBlock: () => {
-					const drag = this.deps.getDragState();
-					return drag?.source === "program" && drag.blockId
-						? this.getTreeService().findBlockById(this.deps.getBlocks(), drag.blockId)
-						: null;
-				},
 				createPreviewBlockFromDragState: () => this.deps.createPreviewBlockFromDragState(),
 				renderGhostBlockInstance: (block, nested) =>
-					this.getBlockInstanceRenderer().renderGhostBlockInstance(block, nested),
-				buildPreviewDescriptor: () => this.getPreviewRenderer().buildPreviewDescriptor(),
-				renderPreviewBlock: (descriptor) => this.getPreviewRenderer().renderPreviewBlock(descriptor)
+					this.getBlockInstanceRenderer().renderGhostBlockInstance(block, nested)
 			};
 			this.ghostRenderer = new GhostRenderer(context);
 		}
