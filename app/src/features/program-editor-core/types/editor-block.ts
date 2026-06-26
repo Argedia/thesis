@@ -173,7 +173,6 @@ export interface EditorDragState {
 	height: number;
 	offsetX: number;
 	offsetY: number;
-	dropIndex: number;
 	rowIndex: number;
 	chosenIndent: number;
 	isOverEditor: boolean;

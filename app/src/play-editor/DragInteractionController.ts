@@ -87,7 +87,7 @@ export class DragInteractionController {
       rect.height
     );
     const lineLayouts = buildEditorLineLayout(this.ctx.getBlocks());
-    const { index, rowIndex, isOverEditor } =
+    const { rowIndex, isOverEditor } =
       this.ctx.getGeometryService().currentDropWithPoint(dragGeometry, lineLayouts);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
       event.clientX,
@@ -135,7 +135,6 @@ export class DragInteractionController {
       height: rect.height,
       offsetX,
       offsetY,
-      dropIndex: index,
       rowIndex,
       chosenIndent,
       isOverEditor,
@@ -230,7 +229,7 @@ export class DragInteractionController {
           pendingPress.height
         );
         const lineLayouts = buildEditorLineLayout(this.ctx.getBlocks());
-        const { index, rowIndex, isOverEditor } =
+        const { rowIndex, isOverEditor } =
           this.ctx
             .getGeometryService()
             .currentDropWithPoint(dragGeometry, lineLayouts);
@@ -284,7 +283,6 @@ export class DragInteractionController {
           height: pendingPress.height,
           offsetX: pendingPress.offsetX,
           offsetY: pendingPress.offsetY,
-          dropIndex: index,
           rowIndex,
           chosenIndent,
           isOverEditor,
@@ -321,7 +319,7 @@ export class DragInteractionController {
       dragState.width,
       dragState.height
     );
-    const { index, rowIndex, isOverEditor } = this.ctx
+    const { rowIndex, isOverEditor } = this.ctx
       .getGeometryService()
       .currentDropWithPoint(dragGeometry, lineLayouts);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
@@ -333,7 +331,6 @@ export class DragInteractionController {
       ...dragState,
       x: event.clientX - dragState.offsetX,
       y: event.clientY - dragState.offsetY,
-      dropIndex: index,
       rowIndex,
       chosenIndent,
       isOverEditor,

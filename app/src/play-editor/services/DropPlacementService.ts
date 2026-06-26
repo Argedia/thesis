@@ -95,7 +95,6 @@ export class DropPlacementService {
     blocks: EditorBlock[]
   ): boolean {
     if (!dragState) return true;
-    if (dragState.outputType === "none") return false;
 
     const { ownerId } = this.ctx.parseSlotKey(targetSlotKey);
 

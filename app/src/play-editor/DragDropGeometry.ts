@@ -55,7 +55,7 @@ export class DragDropGeometryService {
 	currentDropWithPoint(
 		drag: DragGeometry,
 		lineLayouts: EditorLineLayout[]
-	): { index: number; rowIndex: number; isOverEditor: boolean } {
+	): { rowIndex: number; isOverEditor: boolean } {
 		const laneRect = this.editorLane?.getBoundingClientRect();
 		const nearThreshold = 56;
 		const isOverEditor = laneRect != null &&
@@ -68,15 +68,7 @@ export class DragDropGeometryService {
 		const rawRow = Math.floor((drag.pointerY - laneLogicalTop) / ROW_HEIGHT_PX);
 		const rowIndex = Math.max(0, Math.min(rawRow, lineLayouts.length));
 
-		if (rowIndex >= lineLayouts.length) {
-			return { index: this.getBlocks().length, rowIndex, isOverEditor };
-		}
-
-		return {
-			index: lineLayouts[rowIndex].topLevelIndex ?? this.getBlocks().length,
-			rowIndex,
-			isOverEditor
-		};
+		return { rowIndex, isOverEditor };
 	}
 
 	currentIndentChoice(
