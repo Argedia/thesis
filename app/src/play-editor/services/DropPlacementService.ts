@@ -113,7 +113,7 @@ export class DropPlacementService {
     insertedBlock: EditorBlock,
     options: {
       slotTargetId?: string | null;
-      visualLineIndex?: number;
+      rowIndex?: number;
       chosenIndent?: number;
       branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
       beforeBlockId?: string | null;
@@ -121,7 +121,7 @@ export class DropPlacementService {
     resolveDropPlacement: (
       blocks: EditorBlock[],
       lineLayouts: ReturnType<typeof buildEditorLineLayout>,
-      visualLineIndex: number,
+      rowIndex: number,
       chosenIndent: number
     ) => ResolvedDropPlacement
   ): { nextDocument: EditorDocument; status: string } {
@@ -143,7 +143,7 @@ export class DropPlacementService {
         : resolveDropPlacement(
             baseBlocks,
             baseLineLayouts,
-            options.visualLineIndex ?? baseLineLayouts.length,
+            options.rowIndex ?? baseLineLayouts.length,
             options.chosenIndent ?? 0
           );
 

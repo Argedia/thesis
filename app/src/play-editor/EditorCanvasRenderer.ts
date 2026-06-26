@@ -3,7 +3,6 @@ import { t } from "../i18n-helpers";
 import { setTutorialAnchor } from "../features/tutorial/anchors";
 import { buildEditorLineLayout } from "./model";
 import { INDENT_STEP_PX } from "../features/program-editor-core/editor-layout-constants";
-import type { PreviewDescriptor } from "./contracts/types";
 import type {
   ControlBodyKey,
   EditorBlock,
@@ -55,8 +54,6 @@ export interface EditorCanvasRendererContext {
   editVariableName(blockId: string, currentName?: string): Promise<void>;
   isControlBlock(block: EditorBlock | null | undefined): boolean;
   findBlockById(blocks: EditorBlock[], blockId: string): EditorBlock | null;
-  buildPreviewDescriptor(): PreviewDescriptor | null;
-  renderPreviewBlock(descriptor: PreviewDescriptor): HTMLElement;
   getPreviewBlockId(): string;
 }
 
@@ -83,31 +80,14 @@ export class EditorCanvasRenderer {
     this.editorLineNumber = 0;
 
     const dragState = this.ctx.getDragState();
-    const canUseInlineSequencePreview =
-      !!dragState &&
-      !dragState.slotTargetKey &&
-      dragState.isOverEditor;
-    const previewBlocks = canUseInlineSequencePreview
-      ? (this.ctx.getInlinePreviewBlocks() ?? this.ctx.getBlocks())
-      : this.ctx.getBlocks();
+    const previewBlocks =
+      dragState && !dragState.slotTargetKey && dragState.isOverEditor
+        ? (this.ctx.getInlinePreviewBlocks() ?? this.ctx.getBlocks())
+        : this.ctx.getBlocks();
     const lineLayouts = buildEditorLineLayout(previewBlocks);
 
-    const lineIndicatorIndex =
-      dragState?.isOverEditor &&
-      !dragState.slotTargetKey &&
-      !canUseInlineSequencePreview
-        ? dragState.visualLineIndex
-        : null;
-
-    lineLayouts.forEach((lineLayout, index) => {
-      if (lineLayout.role === "drop") {
-        this.renderEditorDropRow(
-          lineLayout,
-          lineIndicatorIndex === index,
-          gutter,
-          programBody
-        );
-      } else if (lineLayout.role === "else_header") {
+    lineLayouts.forEach((lineLayout) => {
+      if (lineLayout.role === "else_header") {
         this.renderEditorElseRow(lineLayout, gutter, programBody);
       } else {
         this.renderEditorBlockRow(lineLayout, gutter, programBody);
@@ -187,44 +167,6 @@ export class EditorCanvasRenderer {
     elseRow.appendChild(elseTag);
     this.ctx.setLineRowRef(lineLayout.id, elseRow);
     programBody.appendChild(elseRow);
-  }
-
-  private renderEditorDropRow(
-    lineLayout: EditorLineLayout,
-    isActive: boolean,
-    gutter: HTMLElement,
-    programBody: HTMLElement
-  ): void {
-    const gutterPlaceholder = document.createElement("div");
-    gutterPlaceholder.className = "editor-line-number editor-line-number-ghost editor-drop-gutter";
-    gutter.appendChild(gutterPlaceholder);
-    const line = document.createElement("div");
-    line.className = `editor-program-row editor-drop-row${isActive ? " active" : ""}`;
-    const dragState = this.ctx.getDragState();
-    const previewIndent =
-      isActive && dragState ? dragState.chosenIndent : lineLayout.indentPotential[0] ?? 0;
-    line.style.paddingLeft = `${previewIndent * INDENT_STEP_PX}px`;
-    const shouldRenderInlineDropPreview =
-      isActive && !!dragState && !dragState.slotTargetKey;
-    if (shouldRenderInlineDropPreview) {
-      const previewDescriptor = this.ctx.buildPreviewDescriptor();
-      if (previewDescriptor) {
-        const preview = this.ctx.renderPreviewBlock(previewDescriptor);
-        preview.classList.add("editor-block-preview-overlay");
-        line.appendChild(preview);
-      }
-    } else {
-      const indicator = document.createElement("div");
-      const branch = isActive ? dragState?.branchTarget?.branch ?? null : null;
-      indicator.className = [
-        "editor-drop-indicator",
-        isActive ? "active" : "",
-        branch === "alternateBody" ? "branch-else" : branch === "body" ? "branch-body" : ""
-      ].filter(Boolean).join(" ");
-      line.appendChild(indicator);
-    }
-    this.ctx.setLineRowRef(lineLayout.id, line);
-    programBody.appendChild(line);
   }
 
   private renderEditorBlockRow(

@@ -149,8 +149,8 @@ export class PlayEditorEngine {
 			applyDropDestination: (document, insertedBlock, options) =>
 				this.registry.getDropPlacementService().applyDropDestination(
 					document, insertedBlock, options,
-					(blocks, lineLayouts, visualLineIndex, chosenIndent) =>
-						this.registry.getGeometryService().resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent)
+					(blocks, lineLayouts, rowIndex, chosenIndent) =>
+						this.registry.getGeometryService().resolveDropPlacement(blocks, lineLayouts, rowIndex, chosenIndent)
 				),
 			resolveInsertedBlockFromDrag: (dragState, matcher) => this.resolveInsertedBlockFromDrag(dragState, matcher),
 			resolveBaseDocumentForDrop: (dragState, document) =>

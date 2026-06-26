@@ -100,7 +100,7 @@ export interface EngineRegistryDeps {
 		insertedBlock: EditorBlock,
 		options: {
 			slotTargetId?: string | null;
-			visualLineIndex?: number;
+			rowIndex?: number;
 			chosenIndent?: number;
 			branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
 			beforeBlockId?: string | null;
@@ -300,7 +300,8 @@ export class EngineServiceRegistry {
 				getMultiDragIds: (blockId) => this.deps.getMultiDragIds(blockId),
 				moveBlocksAfter: (document, afterBlockId, blockIds) =>
 					this.deps.moveBlocksAfter(document, afterBlockId, blockIds),
-				onBlockTap: (blockId) => this.deps.onBlockTap(blockId)
+				onBlockTap: (blockId) => this.deps.onBlockTap(blockId),
+				getPaletteDescriptorService: () => this.getPaletteDescriptorService()
 			};
 			this.dragInteraction = new DragInteractionController(context);
 		}
@@ -416,8 +417,6 @@ export class EngineServiceRegistry {
 				editVariableName: (blockId, currentName) => this.deps.editVariableName(blockId, currentName),
 				isControlBlock: (block) => this.deps.isControlBlock(block),
 				findBlockById: (blocks, blockId) => this.getTreeService().findBlockById(blocks, blockId),
-				buildPreviewDescriptor: () => this.getPreviewRenderer().buildPreviewDescriptor(),
-				renderPreviewBlock: (descriptor) => this.getPreviewRenderer().renderPreviewBlock(descriptor),
 				getPreviewBlockId: () => PREVIEW_BLOCK_ID,
 				isBlockSelected: (blockId) => this.deps.isBlockSelected(blockId),
 				onBlockRightClick: (event, block) => this.deps.onBlockRightClick(event, block),

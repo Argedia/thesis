@@ -174,7 +174,7 @@ export interface EditorDragState {
 	offsetX: number;
 	offsetY: number;
 	dropIndex: number;
-	visualLineIndex: number;
+	rowIndex: number;
 	chosenIndent: number;
 	isOverEditor: boolean;
 	slotTargetKey?: string | null;
