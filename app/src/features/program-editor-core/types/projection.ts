@@ -56,6 +56,7 @@ export interface EditorLineLayout {
 	lineNumber?: number;
 	depth: number;
 	indentCurrent: number;
+	opensBody: boolean;
 	indentPotential: number[];
 	increaseNextIndentation: boolean;
 	bodyOwnerPath: string[];

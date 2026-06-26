@@ -1072,12 +1072,16 @@
 }
 
 .editor-program-row {
+	height: var(--editor-row-height);
 	min-height: var(--editor-row-height);
+	max-height: var(--editor-row-height);
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
 	position: relative;
 	width: 100%;
+	overflow: visible;
 }
 
 .editor-program-row-active .editor-block {
@@ -1129,14 +1133,12 @@
 }
 
 .editor-conditional-divider {
-	min-height: 2rem;
 	align-items: center;
 }
 
 .editor-else-pill {
 	display: inline-flex;
 	align-items: center;
-	min-height: 2rem;
 	padding: 0.3rem 0.7rem;
 	border: 2px solid #f4b6d8;
 	border-radius: 999px;
