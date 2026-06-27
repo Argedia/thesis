@@ -1,4 +1,5 @@
 import { createOperationPolicy } from "@thesis/game-system";
+import { t } from "../../i18n-helpers";
 import {
   createEditorDocument,
   serializeProgramDocument
@@ -85,7 +86,7 @@ export const deleteEditorDraftRecord = (id: string): void => {
 };
 
 export const createEditorDraftRecord = (name: string): LevelEditorDraftRecord => {
-  const normalizedName = name.trim() || "Nivel sin nombre";
+  const normalizedName = name.trim() || t("editor.draftDefaultName");
   const baseSlug = slugify(normalizedName) || "nivel";
   const records = safeParseRecords(window.localStorage.getItem(STORAGE_KEY));
   const taken = new Set(records.map((record) => record.id));

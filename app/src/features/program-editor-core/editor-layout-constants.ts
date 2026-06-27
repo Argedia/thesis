@@ -1,6 +1,5 @@
 export const INDENT_STEP_PX = 28;
-export const INDENT_ACTIVATION_INSET_PX = 12;
-
+export const ROW_HEIGHT_PX = 54;
 export const ELSE_BLOCK_ID_SUFFIX = "-else";
 export const getElseBlockId = (ifBlockId: string): string => `${ifBlockId}${ELSE_BLOCK_ID_SUFFIX}`;
 export const getIfBlockIdFromElse = (elseBlockId: string): string | null => {

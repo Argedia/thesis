@@ -29,72 +29,8 @@ export interface DragGeometry {
   height: number;
   placementX: number;
   placementY: number;
+  pointerY: number;
 }
-
-export const calculateDropIndex = (
-  drag: DragGeometry,
-  editorRect: DOMRect | undefined,
-  blockRects: Array<{ id: string; rect: DOMRect }>,
-  blockCount: number,
-  previousIndex?: number | null
-): { index: number; isOverEditor: boolean } => {
-  if (!editorRect) {
-    return { index: blockCount, isOverEditor: false };
-  }
-
-  const nearThreshold = 56;
-  const isOverEditor =
-    drag.right >= editorRect.left - nearThreshold &&
-    drag.left <= editorRect.right + nearThreshold &&
-    drag.bottom >= editorRect.top - nearThreshold &&
-    drag.top <= editorRect.bottom + nearThreshold;
-
-  if (blockRects.length === 0) {
-    return { index: blockCount, isOverEditor };
-  }
-
-  // For rows with height=0 (drop rows), shift their anchor to the midpoint between
-  // their neighbors so they don't collide with adjacent block anchors.
-  const rawAnchors = blockRects.map(({ rect }) => rect.top + rect.height / 2);
-  const anchors = rawAnchors.map((anchor, i) => {
-    const rect = blockRects[i]!.rect;
-    if (rect.height > 0) return anchor;
-    // height=0: use midpoint between prev and next anchor
-    const prev = i > 0 ? rawAnchors[i - 1]! : rect.top - 25;
-    const next = i < rawAnchors.length - 1 ? rawAnchors[i + 1]! : rect.top + 25;
-    return (prev + next) / 2;
-  });
-  const leaveTolerance = 48;
-
-  if (previousIndex !== null && previousIndex !== undefined && previousIndex >= 0 && previousIndex < anchors.length) {
-    const currentAnchor = anchors[previousIndex];
-    const upperBoundary =
-      previousIndex === 0 ? editorRect.top : (anchors[previousIndex - 1] + currentAnchor) / 2;
-    const lowerBoundary =
-      previousIndex === anchors.length - 1
-        ? editorRect.bottom
-        : (currentAnchor + anchors[previousIndex + 1]) / 2;
-
-    if (
-      drag.placementY >= upperBoundary - leaveTolerance &&
-      drag.placementY <= lowerBoundary + leaveTolerance
-    ) {
-      return { index: previousIndex, isOverEditor };
-    }
-  }
-
-  let nextIndex = blockCount;
-  let bestDistance = Number.POSITIVE_INFINITY;
-  anchors.forEach((anchor, index) => {
-    const distance = Math.abs(drag.placementY - anchor);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      nextIndex = index;
-    }
-  });
-
-  return { index: nextIndex, isOverEditor };
-};
 
 export interface WheelTransformOptions {
   angleStart?: number;

@@ -41,7 +41,7 @@ export function CampaignScreen() {
         setLevels(campaignLevels);
         setCompletedLevelIds(progress.completedLevelIds);
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Could not load campaign.");
+        setError(loadError instanceof Error ? loadError.message : t("playSession.couldNotLoadCampaign"));
       }
     };
     void load();

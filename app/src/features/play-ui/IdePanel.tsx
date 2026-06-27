@@ -125,7 +125,6 @@ export function IdePanel({
         <span className="device-label">{t("board.programConsole")}</span>
         <div className="terminal-header-actions">
           {headerActions}
-          <span className="device-time">{runState === "running" ? t("state.run") : t("state.edit")}</span>
         </div>
       </div>
 
@@ -169,7 +168,7 @@ export function IdePanel({
               <div className="ide-run-actions" {...tutorialAnchorProps("play-run-actions")}>
                 <RunIconButton icon="▶" label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
                 <RunIconButton icon="⏭" label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
-                <RunIconButton icon="⏸" label={t("actions.pause")} onClick={onPause} disabled={disabledRunButtons} />
+                <RunIconButton icon="⏹" label={t("actions.stop")} onClick={onPause} disabled={disabledRunButtons} />
                 <RunIconButton icon="🗑" label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
               </div>
             ) : null}

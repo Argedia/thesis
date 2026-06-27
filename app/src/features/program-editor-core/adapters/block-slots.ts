@@ -1,4 +1,5 @@
 import type { EditorBlock, EditorInputSlotDefinition, OutputType } from "../types";
+import { t } from "../../../i18n-helpers";
 import {
 	getExpressionOutputType,
 	inferExpressionFamilyFromOperationMode,
@@ -97,9 +98,9 @@ export const getOutputType = (block: EditorBlock): OutputType => {
 };
 
 const structureOpPlaceholder = (operation: EditorBlock["operation"]): string => {
-	if (operation === "GET_AT" || operation === "REMOVE_AT") return "índice";
-	if (operation === "CONTAINS" || operation === "FIND") return "valor";
-	return "valor";
+	if (operation === "GET_AT" || operation === "REMOVE_AT") return t("editor.placeholderIndex");
+	if (operation === "CONTAINS" || operation === "FIND") return t("editor.placeholderValue");
+	return t("editor.placeholderValue");
 };
 
 export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinition[] => {
@@ -110,7 +111,7 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				expectedType: "any",
 				allowDirectTextEntry: true,
 				title: "Insert a condition block or type a value",
-				placeholder: "condición"
+				placeholder: t("editor.placeholderCondition")
 			}
 		];
 	}
@@ -122,14 +123,14 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				expectedType: "value",
 				allowDirectTextEntry: true,
 				title: "Insert a value",
-				placeholder: "valor"
+				placeholder: t("editor.placeholderValue")
 			},
 			{
 				id: "insert-index",
 				expectedType: "value",
 				allowDirectTextEntry: true,
 				title: "Insert an index",
-				placeholder: "índice"
+				placeholder: t("editor.placeholderIndex")
 			}
 		];
 	}
@@ -157,14 +158,14 @@ export const getBlockInputSlots = (block: EditorBlock): EditorInputSlotDefinitio
 				expectedType: "value",
 				allowDirectTextEntry: true,
 				title: "Insert a value",
-				placeholder: "valor"
+				placeholder: t("editor.placeholderValue")
 			},
 			{
 				id: "insert-index",
 				expectedType: "value",
 				allowDirectTextEntry: true,
 				title: "Insert an index",
-				placeholder: "índice"
+				placeholder: t("editor.placeholderIndex")
 			}
 		];
 	}

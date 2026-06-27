@@ -37,6 +37,10 @@ import { setActiveRoutineId as setRoutineId } from "../program-editor-core";
 import { getMissingRequiredOperations, checkRoutineConstraints } from "./runtime/constraints";
 import { getRunLineDelayMs } from "../settings/execution-speed";
 
+class StepLimitError extends Error {
+  readonly kind = "step_limit" as const;
+}
+
 const createInitialState = (): PlaySessionState => {
   const document = createEditorDocument();
   return {
@@ -269,12 +273,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
       await this.evaluateProgress(operationUsageSnapshot, routineCallCountSnapshot);
     } catch (error) {
       const message = error instanceof Error ? error.message : t("playSession.programRunError");
-      const outcome = this.resolveFailureOutcome(message);
+      const outcome = this.resolveFailureOutcome(message, error);
       await this.finishAnalyticsAttempt(outcome, {
         errorMessage: message
       });
       this.patchState({ lastEvaluationOutcome: outcome });
-      this.finishExecution(error instanceof Error ? error.message : "The program could not run.");
+      this.finishExecution(error instanceof Error ? error.message : t("playSession.programRunError"));
     }
   }
 
@@ -311,12 +315,12 @@ export class DefaultPlaySessionController implements PlaySessionController {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : t("playSession.programRunError");
-      const outcome = this.resolveFailureOutcome(message);
+      const outcome = this.resolveFailureOutcome(message, error);
       await this.finishAnalyticsAttempt(outcome, {
         errorMessage: message
       });
       this.patchState({ lastEvaluationOutcome: outcome });
-      this.finishExecution(error instanceof Error ? error.message : "The program could not run.");
+      this.finishExecution(error instanceof Error ? error.message : t("playSession.programRunError"));
     }
   }
 
@@ -621,7 +625,7 @@ export class DefaultPlaySessionController implements PlaySessionController {
       return;
     }
     if (this.runtimeVisibleStepCount >= level.constraints.maxSteps) {
-      throw new Error(`Step limit reached (${level.constraints.maxSteps}).`);
+      throw new StepLimitError(t("playSession.stepLimitReached", { max: level.constraints.maxSteps }));
     }
   }
 
@@ -703,8 +707,8 @@ export class DefaultPlaySessionController implements PlaySessionController {
     }
   }
 
-  private resolveFailureOutcome(message: string): AttemptOutcome {
-    return message.startsWith("Step limit reached") ? "step_limit" : "runtime_error";
+  private resolveFailureOutcome(message: string, error?: unknown): AttemptOutcome {
+    return error instanceof StepLimitError ? "step_limit" : "runtime_error";
   }
 
   private restoreSelectedRoutine(document: EditorDocument): EditorDocument {

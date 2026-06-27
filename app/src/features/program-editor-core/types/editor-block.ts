@@ -173,14 +173,12 @@ export interface EditorDragState {
 	height: number;
 	offsetX: number;
 	offsetY: number;
-	dropIndex: number;
-	visualLineIndex: number;
+	rowIndex: number;
 	chosenIndent: number;
 	isOverEditor: boolean;
+	laneLogicalTop: number;
 	slotTargetKey?: string | null;
 	originSlotOwnerId?: string | null;
-	branchTarget?: { ownerId: string; branch: import("./ast").ControlBodyKey } | null;
-	dropBeforeBlockId?: string | null;
 	multiDragIds?: string[];
 }
 

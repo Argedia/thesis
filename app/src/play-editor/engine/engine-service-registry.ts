@@ -35,10 +35,6 @@ import {
 	type BlockInstanceRendererContext
 } from "../render/BlockInstanceRenderer";
 import {
-	PreviewRenderer,
-	type PreviewRendererContext
-} from "../render/PreviewRenderer";
-import {
 	GhostRenderer,
 	type GhostRendererContext
 } from "../render/GhostRenderer";
@@ -65,8 +61,6 @@ export interface EngineRegistryDeps {
 	getBlocks: () => EditorBlock[];
 	getDragState: () => EditorDragState | null;
 	setDragState: (state: EditorDragState | null) => void;
-	getDragBaseLineRects: () => Array<{ id: string; rect: DOMRect }> | null;
-	setDragBaseLineRects: (rects: Array<{ id: string; rect: DOMRect }> | null) => void;
 	getPressState: () => PendingPress | null;
 	setPressState: (state: PendingPress | null) => void;
 	getWheelState: () => WheelState | null;
@@ -100,10 +94,8 @@ export interface EngineRegistryDeps {
 		insertedBlock: EditorBlock,
 		options: {
 			slotTargetId?: string | null;
-			visualLineIndex?: number;
+			rowIndex?: number;
 			chosenIndent?: number;
-			branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
-			beforeBlockId?: string | null;
 		}
 	) => { nextDocument: PlayEditorSurfaceProps["value"]; status: string };
 	resolveInsertedBlockFromDrag: (
@@ -179,7 +171,6 @@ export class EngineServiceRegistry {
 	private wheelInteraction: WheelInteractionController | null = null;
 	private blockAction: BlockActionController | null = null;
 	private blockInstanceRenderer: BlockInstanceRenderer | null = null;
-	private previewRenderer: PreviewRenderer | null = null;
 	private ghostRenderer: GhostRenderer | null = null;
 
 	public constructor(deps: EngineRegistryDeps) {
@@ -202,22 +193,16 @@ export class EngineServiceRegistry {
 		this.dropPlacement = null;
 		this.dragInteraction = null;
 		this.blockInstanceRenderer = null;
-		this.previewRenderer = null;
 		this.ghostRenderer = null;
 	}
 
 	public getGeometryService(): DragDropGeometryService {
 		return new DragDropGeometryService(
 			this.deps.getEditorLane(),
-			this.deps.getLineRowRefs(),
 			this.deps.getSlotRefs(),
 			this.deps.getDragState(),
-			this.deps.getDragBaseLineRects(),
 			(key) => this.deps.parseSlotKey(key),
-			(key) => this.deps.canUseSlotTarget(key),
-			(blocks, id) => this.getTreeService().findBlockById(blocks, id),
-			(block) => this.deps.isControlBlock(block),
-			() => this.deps.getBlocks()
+			(key) => this.deps.canUseSlotTarget(key)
 		);
 	}
 
@@ -279,7 +264,6 @@ export class EngineServiceRegistry {
 				setPressState: (s) => this.deps.setPressState(s),
 				getDragState: () => this.deps.getDragState(),
 				setDragState: (s) => this.deps.setDragState(s),
-				setDragBaseLineRects: (rects) => this.deps.setDragBaseLineRects(rects),
 				closeWheel: () => this.deps.closeWheel(),
 				render: () => this.deps.render(),
 				emitStatus: (msg) => this.deps.emitStatus(msg),
@@ -300,7 +284,8 @@ export class EngineServiceRegistry {
 				getMultiDragIds: (blockId) => this.deps.getMultiDragIds(blockId),
 				moveBlocksAfter: (document, afterBlockId, blockIds) =>
 					this.deps.moveBlocksAfter(document, afterBlockId, blockIds),
-				onBlockTap: (blockId) => this.deps.onBlockTap(blockId)
+				onBlockTap: (blockId) => this.deps.onBlockTap(blockId),
+				getPaletteDescriptorService: () => this.getPaletteDescriptorService()
 			};
 			this.dragInteraction = new DragInteractionController(context);
 		}
@@ -416,8 +401,6 @@ export class EngineServiceRegistry {
 				editVariableName: (blockId, currentName) => this.deps.editVariableName(blockId, currentName),
 				isControlBlock: (block) => this.deps.isControlBlock(block),
 				findBlockById: (blocks, blockId) => this.getTreeService().findBlockById(blocks, blockId),
-				buildPreviewDescriptor: () => this.getPreviewRenderer().buildPreviewDescriptor(),
-				renderPreviewBlock: (descriptor) => this.getPreviewRenderer().renderPreviewBlock(descriptor),
 				getPreviewBlockId: () => PREVIEW_BLOCK_ID,
 				isBlockSelected: (blockId) => this.deps.isBlockSelected(blockId),
 				onBlockRightClick: (event, block) => this.deps.onBlockRightClick(event, block),
@@ -495,21 +478,6 @@ export class EngineServiceRegistry {
 		return this.blockAction;
 	}
 
-	public getPreviewRenderer(): PreviewRenderer {
-		if (!this.previewRenderer) {
-			const context: PreviewRendererContext = {
-				getDragState: () => this.deps.getDragState(),
-				findBlockById: (blockId) =>
-					this.getTreeService().findBlockById(this.deps.getBlocks(), blockId),
-				isControlBlock: (block) => this.deps.isControlBlock(block),
-				getControlLabel: (block) => this.deps.getControlLabel(block),
-				applyBlockColor: (element, color) => this.deps.applyBlockColor(element, color)
-			};
-			this.previewRenderer = new PreviewRenderer(context);
-		}
-		return this.previewRenderer;
-	}
-
 	public getBlockInstanceRenderer(): BlockInstanceRenderer {
 		if (!this.blockInstanceRenderer) {
 			const context: BlockInstanceRendererContext = {
@@ -574,17 +542,9 @@ export class EngineServiceRegistry {
 		if (!this.ghostRenderer) {
 			const context: GhostRendererContext = {
 				getDragState: () => this.deps.getDragState(),
-				findDraggingBlock: () => {
-					const drag = this.deps.getDragState();
-					return drag?.source === "program" && drag.blockId
-						? this.getTreeService().findBlockById(this.deps.getBlocks(), drag.blockId)
-						: null;
-				},
 				createPreviewBlockFromDragState: () => this.deps.createPreviewBlockFromDragState(),
 				renderGhostBlockInstance: (block, nested) =>
-					this.getBlockInstanceRenderer().renderGhostBlockInstance(block, nested),
-				buildPreviewDescriptor: () => this.getPreviewRenderer().buildPreviewDescriptor(),
-				renderPreviewBlock: (descriptor) => this.getPreviewRenderer().renderPreviewBlock(descriptor)
+					this.getBlockInstanceRenderer().renderGhostBlockInstance(block, nested)
 			};
 			this.ghostRenderer = new GhostRenderer(context);
 		}

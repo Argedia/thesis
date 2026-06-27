@@ -3,7 +3,7 @@ import type { EditorBlock } from "./editor-block";
 
 export type { ControlBodyKey, ProgramContainerRef } from "./ast";
 
-export type EditorLineRole = "block" | "else_header" | "drop";
+export type EditorLineRole = "block" | "else_header";
 
 export type EditorRowKind =
 	| "statement"
@@ -56,6 +56,7 @@ export interface EditorLineLayout {
 	lineNumber?: number;
 	depth: number;
 	indentCurrent: number;
+	opensBody: boolean;
 	indentPotential: number[];
 	increaseNextIndentation: boolean;
 	bodyOwnerPath: string[];
@@ -66,11 +67,4 @@ export interface EditorLineLayout {
 	branchOwnerId?: string;
 	branch?: ControlBodyKey;
 	isLastInBranch?: boolean;
-	beforeBlockId?: string;
-	insertionRootIndex?: number;
-	promotedBranchTarget?: {
-		indent: number;
-		ownerId: string;
-		branch: ControlBodyKey;
-	};
 }

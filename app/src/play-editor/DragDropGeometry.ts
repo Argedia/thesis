@@ -1,13 +1,8 @@
-import type { EditorBlock, EditorDragState, EditorLineLayout, ControlBodyKey } from "./model";
+import type { EditorBlock, EditorDragState, EditorLineLayout } from "./model";
 import type { DragGeometry } from "./layout";
 import type { ResolvedDropPlacement } from "./contracts/types";
-import { buildEditorLineLayout } from "./model";
-import { calculateDropIndex } from "./layout";
-import { INDENT_STEP_PX, INDENT_ACTIVATION_INSET_PX } from "../features/program-editor-core/editor-layout-constants";
-
-/**
- * Pure utility functions for drag/drop geometry calculations
- */
+import { INDENT_STEP_PX, ROW_HEIGHT_PX } from "../features/program-editor-core/editor-layout-constants";
+import { PREVIEW_BLOCK_ID } from "./contracts/constants";
 
 export function ghostGeometry(
 	pointerX: number,
@@ -15,14 +10,12 @@ export function ghostGeometry(
 	offsetX: number,
 	offsetY: number,
 	width: number,
-	height: number,
-	source: "palette" | "program" = "palette"
+	height: number
 ): DragGeometry {
 	const left = pointerX - offsetX;
 	const top = pointerY - offsetY;
 	const placementX = left + Math.min(Math.max(width * 0.12, 10), 22);
-	const verticalRatio = source === "program" ? 0.54 : 0.38;
-	const placementY = top + Math.min(Math.max(height * verticalRatio, 18), Math.max(height - 18, 18));
+	const placementY = top + height / 2;
 
 	return {
 		left,
@@ -32,239 +25,161 @@ export function ghostGeometry(
 		width,
 		height,
 		placementX,
-		placementY
+		placementY,
+		pointerY
 	};
 }
 
-/**
- * Service for calculating drag/drop geometry and placement
- */
-type ControlEditorBlock = EditorBlock & { kind: "conditional" | "else" | "while" | "for_each" };
-type BranchTarget = { ownerId: string; branch: ControlBodyKey };
+const SENTINEL: Pick<EditorLineLayout, "indentCurrent" | "opensBody" | "controlPath" | "blockId" | "role"> = {
+	indentCurrent: 0,
+	opensBody: false,
+	controlPath: [],
+	blockId: undefined,
+	role: "block"
+};
 
 export class DragDropGeometryService {
 	constructor(
 		private editorLane: HTMLDivElement | null,
-		private lineRowRefs: Map<string, HTMLDivElement>,
 		private slotRefs: Map<string, HTMLDivElement>,
 		private dragState: EditorDragState | null,
-		private dragBaseLineRects: Array<{ id: string; rect: DOMRect }> | null,
 		private parseSlotKey: (key: string) => { ownerId: string; slotId: string },
-		private canUseSlotTarget: (targetSlotKey: string) => boolean,
-		private findBlockById: (blocks: EditorBlock[], blockId: string) => EditorBlock | null,
-		private isControlBlock: (block: EditorBlock | null | undefined) => block is ControlEditorBlock,
-		private getBlocks: () => EditorBlock[]
+		private canUseSlotTarget: (targetSlotKey: string) => boolean
 	) { }
-
-	getLineRects(lineLayouts: EditorLineLayout[]): Array<{ id: string; rect: DOMRect }> {
-		return lineLayouts
-			.map((lineLayout) => {
-				const element = this.lineRowRefs.get(lineLayout.id);
-				return element ? { id: lineLayout.id, rect: element.getBoundingClientRect() } : null;
-			})
-			.filter((value): value is { id: string; rect: DOMRect } => value !== null)
-			.sort((left, right) => left.rect.top - right.rect.top);
-	}
-
-	captureBaseLineRects(lineLayouts: EditorLineLayout[]): Array<{ id: string; rect: DOMRect }> {
-		return this.getLineRects(lineLayouts);
-	}
 
 	currentDropWithPoint(
 		drag: DragGeometry,
-		lineLayouts: EditorLineLayout[]
-	): { index: number; visualLineIndex: number; isOverEditor: boolean } {
-		const { index: visualLineIndex, isOverEditor } = calculateDropIndex(
-			drag,
-			this.editorLane?.getBoundingClientRect(),
-			this.dragBaseLineRects ?? this.getLineRects(lineLayouts),
-			lineLayouts.length,
-			this.dragState?.visualLineIndex ?? null
-		);
+		lineLayouts: EditorLineLayout[],
+		frozenLaneLogicalTop?: number
+	): { rowIndex: number; isOverEditor: boolean; laneLogicalTop: number } {
+		const laneRect = this.editorLane?.getBoundingClientRect();
+		const nearThreshold = 56;
+		const isOverEditor = laneRect != null &&
+			drag.right >= laneRect.left - nearThreshold &&
+			drag.left <= laneRect.right + nearThreshold &&
+			drag.bottom >= laneRect.top - nearThreshold &&
+			drag.top <= laneRect.bottom + nearThreshold;
 
-		if (visualLineIndex >= lineLayouts.length) {
-			return {
-				index: this.getBlocks().length,
-				visualLineIndex,
-				isOverEditor
-			};
-		}
+		// Use frozen top when provided (avoids oscillation as preview rows shift the lane vertically).
+		const laneLogicalTop = frozenLaneLogicalTop ?? ((laneRect?.top ?? 0) - (this.editorLane?.scrollTop ?? 0));
+		const rawRow = Math.floor((drag.pointerY - laneLogicalTop) / ROW_HEIGHT_PX);
+		const rowIndex = Math.max(0, Math.min(rawRow, lineLayouts.length));
 
-		return {
-			index: lineLayouts[visualLineIndex].topLevelIndex ?? this.getBlocks().length,
-			visualLineIndex,
-			isOverEditor
-		};
+		return { rowIndex, isOverEditor, laneLogicalTop };
 	}
 
 	currentIndentChoice(
 		pointerX: number,
-		visualLineIndex: number,
-		lineLayouts: EditorLineLayout[]
+		rowIndex: number,
+		lineLayouts: EditorLineLayout[],
+		draggedBlockId?: string | null,
+		previousIndent?: number | null
 	): number {
 		const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
-		const targetLine =
-			visualLineIndex < lineLayouts.length
-				? lineLayouts[visualLineIndex]
-				: lineLayouts[lineLayouts.length - 1] ?? null;
-		const previousLine =
-			visualLineIndex > 0 ? lineLayouts[Math.min(visualLineIndex - 1, lineLayouts.length - 1)] : null;
-		const inheritedGapLine = this.getInheritedGapLine(lineLayouts, visualLineIndex);
 
-		if (!targetLine) {
+		// Skip the dragged block's own rows in both directions — it will be removed
+		// from the tree, so constraints come from its true neighbors.
+		let prevLineIndex = rowIndex - 1;
+		while (
+			prevLineIndex >= 0 &&
+			draggedBlockId != null &&
+			lineLayouts[prevLineIndex]?.blockId === draggedBlockId
+		) {
+			prevLineIndex--;
+		}
+		const prevLine = prevLineIndex >= 0 ? lineLayouts[prevLineIndex] : null;
+
+		let nextLineIndex = rowIndex;
+		while (
+			nextLineIndex < lineLayouts.length &&
+			draggedBlockId != null &&
+			lineLayouts[nextLineIndex]?.blockId === draggedBlockId
+		) {
+			nextLineIndex++;
+		}
+		const nextLine = nextLineIndex < lineLayouts.length ? lineLayouts[nextLineIndex] : null;
+
+		if (!prevLine && !nextLine) {
 			return 0;
 		}
 
-		const previousRowColumns = this.getLeadingDropLine(targetLine, previousLine)?.indentPotential ?? [];
-		const inheritedGapColumns = inheritedGapLine?.indentPotential ?? [];
+		const prev = prevLine ?? SENTINEL;
+		const next = nextLine ?? SENTINEL;
 
-		const candidateIndents = Array.from(
-			new Set([
-				...previousRowColumns,
-				...inheritedGapColumns,
-				...targetLine.indentPotential,
-				...(targetLine.increaseNextIndentation ? [targetLine.indentCurrent + 1] : []),
-				...(visualLineIndex >= lineLayouts.length && targetLine.increaseNextIndentation
-					? [targetLine.indentCurrent + 1]
-					: [])
-			])
-		).sort((left, right) => left - right);
+		const maxIndent = prev.indentCurrent + (prev.opensBody ? 1 : 0);
+		const minIndent = next.indentCurrent;
 
-		if (candidateIndents.length <= 1) {
-			return candidateIndents[0] ?? 0;
-		}
-
-		let chosenIndent = candidateIndents[0] ?? 0;
-		for (let index = 1; index < candidateIndents.length; index += 1) {
-			const indent = candidateIndents[index];
-			const thresholdX = laneLeft + indent * INDENT_STEP_PX + INDENT_ACTIVATION_INSET_PX;
-			if (pointerX >= thresholdX) {
-				chosenIndent = indent;
+		// Hysteresis: require pointer to move 6px past a boundary before switching
+		// indent level, to prevent flicker when pointer sits near a step boundary.
+		const HYSTERESIS = 6;
+		const rawX = pointerX - laneLeft;
+		let rawIndent: number;
+		if (previousIndent != null) {
+			const boundaryToNext = (previousIndent + 1) * INDENT_STEP_PX;
+			const boundaryToPrev = previousIndent * INDENT_STEP_PX;
+			if (rawX >= boundaryToNext + HYSTERESIS) {
+				rawIndent = Math.floor(rawX / INDENT_STEP_PX);
+			} else if (rawX < boundaryToPrev - HYSTERESIS) {
+				rawIndent = Math.floor(rawX / INDENT_STEP_PX);
+			} else {
+				rawIndent = previousIndent;
 			}
+		} else {
+			rawIndent = Math.floor(rawX / INDENT_STEP_PX);
 		}
 
-		return chosenIndent;
+		return Math.min(Math.max(rawIndent, minIndent), maxIndent);
 	}
 
 	resolveDropPlacement(
 		blocks: EditorBlock[],
 		lineLayouts: EditorLineLayout[],
-		visualLineIndex: number,
+		rowIndex: number,
 		chosenIndent: number
 	): ResolvedDropPlacement {
-		const targetLine =
-			visualLineIndex < lineLayouts.length ? lineLayouts[visualLineIndex] : null;
-		const previousLine =
-			visualLineIndex > 0 ? lineLayouts[Math.min(visualLineIndex - 1, lineLayouts.length - 1)] : null;
-		const inheritedGapLine = this.getInheritedGapLine(lineLayouts, visualLineIndex);
+		// Gap above lineLayouts[rowIndex]
+		const prevLine = rowIndex > 0 ? lineLayouts[rowIndex - 1] : null;
+		const nextLine = rowIndex < lineLayouts.length ? lineLayouts[rowIndex] : null;
 
-		const branchFromLine = (
-			line: EditorLineLayout | null
-		): BranchTarget | null => {
-			if (!line || chosenIndent <= 0) {
-				return null;
-			}
+		const prev = prevLine ?? SENTINEL;
 
-			if (line.promotedBranchTarget && chosenIndent === line.promotedBranchTarget.indent) {
-				return {
-					ownerId: line.promotedBranchTarget.ownerId,
-					branch: line.promotedBranchTarget.branch
-				};
-			}
-
-			if (line.role === "else_header" && chosenIndent === line.indentCurrent + 1) {
-				return {
-					ownerId: line.blockId!,
-					branch: "alternateBody"
-				};
-			}
-
-			if (line.controlPath.length >= chosenIndent) {
-				return line.controlPath[chosenIndent - 1] ?? null;
-			}
-
-			if (line.role === "block" && this.isControlBlock(line.block) && chosenIndent === line.indentCurrent + 1) {
-				return {
-					ownerId: line.blockId!,
-					branch: "body"
-				};
-			}
-
-			return null;
-		};
-
-		const promotedBranchFromLine = (
-			line: EditorLineLayout | null
-		): BranchTarget | null => {
-			if (!line?.promotedBranchTarget || chosenIndent !== line.promotedBranchTarget.indent) {
-				return null;
-			}
+		// Dropping into prevLine's body (control or else_header opens a body)
+		if (chosenIndent === prev.indentCurrent + 1 && prev.opensBody && prevLine) {
 			return {
-				ownerId: line.promotedBranchTarget.ownerId,
-				branch: line.promotedBranchTarget.branch
-			};
-		};
-
-		if (targetLine) {
-			const targetBranch = branchFromLine(targetLine);
-			if (targetBranch) {
-				return {
-					branchTarget: targetBranch,
-					beforeBlockId:
-						targetLine.role === "block" && targetLine.controlPath.length >= chosenIndent
-							? targetLine.blockId
-							: undefined
-					};
-			}
-
-			// If the cursor is closest to the next block row instead of the preceding drop row,
-			// preserve indent-as-column behavior by letting the previous row promote the drop
-			// into the prior control body's column.
-			const previousPromotedBranch = promotedBranchFromLine(previousLine);
-			if (previousPromotedBranch && chosenIndent > (targetLine.indentCurrent ?? 0)) {
-				return {
-					branchTarget: previousPromotedBranch
-				};
-			}
-
-			const inheritedGapBranch = branchFromLine(inheritedGapLine);
-			if (inheritedGapBranch) {
-				return {
-					branchTarget: inheritedGapBranch
-				};
-			}
-
-			if (targetLine.role === "else_header") {
-				return {
-					rootIndex: Math.min((targetLine.topLevelIndex ?? blocks.length) + 1, blocks.length)
-				};
-			}
-
-			return {
-				rootIndex: targetLine.topLevelIndex ?? blocks.length
+				branchTarget: {
+					ownerId: prevLine.blockId!,
+					branch: prevLine.role === "else_header" ? "alternateBody" : "body"
+				},
+				beforeBlockId: nextLine?.blockId
 			};
 		}
 
-		const previousBranch = branchFromLine(previousLine);
-		if (previousBranch) {
-			return {
-				branchTarget: previousBranch
-			};
+		// Dropping into a known control body via controlPath
+		if (chosenIndent > 0 && prev.controlPath.length >= chosenIndent) {
+			const pathEntry = prev.controlPath[chosenIndent - 1];
+			if (pathEntry) {
+				return { branchTarget: pathEntry, beforeBlockId: nextLine?.blockId };
+			}
 		}
 
-		return {
-			rootIndex: blocks.length
-		};
+		// Dropping at root or unresolved — use topLevelIndex of the next line
+		if (nextLine) {
+			return { rootIndex: nextLine.topLevelIndex ?? blocks.length };
+		}
+
+		return { rootIndex: blocks.length };
 	}
 
 	currentSlotTarget(drag: DragGeometry): string | null {
 		const enterThreshold = 0.45;
 		const leaveThreshold = 0.2;
 		const originReenterThreshold = 0.78;
-		const slotRects = Array.from(this.slotRefs.entries()).map(([slotKey, element]) => ({
-			slotKey,
-			rect: element.getBoundingClientRect()
-		}));
+		const slotRects = Array.from(this.slotRefs.entries())
+			.filter(([slotKey]) => !this.parseSlotKey(slotKey).ownerId.startsWith(PREVIEW_BLOCK_ID))
+			.map(([slotKey, element]) => ({
+				slotKey,
+				rect: element.getBoundingClientRect()
+			}));
 
 		const overlapRatio = (rect: DOMRect): number => {
 			const overlapLeft = Math.max(drag.left, rect.left);
@@ -332,69 +247,4 @@ export class DragDropGeometryService {
 		return bestSlotId ?? preservedPreviousSlotId;
 	}
 
-	currentBranchTarget(
-		blocks: EditorBlock[],
-		visualLineIndex: number,
-		lineLayouts: EditorLineLayout[],
-		chosenIndent: number
-	): BranchTarget | null {
-		return this.resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent).branchTarget ?? null;
-	}
-
-	currentBeforeBlockId(
-		blocks: EditorBlock[],
-		visualLineIndex: number,
-		lineLayouts: EditorLineLayout[],
-		chosenIndent: number
-	): string | null {
-		return this.resolveDropPlacement(blocks, lineLayouts, visualLineIndex, chosenIndent).beforeBlockId ?? null;
-	}
-
-	isImplicitBodyTarget(target: BranchTarget | null | undefined): boolean {
-		if (!target || target.branch !== "body") {
-			return false;
-		}
-
-		const owner = this.findBlockById(this.getBlocks(), target.ownerId);
-		return owner !== null && this.isControlBlock(owner) && (owner.bodyBlocks?.length ?? 0) === 0;
-	}
-
-	private getLeadingDropLine(
-		targetLine: EditorLineLayout,
-		previousLine: EditorLineLayout | null
-	): EditorLineLayout | null {
-		if (
-			targetLine.role === "block" &&
-			previousLine?.role === "drop" &&
-			previousLine.beforeBlockId === targetLine.blockId
-		) {
-			return previousLine;
-		}
-
-		return null;
-	}
-
-	private getInheritedGapLine(
-		lineLayouts: EditorLineLayout[],
-		visualLineIndex: number
-	): EditorLineLayout | null {
-		if (visualLineIndex <= 0 || visualLineIndex >= lineLayouts.length) {
-			return null;
-		}
-
-		const targetLine = lineLayouts[visualLineIndex] ?? null;
-		const previousLine = lineLayouts[visualLineIndex - 1] ?? null;
-		const twoBackLine = visualLineIndex > 1 ? lineLayouts[visualLineIndex - 2] ?? null : null;
-
-		if (
-			targetLine?.role === "drop" &&
-			previousLine?.role === "block" &&
-			twoBackLine?.role === "drop" &&
-			twoBackLine.beforeBlockId === previousLine.blockId
-		) {
-			return twoBackLine;
-		}
-
-		return null;
-	}
 }

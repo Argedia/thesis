@@ -22,6 +22,7 @@ import {
 	updateStatementNode,
 	projectDocumentToEditorBlocks
 } from "../operations";
+import { getIfBlockIdFromElse } from "../../features/program-editor-core/editor-layout-constants";
 import { synchronizeVariableLabels as synchronizeVariableLabelsExternal } from "./engine-block-sync";
 
 export interface BlockHelperDeps {
@@ -79,11 +80,12 @@ export const convertConditionalKind = (
 	toKind: "conditional" | "else"
 ): void => {
 	const activeProgram = getActiveProgram(deps.getProps().value);
-	if (!findNode(activeProgram, blockId)) return;
+	const astNodeId = getIfBlockIdFromElse(blockId) ?? blockId;
+	if (!findNode(activeProgram, astNodeId)) return;
 	deps.setDocument(
 		replaceActiveProgram(
 			deps.getProps().value,
-			updateStatementNode(activeProgram, blockId, (stmt) => {
+			updateStatementNode(activeProgram, astNodeId, (stmt) => {
 				if (stmt.kind !== "if") return stmt;
 				if (toKind === "else") {
 					return { ...stmt, condition: null, mode: "else" as const };

@@ -38,26 +38,29 @@ export class DropPlacementService {
   ): EditorDocument {
     const activeProgram = getActiveProgram(document);
     const insertedNode = editorBlockToStatement(insertedBlock);
-    if (placement.branchTarget && placement.beforeBlockId) {
-      const parent = findParentContainer(activeProgram, placement.beforeBlockId);
-      if (!parent) {
-        return document;
+    if (placement.branchTarget) {
+      const targetContainer = this.toProgramContainerRef(
+        activeProgram,
+        placement.branchTarget.ownerId,
+        placement.branchTarget.branch
+      );
+      // Use beforeBlockId only when it actually lives inside the target branch.
+      if (placement.beforeBlockId) {
+        const parent = findParentContainer(activeProgram, placement.beforeBlockId);
+        const parentMatchesBranch =
+          parent != null &&
+          parent.container.kind === targetContainer.kind &&
+          parent.container.ownerId === targetContainer.ownerId;
+        if (parentMatchesBranch) {
+          return replaceActiveProgram(
+            document,
+            insertNode(activeProgram, parent.container, parent.index, insertedNode)
+          );
+        }
       }
       return replaceActiveProgram(
         document,
-        insertNode(activeProgram, parent.container, parent.index, insertedNode)
-      );
-    }
-
-    if (placement.branchTarget) {
-      return replaceActiveProgram(
-        document,
-        insertNode(
-          activeProgram,
-          this.toProgramContainerRef(activeProgram, placement.branchTarget.ownerId, placement.branchTarget.branch),
-          Number.MAX_SAFE_INTEGER,
-          insertedNode
-        )
+        insertNode(activeProgram, targetContainer, Number.MAX_SAFE_INTEGER, insertedNode)
       );
     }
 
@@ -78,8 +81,10 @@ export class DropPlacementService {
   ): EditorDocument {
     if (dragState?.source === "program" && dragState.blockId) {
       const activeProgram = getActiveProgram(document);
-      if (findNode(activeProgram, dragState.blockId)) {
-        return replaceActiveProgram(document, detachNode(activeProgram, dragState.blockId).program);
+      // Else blocks have a synthesized id (${ifId}-else); resolve to the real AST node id.
+      const astNodeId = getIfBlockIdFromElse(dragState.blockId) ?? dragState.blockId;
+      if (findNode(activeProgram, astNodeId)) {
+        return replaceActiveProgram(document, detachNode(activeProgram, astNodeId).program);
       }
       if (findExpression(activeProgram, dragState.blockId)) {
         return replaceActiveProgram(document, detachExpression(activeProgram, dragState.blockId).program);
@@ -95,7 +100,6 @@ export class DropPlacementService {
     blocks: EditorBlock[]
   ): boolean {
     if (!dragState) return true;
-    if (dragState.outputType === "none") return false;
 
     const { ownerId } = this.ctx.parseSlotKey(targetSlotKey);
 
@@ -113,7 +117,7 @@ export class DropPlacementService {
     insertedBlock: EditorBlock,
     options: {
       slotTargetId?: string | null;
-      visualLineIndex?: number;
+      rowIndex?: number;
       chosenIndent?: number;
       branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
       beforeBlockId?: string | null;
@@ -121,7 +125,7 @@ export class DropPlacementService {
     resolveDropPlacement: (
       blocks: EditorBlock[],
       lineLayouts: ReturnType<typeof buildEditorLineLayout>,
-      visualLineIndex: number,
+      rowIndex: number,
       chosenIndent: number
     ) => ResolvedDropPlacement
   ): { nextDocument: EditorDocument; status: string } {
@@ -143,7 +147,7 @@ export class DropPlacementService {
         : resolveDropPlacement(
             baseBlocks,
             baseLineLayouts,
-            options.visualLineIndex ?? baseLineLayouts.length,
+            options.rowIndex ?? baseLineLayouts.length,
             options.chosenIndent ?? 0
           );
 
@@ -175,14 +179,16 @@ export class DropPlacementService {
     branch: ControlBodyKey
   ) {
     if (branch === "alternateBody") {
-      return { kind: "if-else" as const, ownerId };
+      // ownerId is the else block's editor id (${ifId}-else). The else block is a mode:"else"
+      // if-node whose content lives in thenBody, not elseBody.
+      return { kind: "if-then" as const, ownerId: getIfBlockIdFromElse(ownerId) ?? ownerId };
     }
 
-    // Else blocks in the editor are flat siblings with synthesized ids = `${ifId}-else`.
-    // Inserting into their body means inserting into the real if-node's elseBody.
+    // Else blocks have id `${ifId}-else`. Their "body" branch maps to thenBody of the
+    // mode:"else" if-node (the else block's content lives in thenBody, not elseBody).
     const realIfId = getIfBlockIdFromElse(ownerId);
     if (realIfId !== null) {
-      return { kind: "if-else" as const, ownerId: realIfId };
+      return { kind: "if-then" as const, ownerId: realIfId };
     }
 
     const owner = findNode(activeProgram, ownerId);
