@@ -1,6 +1,7 @@
 import type { EditorBlock, ProgramNode, StatementNode } from "../types";
 import { cloneVisual } from "./shared";
 import { editorBlockToExpression } from "./blocks-to-expression";
+import { getIfBlockIdFromElse } from "../editor-layout-constants";
 
 // Forward declaration — implemented after editorBlockToStatement
 // eslint-disable-next-line prefer-const
@@ -41,7 +42,7 @@ export const editorBlockToStatement = (block: EditorBlock): StatementNode => {
 
 	if (block.kind === "else") {
 		return {
-			id: block.id,
+			id: getIfBlockIdFromElse(block.id) ?? block.id,
 			kind: "if",
 			condition: null,
 			thenBody: blocksToStatements(block.bodyBlocks ?? []),

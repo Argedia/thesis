@@ -182,15 +182,9 @@ export function PlayLevelScreen() {
       return;
     }
 
-    const shouldShowFirstLevelWalkthrough = !hasSeenPlayLevelBasicsTutorial();
-
-    if (shouldShowFirstLevelWalkthrough) {
-      window.setTimeout(() => {
-        void startTutorial("campaign-level-basics").then((didStart) => {
-          if (didStart) markPlayLevelBasicsTutorialSeen();
-        });
-      }, 120);
-    }
+    window.setTimeout(() => {
+      void startTutorial("campaign-level-basics");
+    }, 120);
 
     previousOutcomeRef.current = null;
   }, [sessionState.level, startTutorial]);
@@ -368,7 +362,7 @@ export function PlayLevelScreen() {
                   type="button"
                   className="play-level-instructions-toggle"
                   onClick={() => setIsInstructionsOpen((v) => !v)}
-                  aria-label={isInstructionsOpen ? "Collapse instructions" : "Expand instructions"}
+                  aria-label={isInstructionsOpen ? t("editor.collapseInstructions") : t("editor.expandInstructions")}
                 >
                   {isInstructionsOpen ? "▸" : "▸"}
                 </button>

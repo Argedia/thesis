@@ -87,11 +87,7 @@ export class EditorCanvasRenderer {
     const lineLayouts = buildEditorLineLayout(previewBlocks);
 
     lineLayouts.forEach((lineLayout) => {
-      if (lineLayout.role === "else_header") {
-        this.renderEditorElseRow(lineLayout, gutter, programBody);
-      } else {
-        this.renderEditorBlockRow(lineLayout, gutter, programBody);
-      }
+      this.renderEditorBlockRow(lineLayout, gutter, programBody);
     });
 
     if (this.ctx.getBlocks().length === 0) {
@@ -145,30 +141,6 @@ export class EditorCanvasRenderer {
     gutter.appendChild(number);
   }
 
-  private renderEditorElseRow(
-    lineLayout: EditorLineLayout,
-    gutter: HTMLElement,
-    programBody: HTMLElement
-  ): void {
-    const block = lineLayout.block!;
-    this.appendEditorLineNumber(gutter, { lineNumber: lineLayout.lineNumber });
-    const elseRow = document.createElement("div");
-    elseRow.className = "editor-program-row editor-conditional-divider";
-    elseRow.style.paddingLeft = `${lineLayout.depth * INDENT_STEP_PX}px`;
-
-    const elseTag = document.createElement("div");
-    elseTag.className = "editor-else-pill";
-    elseTag.textContent = t("blocks.else").toLowerCase();
-    if (block.color) {
-      elseTag.style.backgroundColor = block.color;
-      elseTag.style.borderColor = block.color;
-    }
-
-    elseRow.appendChild(elseTag);
-    this.ctx.setLineRowRef(lineLayout.id, elseRow);
-    programBody.appendChild(elseRow);
-  }
-
   private renderEditorBlockRow(
     lineLayout: EditorLineLayout,
     gutter: HTMLElement,
@@ -202,6 +174,10 @@ export class EditorCanvasRenderer {
       blockId: block.id
     });
     const element = this.ctx.createBlockInstanceElement(block, { preview: isPreviewBlock });
+
+    if (element.classList.contains("has-slot-error")) {
+      line.classList.add("editor-program-row-error");
+    }
 
     const blockLocked = this.ctx.isBlockLocked(block.id);
 

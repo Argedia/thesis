@@ -30,11 +30,11 @@ export function SettingsScreen() {
 
   const localStorageStats = useMemo(
     () => ({
-      drafts: window.localStorage.getItem(EDITOR_DRAFTS_STORAGE_KEY) ? "Sí" : "No",
-      progress: window.localStorage.getItem(PROGRESS_STORAGE_KEY) ? "Sí" : "No",
-      publishedLevels: window.localStorage.getItem(IMPORTED_LEVELS_STORAGE_KEY) ? "Sí" : "No"
+      drafts: window.localStorage.getItem(EDITOR_DRAFTS_STORAGE_KEY) ? t("settings.yes") : t("settings.no"),
+      progress: window.localStorage.getItem(PROGRESS_STORAGE_KEY) ? t("settings.yes") : t("settings.no"),
+      publishedLevels: window.localStorage.getItem(IMPORTED_LEVELS_STORAGE_KEY) ? t("settings.yes") : t("settings.no")
     }),
-    [statusMessage]
+    [statusMessage, t]
   );
 
   const handleLanguageChange = (language: SupportedLanguage) => {
@@ -42,11 +42,11 @@ export function SettingsScreen() {
   };
 
   const resetUiLayout = () => {
-    if (!window.confirm("¿Restablecer layout de paneles guardado?")) {
+    if (!window.confirm(t("settings.confirmResetLayout"))) {
       return;
     }
     window.localStorage.removeItem(UI_PREFERENCES_STORAGE_KEY);
-    setStatusMessage("Layout de interfaz restablecido. Recarga para aplicar en todas las vistas.");
+    setStatusMessage(t("settings.statusLayoutReset"));
   };
 
   const handleRunDelayChange = (nextRaw: string) => {
@@ -54,7 +54,7 @@ export function SettingsScreen() {
     if (!Number.isFinite(parsed)) return;
     const normalized = setRunLineDelayMs(parsed);
     setLineDelayMsState(normalized);
-    setStatusMessage(`Velocidad actualizada: ${normalized} ms por bloque visible.`);
+    setStatusMessage(t("settings.statusSpeedUpdated", { ms: normalized }));
   };
 
   const exportLocalData = () => {
@@ -79,7 +79,7 @@ export function SettingsScreen() {
     anchor.click();
     anchor.remove();
     window.URL.revokeObjectURL(url);
-    setStatusMessage("Backup local exportado.");
+    setStatusMessage(t("settings.statusBackupExported"));
   };
 
   const importLocalData = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -90,9 +90,9 @@ export function SettingsScreen() {
       const raw = await file.text();
       const parsed = JSON.parse(raw) as Partial<LocalBackupPayload>;
       if (parsed?.version !== 1 || !parsed.keys || typeof parsed.keys !== "object") {
-        throw new Error("Formato de backup no válido.");
+        throw new Error(t("settings.errorInvalidBackup"));
       }
-      if (!window.confirm("Importar backup sobreescribirá ajustes locales. ¿Continuar?")) {
+      if (!window.confirm(t("settings.confirmImportBackup"))) {
         return;
       }
       ALL_LOCAL_STORAGE_KEYS.forEach((key) => {
@@ -103,28 +103,28 @@ export function SettingsScreen() {
           window.localStorage.removeItem(key);
         }
       });
-      setStatusMessage("Backup importado. Recarga para aplicar completamente.");
+      setStatusMessage(t("settings.statusBackupImported"));
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "No se pudo importar el backup.");
+      setStatusMessage(error instanceof Error ? error.message : t("settings.errorImportFailed"));
     }
   };
 
   const clearProgress = () => {
-    if (!window.confirm("¿Eliminar progreso de niveles completados?")) return;
+    if (!window.confirm(t("settings.confirmClearProgress"))) return;
     window.localStorage.removeItem(PROGRESS_STORAGE_KEY);
-    setStatusMessage("Progreso eliminado.");
+    setStatusMessage(t("settings.statusProgressCleared"));
   };
 
   const clearDrafts = () => {
-    if (!window.confirm("¿Eliminar todos los borradores de editor?")) return;
+    if (!window.confirm(t("settings.confirmClearDrafts"))) return;
     window.localStorage.removeItem(EDITOR_DRAFTS_STORAGE_KEY);
-    setStatusMessage("Borradores eliminados.");
+    setStatusMessage(t("settings.statusDraftsCleared"));
   };
 
   const resetAllLocalData = () => {
-    if (!window.confirm("Esto borrará progreso, borradores, niveles importados y preferencias. ¿Continuar?")) return;
+    if (!window.confirm(t("settings.confirmResetAll"))) return;
     ALL_LOCAL_STORAGE_KEYS.forEach((key) => window.localStorage.removeItem(key));
-    setStatusMessage("Datos locales restablecidos.");
+    setStatusMessage(t("settings.statusAllReset"));
   };
 
   return (
@@ -187,7 +187,7 @@ export function SettingsScreen() {
           <Panel title={t("settings.localData")}>
             <div className="settings-action-stack">
               <p className="settings-meta-line">
-                {t("settings.localDataStatus")}: drafts {localStorageStats.drafts}, progress {localStorageStats.progress}, levels {localStorageStats.publishedLevels}
+                {t("settings.localDataStatus")}: {t("settings.localDataStatusDetail", { drafts: localStorageStats.drafts, progress: localStorageStats.progress, levels: localStorageStats.publishedLevels })}
               </p>
               <button type="button" className="menu-link" onClick={exportLocalData}>
                 {t("settings.exportBackup")}

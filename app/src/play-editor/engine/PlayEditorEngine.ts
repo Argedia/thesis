@@ -217,10 +217,10 @@ export class PlayEditorEngine {
 					return { allowed: true };
 				}
 				if (limit <= 0) {
-					return { allowed: false, message: "Este bloque está deshabilitado para este nivel." };
+					return { allowed: false, message: t("editor.blockDisabledForLevel") };
 				}
 				if (used >= limit) {
-					return { allowed: false, message: `Límite alcanzado (${used}/${limit}).` };
+					return { allowed: false, message: t("editor.blockLimitDisplay", { used, limit }) };
 				}
 				return { allowed: true };
 			},

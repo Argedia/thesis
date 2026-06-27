@@ -108,7 +108,6 @@ export function BoardPanel({
               <Tooltip className="app-tooltip">{configureBoardLabel}</Tooltip>
             </TooltipTrigger>
           ) : null}
-          <span className="device-time">{isCompleted ? t("state.done") : t("state.live")}</span>
         </div>
       </div>
 

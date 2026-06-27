@@ -81,8 +81,10 @@ export class DropPlacementService {
   ): EditorDocument {
     if (dragState?.source === "program" && dragState.blockId) {
       const activeProgram = getActiveProgram(document);
-      if (findNode(activeProgram, dragState.blockId)) {
-        return replaceActiveProgram(document, detachNode(activeProgram, dragState.blockId).program);
+      // Else blocks have a synthesized id (${ifId}-else); resolve to the real AST node id.
+      const astNodeId = getIfBlockIdFromElse(dragState.blockId) ?? dragState.blockId;
+      if (findNode(activeProgram, astNodeId)) {
+        return replaceActiveProgram(document, detachNode(activeProgram, astNodeId).program);
       }
       if (findExpression(activeProgram, dragState.blockId)) {
         return replaceActiveProgram(document, detachExpression(activeProgram, dragState.blockId).program);
@@ -177,14 +179,16 @@ export class DropPlacementService {
     branch: ControlBodyKey
   ) {
     if (branch === "alternateBody") {
-      return { kind: "if-else" as const, ownerId };
+      // ownerId is the else block's editor id (${ifId}-else). The else block is a mode:"else"
+      // if-node whose content lives in thenBody, not elseBody.
+      return { kind: "if-then" as const, ownerId: getIfBlockIdFromElse(ownerId) ?? ownerId };
     }
 
-    // Else blocks in the editor are flat siblings with synthesized ids = `${ifId}-else`.
-    // Inserting into their body means inserting into the real if-node's elseBody.
+    // Else blocks have id `${ifId}-else`. Their "body" branch maps to thenBody of the
+    // mode:"else" if-node (the else block's content lives in thenBody, not elseBody).
     const realIfId = getIfBlockIdFromElse(ownerId);
     if (realIfId !== null) {
-      return { kind: "if-else" as const, ownerId: realIfId };
+      return { kind: "if-then" as const, ownerId: realIfId };
     }
 
     const owner = findNode(activeProgram, ownerId);

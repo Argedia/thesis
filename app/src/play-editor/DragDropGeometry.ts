@@ -149,7 +149,8 @@ export class DragDropGeometryService {
 				branchTarget: {
 					ownerId: prevLine.blockId!,
 					branch: prevLine.role === "else_header" ? "alternateBody" : "body"
-				}
+				},
+				beforeBlockId: nextLine?.blockId
 			};
 		}
 

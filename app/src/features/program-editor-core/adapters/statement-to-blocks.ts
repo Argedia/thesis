@@ -201,7 +201,7 @@ const statementToEditorBlock = (
 	if (statement.kind === "if") {
 		if (statement.mode === "else") {
 			return {
-				id: statement.id,
+				id: `${statement.id}-else`,
 				kind: "else",
 				color: statement.visual?.color,
 				operation: null,
@@ -334,7 +334,7 @@ const statementsToEditorBlocks = (
 ): EditorBlock[] =>
 	statements.flatMap((s) => {
 		const block = statementToEditorBlock(s, declarations, signatures);
-		if (s.kind === "if" && s.elseBody && s.elseBody.length > 0) {
+		if (s.kind === "if" && s.mode !== "else" && s.elseBody && s.elseBody.length > 0) {
 			const elseBlock: EditorBlock = {
 				id: `${s.id}-else`,
 				kind: "else",

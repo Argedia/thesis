@@ -10,6 +10,7 @@ import {
   type LevelConstraints,
   type LevelOperation
 } from "@thesis/game-system";
+import { t } from "../../../i18n-helpers";
 
 const INSERT_OPERATION_TYPES = new Set<OperationDefinition["type"]>([
   "PUSH",
@@ -69,7 +70,7 @@ const validateOperationEnabled = (
 ): void => {
   const policyState = constraints.operationPolicy[operationType as LevelOperation];
   if (policyState === "forbidden") {
-    throw new Error(`Operation "${operationType}" is forbidden in this level.`);
+    throw new Error(t("messages.operationForbidden", { operation: operationType }));
   }
 };
 
@@ -83,16 +84,14 @@ const validateInsertConstraints = (
 ): void => {
   const targetSnapshot = engine.getState().structures[operation.targetId];
   if (!targetSnapshot) {
-    throw new Error(`Structure "${operation.targetId}" does not exist.`);
+    throw new Error(t("messages.structureNotFound", { id: operation.targetId }));
   }
 
   const normalizedTarget = normalizeStructureSnapshot(targetSnapshot);
   const currentValues = normalizedTarget.values;
   const capacity = constraints.structureCapacities?.[operation.targetId];
   if (typeof capacity === "number" && currentValues.length >= capacity) {
-    throw new Error(
-      `Structure "${operation.targetId}" reached its capacity (${capacity}).`
-    );
+    throw new Error(t("messages.structureCapacityReached", { id: operation.targetId, capacity }));
   }
 
   const insertedValue = resolveInsertedValue(engine, operation);
@@ -103,17 +102,17 @@ const validateInsertConstraints = (
   const domain = resolveEffectiveValueDomainConstraint(constraints, normalizedTarget.id);
   if (domain) {
     if (domain.numericOnly && typeof insertedValue !== "number") {
-      throw new Error("This level only allows numeric values in structure operations.");
+      throw new Error(t("messages.numericOnlyConstraint"));
     }
     if (domain.min !== undefined || domain.max !== undefined) {
       if (typeof insertedValue !== "number") {
-        throw new Error("Min/Max value constraints require numeric values.");
+        throw new Error(t("messages.minMaxRequiresNumeric"));
       }
       if (domain.min !== undefined && insertedValue < domain.min) {
-        throw new Error(`Value ${insertedValue} is below the minimum (${domain.min}).`);
+        throw new Error(t("messages.valueBelowMin", { value: insertedValue, min: domain.min }));
       }
       if (domain.max !== undefined && insertedValue > domain.max) {
-        throw new Error(`Value ${insertedValue} is above the maximum (${domain.max}).`);
+        throw new Error(t("messages.valueAboveMax", { value: insertedValue, max: domain.max }));
       }
     }
   }
@@ -131,18 +130,14 @@ const validateInsertConstraints = (
       return;
     }
     if (typeof insertedValue !== "number") {
-      throw new Error("The no-larger-on-smaller rule requires numeric values.");
+      throw new Error(t("messages.noLargerRequiresNumeric"));
     }
     const topValue = extractDataValue(topNode);
     if (typeof topValue !== "number") {
-      throw new Error(
-        `Structure "${normalizedTarget.id}" contains non-numeric values and cannot use no-larger-on-smaller.`
-      );
+      throw new Error(t("messages.noLargerNonNumericStructure", { id: normalizedTarget.id }));
     }
     if (insertedValue > topValue) {
-      throw new Error(
-        `Constraint violated on "${normalizedTarget.id}": cannot place ${insertedValue} on top of ${topValue}.`
-      );
+      throw new Error(t("messages.noLargerViolation", { id: normalizedTarget.id, value: insertedValue, top: topValue }));
     }
   }
 };
@@ -184,10 +179,10 @@ export const checkRoutineConstraints = (options: {
 }): string | null => {
   const { constraints, routineCount, routineCallCount } = options;
   if (constraints.minRoutineCount !== undefined && routineCount < constraints.minRoutineCount) {
-    return `This level requires at least ${constraints.minRoutineCount} scripts (create a helper function).`;
+    return t("playSession.requiresMoreRoutines", { count: constraints.minRoutineCount });
   }
   if (constraints.requiresRoutineCall && routineCallCount === 0) {
-    return "This level requires calling a custom function from another script.";
+    return t("playSession.requiresRoutineCall");
   }
   return null;
 };

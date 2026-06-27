@@ -642,7 +642,7 @@ export function EditorShell(_props: EditorShellProps) {
   }, []);
 
   const draftLevel = useMemo(
-    () => createLevelFromCurrentDraft(savedLevelId.trim() || "__draft_level__", savedLevelTitle.trim() || "Nivel en edición"),
+    () => createLevelFromCurrentDraft(savedLevelId.trim() || "__draft_level__", savedLevelTitle.trim() || t("editorShell.levelInEditing")),
     [
       author,
       blockLimits,
@@ -892,7 +892,7 @@ export function EditorShell(_props: EditorShellProps) {
               {t("editorShell.testLevel")}
             </button>
             <button type="button" disabled={!canSave || isSaving} onClick={() => void handleSaveDraft()}>
-              Guardar
+              {t("editorShell.save")}
             </button>
             <button type="button" disabled={!canSave || isSaving} onClick={() => void handlePublish()}>
               {isSaving ? t("editorShell.publishing") : t("editorShell.publish")}
@@ -952,7 +952,7 @@ export function EditorShell(_props: EditorShellProps) {
                 <div className="script-limit-inline-toggle">
                   <span>{t("editorShell.freeScripts")}</span>
                   <ToggleSwitch
-                    ariaLabel="Permitir scripts adicionales"
+                    ariaLabel={t("editorShell.allowAdditionalRoutinesAriaLabel")}
                     checked={allowAdditionalRoutines}
                     onChange={setAllowAdditionalRoutines}
                   />
@@ -973,7 +973,7 @@ export function EditorShell(_props: EditorShellProps) {
                 <div className="script-limit-inline-toggle">
                   <span>{t("editorShell.lockStarterBlocks")}</span>
                   <ToggleSwitch
-                    ariaLabel="Bloquear bloques iniciales"
+                    ariaLabel={t("editorShell.lockStarterBlocksAriaLabel")}
                     checked={lockStarterBlocks}
                     onChange={setLockStarterBlocks}
                   />
@@ -1135,7 +1135,7 @@ export function EditorShell(_props: EditorShellProps) {
                       <div className="switch-line">
                         <span>{t("editorShell.overrideNoLarger")}</span>
                         <ToggleSwitch
-                          ariaLabel="Override no larger on smaller"
+                          ariaLabel={t("editorShell.overrideNoLargerAriaLabel")}
                           checked={selectedStructureDraft.overrideNoLargerOnSmaller}
                           onChange={(isSelected) =>
                             updateStructure(selectedStructureIndex!, {
@@ -1161,7 +1161,7 @@ export function EditorShell(_props: EditorShellProps) {
                       <div className="switch-line">
                         <span>{t("editorShell.overrideValueDomain")}</span>
                         <ToggleSwitch
-                          ariaLabel="Override dominio de valores"
+                          ariaLabel={t("editorShell.overrideValueDomainAriaLabel")}
                           checked={selectedStructureDraft.overrideValueDomain}
                           onChange={(isSelected) =>
                             updateStructure(selectedStructureIndex!, {
@@ -1175,7 +1175,7 @@ export function EditorShell(_props: EditorShellProps) {
                           <div className="switch-line">
                             <span>{t("editorShell.numericOnly")}</span>
                             <ToggleSwitch
-                              ariaLabel="Solo valores numéricos local"
+                              ariaLabel={t("editorShell.numericOnlyLocal")}
                               checked={selectedStructureDraft.valueDomainNumericOnly}
                               onChange={(isSelected) =>
                                 updateStructure(selectedStructureIndex!, {
@@ -1259,7 +1259,7 @@ export function EditorShell(_props: EditorShellProps) {
                       <div className="switch-line">
                         <span>{t("editorShell.noLargerOnSmaller")}</span>
                         <ToggleSwitch
-                          ariaLabel="No larger on smaller global"
+                          ariaLabel={t("editorShell.noLargerGlobal")}
                           checked={noLargerOnSmallerEnabled}
                           onChange={setNoLargerOnSmallerEnabled}
                         />
@@ -1267,7 +1267,7 @@ export function EditorShell(_props: EditorShellProps) {
                       <div className="switch-line">
                         <span>{t("editorShell.numericOnly")}</span>
                         <ToggleSwitch
-                          ariaLabel="Solo valores numéricos global"
+                          ariaLabel={t("editorShell.numericOnlyGlobal")}
                           checked={valueDomainNumericOnly}
                           onChange={setValueDomainNumericOnly}
                         />
