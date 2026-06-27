@@ -311,7 +311,8 @@ export class DragInteractionController {
       event.clientX,
       rowIndex,
       lineLayouts,
-      dragState.blockId
+      dragState.blockId,
+      dragState.chosenIndent
     );
     this.ctx.setDragState({
       ...dragState,

@@ -69,7 +69,8 @@ export class DragDropGeometryService {
 		pointerX: number,
 		rowIndex: number,
 		lineLayouts: EditorLineLayout[],
-		draggedBlockId?: string | null
+		draggedBlockId?: string | null,
+		previousIndent?: number | null
 	): number {
 		const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
 		const prevLine = rowIndex > 0 ? lineLayouts[rowIndex - 1] : null;
@@ -96,7 +97,25 @@ export class DragDropGeometryService {
 		const maxIndent = prev.indentCurrent + (prev.opensBody ? 1 : 0);
 		const minIndent = next.indentCurrent;
 
-		const rawIndent = Math.floor((pointerX - laneLeft) / INDENT_STEP_PX);
+		// Hysteresis: require pointer to move 6px past a boundary before switching
+		// indent level, to prevent flicker when pointer sits near a step boundary.
+		const HYSTERESIS = 6;
+		const rawX = pointerX - laneLeft;
+		let rawIndent: number;
+		if (previousIndent != null) {
+			const boundaryToNext = (previousIndent + 1) * INDENT_STEP_PX;
+			const boundaryToPrev = previousIndent * INDENT_STEP_PX;
+			if (rawX >= boundaryToNext + HYSTERESIS) {
+				rawIndent = Math.floor(rawX / INDENT_STEP_PX);
+			} else if (rawX < boundaryToPrev - HYSTERESIS) {
+				rawIndent = Math.floor(rawX / INDENT_STEP_PX);
+			} else {
+				rawIndent = previousIndent;
+			}
+		} else {
+			rawIndent = Math.floor(rawX / INDENT_STEP_PX);
+		}
+
 		return Math.min(Math.max(rawIndent, minIndent), maxIndent);
 	}
 
