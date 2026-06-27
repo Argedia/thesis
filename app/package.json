@@ -16,6 +16,7 @@
     "driver.js": "^1.4.0",
     "i18next": "^26.0.4",
     "immer": "^11.1.4",
+    "lucide-react": "^1.21.0",
     "react": "^18.3.1",
     "react-aria-components": "^1.16.0",
     "react-dom": "^18.3.1",
