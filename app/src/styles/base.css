@@ -51,6 +51,31 @@ button:disabled {
 	overflow: hidden;
 }
 
+.app-help-fab {
+	position: fixed;
+	left: 1rem;
+	bottom: 1rem;
+	z-index: 55;
+	width: 60px;
+	height: 60px;
+	padding: 0;
+	border: 2px solid #b9d4ea;
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.96);
+	color: #355070;
+	font-size: 1.9rem;
+	font-weight: 900;
+	line-height: 1;
+	box-shadow: 0 16px 32px rgba(53, 80, 112, 0.18);
+	backdrop-filter: blur(10px);
+	transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.app-help-fab:hover {
+	transform: translateY(-2px) scale(1.03);
+	box-shadow: 0 20px 36px rgba(53, 80, 112, 0.24);
+}
+
 .app-language-dock {
 	position: fixed;
 	top: 1rem;

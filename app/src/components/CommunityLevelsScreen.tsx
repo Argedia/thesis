@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Panel, Screen } from "@thesis/ui-editor";
+import { Tooltip, TooltipTrigger } from "react-aria-components";
+import { Panel, PuzzleBoard, Screen } from "@thesis/ui-editor";
 import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
 import { APP_ROUTES } from "../types/routes";
+import { ScreenHeader } from "./ui/ScreenHeader";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
   difficultyOptions,
-  formatStructureValues,
   sourceOptions,
   structureOptions,
   type CompletionFilter,
@@ -14,18 +16,26 @@ import {
 } from "../features/community-levels/catalog";
 import { useCommunityLevelsCatalog } from "../features/community-levels/useCommunityLevelsCatalog";
 
+const formatDifficultyScore = (difficulty: number): string =>
+  difficulty.toFixed(1);
+
 export function CommunityLevelsScreen() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isInitialOpen, setIsInitialOpen] = useState(false);
   const [isGoalOpen, setIsGoalOpen] = useState(false);
   const [isConstraintsOpen, setIsConstraintsOpen] = useState(false);
+  const [isSourceOpen, setIsSourceOpen] = useState(true);
+  const [isStructuresOpen, setIsStructuresOpen] = useState(true);
+  const [isDifficultyOpen, setIsDifficultyOpen] = useState(true);
+  const [isCompletionOpen, setIsCompletionOpen] = useState(true);
   const {
     completedLevelIds,
     completionFilter,
     difficultyFilters,
     errorMessage,
     filteredLevels,
+    levels,
     search,
     selectedLevel,
     sortMode,
@@ -43,6 +53,59 @@ export function CommunityLevelsScreen() {
   const selectedPermittedOperations = selectedLevel
     ? getPermittedOperationsFromPolicy(selectedLevel.constraints.operationPolicy)
     : [];
+  const hasActiveFilters =
+    search.trim().length > 0 ||
+    sourceFilter !== "all" ||
+    structureFilters.length > 0 ||
+    difficultyFilters.length > 0 ||
+    completionFilter !== "all";
+  const activeFilterBadges = useMemo(() => {
+    const badges: string[] = [];
+    if (search.trim().length > 0) {
+      badges.push(`"${search.trim()}"`);
+    }
+    if (sourceFilter !== "all") {
+      badges.push(t(`preview.source.${sourceFilter}`));
+    }
+    if (completionFilter !== "all") {
+      badges.push(t(`preview.completionOption.${completionFilter === "not-completed" ? "notCompleted" : completionFilter}`));
+    }
+    structureFilters.forEach((tag) => badges.push(t(`structures.${tag}`)));
+    difficultyFilters.forEach((difficultyId) => {
+      const option = difficultyOptions.find((entry) => entry.id === difficultyId);
+      if (option) {
+        badges.push(option.label);
+      }
+    });
+    return badges;
+  }, [completionFilter, difficultyFilters, search, sourceFilter, structureFilters, t]);
+
+  const sourceCounts = useMemo(() => ({
+    all: levels.length,
+    community: levels.filter((level) => level.metadata.source === "community").length,
+    "my-levels": levels.filter((level) => level.metadata.source === "my-levels").length
+  }), [levels]);
+  const structureCounts = useMemo(() =>
+    Object.fromEntries(
+      structureOptions.map((tag) => [
+        tag,
+        levels.filter((level) => level.metadata.structuresUsed.includes(tag)).length
+      ])
+    ) as Record<(typeof structureOptions)[number], number>, [levels]);
+  const difficultyCounts = useMemo(() =>
+    Object.fromEntries(
+      difficultyOptions.map((difficulty) => [
+        difficulty.id,
+        levels.filter((level) =>
+          level.metadata.difficulty >= difficulty.min && level.metadata.difficulty <= difficulty.max
+        ).length
+      ])
+    ) as Record<(typeof difficultyOptions)[number]["id"], number>, [levels]);
+  const completionCounts = useMemo(() => ({
+    all: levels.length,
+    completed: levels.filter((level) => completedLevelIds.includes(level.id)).length,
+    "not-completed": levels.filter((level) => !completedLevelIds.includes(level.id)).length
+  }), [completedLevelIds, levels]);
 
   useEffect(() => {
     setIsInitialOpen(false);
@@ -57,20 +120,30 @@ export function CommunityLevelsScreen() {
     event.target.value = "";
   };
 
+  const isShowingGoalPreview = isGoalOpen && !isInitialOpen;
+  const previewStructures = selectedLevel
+    ? (isShowingGoalPreview ? selectedLevel.goalState : selectedLevel.initialState)
+    : [];
+  const clearAllFilters = () => {
+    setSearch("");
+    setSourceFilter("all");
+    setCompletionFilter("all");
+    structureFilters.forEach((tag) => toggleStructureFilter(tag));
+    difficultyFilters.forEach((difficultyId) => toggleDifficultyFilter(difficultyId));
+  };
+
   return (
     <Screen mode="player">
       <div className="community-shell">
-        <header className="topbar community-topbar primary-screen-topbar">
-          <Link className="back-link" to={APP_ROUTES.home}>
-            {t("menu.menuLabel")}
-          </Link>
-          <div>
-            <p className="eyebrow">{t("menu.community")}</p>
-            <h1>{t("preview.findFunToPlay")}</h1>
-          </div>
-        </header>
+        <ScreenHeader
+          backLabel={t("menu.menuLabel")}
+          backTo={APP_ROUTES.home}
+          eyebrow={t("menu.community")}
+          title={t("preview.findFunToPlay")}
+          className="community-topbar"
+        />
 
-        <section className="catalog-topbar">
+        <section className="catalog-topbar" {...tutorialAnchorProps("community-topbar")}>
           <input
             className="search-input"
             type="text"
@@ -102,73 +175,168 @@ export function CommunityLevelsScreen() {
         {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
 
         <section className="catalog-layout catalog-layout--full">
-          <aside className="filters-column">
-            <Panel title={t("preview.levelSource")} accent="#ffffff">
-              <div className="chip-group">
-                {sourceOptions.map((optionId) => (
-                  <button
-                    key={optionId}
-                    type="button"
-                    className={sourceFilter === optionId ? "chip-button active" : "chip-button"}
-                    onClick={() => setSourceFilter(optionId)}
-                  >
-                    {t(`preview.source.${optionId}`)}
+          <aside className="filters-column" {...tutorialAnchorProps("community-filters")}>
+            <div className="filter-card">
+              <div className="filter-card-header">
+                <div>
+                  <p className="filter-card-eyebrow">{t("preview.filtersLabel")}</p>
+                  <h3 className="filter-card-title">{t("preview.filterBy")}</h3>
+                </div>
+                {hasActiveFilters ? (
+                  <button type="button" className="filter-clear-button" onClick={clearAllFilters}>
+                    {t("preview.clearAllFilters")}
                   </button>
-                ))}
+                ) : null}
               </div>
-            </Panel>
 
-            <Panel title={t("preview.structuresUsed")} accent="#ffffff">
-              <div className="chip-group">
-                {structureOptions.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={structureFilters.includes(tag) ? "chip-button active" : "chip-button"}
-                    onClick={() => toggleStructureFilter(tag)}
-                  >
-                    {t(`structures.${tag}`)}
-                  </button>
-                ))}
+              <div className="filter-results-summary">
+                <span className="mini-tag">{t("preview.matchingLevels", { count: filteredLevels.length })}</span>
               </div>
-            </Panel>
 
-            <Panel title={t("preview.difficulty")} accent="#ffffff">
-              <div className="chip-group">
-                {difficultyOptions.map((difficulty) => (
-                  <button
-                    key={difficulty}
-                    type="button"
-                    className={difficultyFilters.includes(difficulty) ? "chip-button active" : "chip-button"}
-                    onClick={() => toggleDifficultyFilter(difficulty)}
-                  >
-                    {t(`preview.difficultyOption.${difficulty}`)}
-                  </button>
-                ))}
-              </div>
-            </Panel>
+              {hasActiveFilters ? (
+                <div className="active-filter-summary">
+                  <p className="active-filter-summary-label">{t("preview.activeFilters")}</p>
+                  <div className="tag-row">
+                    {activeFilterBadges.map((badge) => (
+                      <span key={badge} className="mini-tag">
+                        {badge}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
-            <Panel title={t("preview.completion")} accent="#ffffff">
-              <div className="chip-group">
-                {[
-                  ["all", t("preview.completionOption.all")],
-                  ["completed", t("preview.completionOption.completed")],
-                  ["not-completed", t("preview.completionOption.notCompleted")]
-                ].map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    className={completionFilter === id ? "chip-button active" : "chip-button"}
-                    onClick={() => setCompletionFilter(id as CompletionFilter)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </Panel>
+            <div className="filter-card">
+              <button type="button" className="filter-section-header" onClick={() => setIsSourceOpen((current) => !current)}>
+                <span>{t("preview.levelSource")}</span>
+                <span className="filter-section-meta">
+                  <span className="mini-tag">{sourceFilter === "all" ? t("preview.source.all") : t(`preview.source.${sourceFilter}`)}</span>
+                  <span aria-hidden>{isSourceOpen ? "−" : "+"}</span>
+                </span>
+              </button>
+              {isSourceOpen ? (
+                <div className="filter-option-list">
+                  {sourceOptions.map((optionId) => (
+                    <button
+                      key={optionId}
+                      type="button"
+                      className={sourceFilter === optionId ? "filter-option-button active" : "filter-option-button"}
+                      onClick={() => setSourceFilter(optionId)}
+                    >
+                      <span>{t(`preview.source.${optionId}`)}</span>
+                      <span className="filter-option-meta">
+                        <span className="filter-option-count">{sourceCounts[optionId]}</span>
+                        <span className="filter-option-indicator" aria-hidden>
+                          {sourceFilter === optionId ? "●" : "○"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="filter-card">
+              <button type="button" className="filter-section-header" onClick={() => setIsStructuresOpen((current) => !current)}>
+                <span>{t("preview.structuresUsed")}</span>
+                <span className="filter-section-meta">
+                  {structureFilters.length > 0 ? <span className="mini-tag">{structureFilters.length}</span> : null}
+                  <span aria-hidden>{isStructuresOpen ? "−" : "+"}</span>
+                </span>
+              </button>
+              {isStructuresOpen ? (
+                <div className="filter-option-list">
+                  {structureOptions.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      className={structureFilters.includes(tag) ? "filter-option-button active" : "filter-option-button"}
+                      onClick={() => toggleStructureFilter(tag)}
+                    >
+                      <span>{t(`structures.${tag}`)}</span>
+                      <span className="filter-option-meta">
+                        <span className="filter-option-count">{structureCounts[tag]}</span>
+                        <span className="filter-option-indicator" aria-hidden>
+                          {structureFilters.includes(tag) ? "●" : "○"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="filter-card">
+              <button type="button" className="filter-section-header" onClick={() => setIsDifficultyOpen((current) => !current)}>
+                <span>{t("preview.difficulty")}</span>
+                <span className="filter-section-meta">
+                  {difficultyFilters.length > 0 ? <span className="mini-tag">{difficultyFilters.length}</span> : null}
+                  <span aria-hidden>{isDifficultyOpen ? "−" : "+"}</span>
+                </span>
+              </button>
+              {isDifficultyOpen ? (
+                <div className="filter-option-list">
+                  {difficultyOptions.map((difficulty) => (
+                    <button
+                      key={difficulty.id}
+                      type="button"
+                      className={difficultyFilters.includes(difficulty.id) ? "filter-option-button active" : "filter-option-button"}
+                      onClick={() => toggleDifficultyFilter(difficulty.id)}
+                    >
+                      <span>{difficulty.label}</span>
+                      <span className="filter-option-meta">
+                        <span className="filter-option-count">{difficultyCounts[difficulty.id]}</span>
+                        <span className="filter-option-indicator" aria-hidden>
+                          {difficultyFilters.includes(difficulty.id) ? "●" : "○"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="filter-card">
+              <button type="button" className="filter-section-header" onClick={() => setIsCompletionOpen((current) => !current)}>
+                <span>{t("preview.completion")}</span>
+                <span className="filter-section-meta">
+                  <span className="mini-tag">
+                    {completionFilter === "all"
+                      ? t("preview.completionOption.all")
+                      : t(`preview.completionOption.${completionFilter === "not-completed" ? "notCompleted" : completionFilter}`)}
+                  </span>
+                  <span aria-hidden>{isCompletionOpen ? "−" : "+"}</span>
+                </span>
+              </button>
+              {isCompletionOpen ? (
+                <div className="filter-option-list">
+                  {[
+                    ["all", t("preview.completionOption.all")],
+                    ["completed", t("preview.completionOption.completed")],
+                    ["not-completed", t("preview.completionOption.notCompleted")]
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={completionFilter === id ? "filter-option-button active" : "filter-option-button"}
+                      onClick={() => setCompletionFilter(id as CompletionFilter)}
+                    >
+                      <span>{label}</span>
+                      <span className="filter-option-meta">
+                        <span className="filter-option-count">{completionCounts[id as keyof typeof completionCounts]}</span>
+                        <span className="filter-option-indicator" aria-hidden>
+                          {completionFilter === id ? "●" : "○"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </aside>
 
-          <section className="levels-column">
+          <section className="levels-column" {...tutorialAnchorProps("community-level-list")}>
             {filteredLevels.length === 0 ? (
               <Panel title={t("preview.noLevelsFound")} accent="#ffffff">
                 <p>{t("preview.noLevelsHint")}</p>
@@ -187,7 +355,7 @@ export function CommunityLevelsScreen() {
                       onClick={() => setSelectedLevel(level)}
                     >
                       <div className="level-card-header">
-                        <span className="difficulty-pill">{t(`preview.difficultyOption.${level.metadata.difficulty}`)}</span>
+                        <span className="difficulty-pill">{formatDifficultyScore(level.metadata.difficulty)}</span>
                         <span className="completion-pill">
                           {isCompleted ? t("preview.completionOption.completed") : t("preview.completionOption.pending")}
                         </span>
@@ -210,128 +378,114 @@ export function CommunityLevelsScreen() {
               </div>
             )}
           </section>
-          <aside className="preview-sheet preview-column">
+          <aside className="preview-sheet preview-column" {...tutorialAnchorProps("community-preview")}>
             {selectedLevel ? (
-              <Panel title={t("preview.levelPreview")} accent="#ffffff">
-                <div className="preview-content">
-                  <div className="preview-header">
-                    <div>
-                      <p className="eyebrow">{t("preview.readyToPlay")}</p>
-                      <h2>{selectedLevel.title}</h2>
-                    </div>
-                    <span className="difficulty-pill">{selectedLevel.metadata.difficulty}</span>
+              <div className="preview-content">
+                <p className="eyebrow">{t("preview.levelPreview")}</p>
+                <div className="preview-header">
+                  <div>
+                    <h2>{selectedLevel.title}</h2>
                   </div>
-
-                  <p className="preview-description">
-                    {selectedLevel.metadata.description ?? t("preview.communityChallenge")}
-                  </p>
-
-                  <div className="preview-summary-row">
-                    <span className="mini-tag">
-                      {t("preview.constraintsSummary", {
-                        steps: selectedLevel.constraints.maxSteps,
-                        operations: selectedPermittedOperations.length
-                      })}
-                    </span>
-                  </div>
-
-                  <div className="preview-section">
-                    <button
-                      type="button"
-                      className="preview-toggle"
-                      aria-expanded={isInitialOpen}
-                      aria-controls={`preview-initial-${selectedLevel.id}`}
-                      onClick={() => setIsInitialOpen((current) => !current)}
-                    >
-                      {isInitialOpen
-                        ? t("preview.hideInitialState")
-                        : t("preview.showInitialState")}
-                    </button>
-                    <div
-                      id={`preview-initial-${selectedLevel.id}`}
-                      hidden={!isInitialOpen}
-                      className="preview-panel-body"
-                    >
-                      <div className="state-row">
-                        {selectedLevel.initialState.map((structure) => (
-                          <div key={structure.id} className="state-card">
-                            <span>{structure.id}</span>
-                            <small>{t(`structures.${structure.kind}`)}</small>
-                            <p>{formatStructureValues(structure) || t("common.empty")}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="preview-section">
-                    <button
-                      type="button"
-                      className="preview-toggle"
-                      aria-expanded={isGoalOpen}
-                      aria-controls={`preview-goal-${selectedLevel.id}`}
-                      onClick={() => setIsGoalOpen((current) => !current)}
-                    >
-                      {isGoalOpen
-                        ? t("preview.hideGoalState")
-                        : t("preview.showGoalState")}
-                    </button>
-                    <div
-                      id={`preview-goal-${selectedLevel.id}`}
-                      hidden={!isGoalOpen}
-                      className="preview-panel-body"
-                    >
-                      <div className="state-row">
-                        {selectedLevel.goalState.map((structure) => (
-                          <div key={structure.id} className="state-card">
-                            <span>{structure.id}</span>
-                            <small>{t(`structures.${structure.kind}`)}</small>
-                            <p>{formatStructureValues(structure) || t("common.empty")}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="preview-section">
-                    <button
-                      type="button"
-                      className="preview-toggle"
-                      aria-expanded={isConstraintsOpen}
-                      aria-controls={`preview-constraints-${selectedLevel.id}`}
-                      onClick={() => setIsConstraintsOpen((current) => !current)}
-                    >
-                      {isConstraintsOpen
-                        ? t("preview.hideConstraints")
-                        : t("preview.showConstraints")}
-                    </button>
-                    <div
-                      id={`preview-constraints-${selectedLevel.id}`}
-                      hidden={!isConstraintsOpen}
-                      className="preview-panel-body"
-                    >
-                      <div className="tag-row">
-                        {selectedPermittedOperations.map((operation) => (
-                          <span key={operation} className="mini-tag">
-                            {t(`operations.${operation}`)}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Link
-                    className="menu-link preview-play-link"
-                    to={`${APP_ROUTES.play}/${selectedLevel.id}`}
-                  >
-                    {t("actions.play")}
-                  </Link>
+                  <span className="difficulty-pill">{formatDifficultyScore(selectedLevel.metadata.difficulty)}</span>
                 </div>
-              </Panel>
+
+                <p className="preview-description">
+                  {selectedLevel.metadata.description ?? t("preview.communityChallenge")}
+                </p>
+
+                <div className="preview-summary-row">
+                  <span className="mini-tag">
+                    {t("preview.constraintsSummary", {
+                      steps: selectedLevel.constraints.maxSteps,
+                      operations: selectedPermittedOperations.length
+                    })}
+                  </span>
+                </div>
+
+                <div className="preview-board-shell">
+                  <div className="preview-board-toolbar">
+                    <span className="preview-board-toolbar-label">Start and Goal</span>
+                    <TooltipTrigger delay={180} closeDelay={80}>
+                      <div className="preview-state-toggle" aria-label="Preview state selector">
+                        <button
+                          type="button"
+                          className={`preview-state-toggle-option${!isShowingGoalPreview ? " is-active" : ""}`}
+                          aria-pressed={!isShowingGoalPreview}
+                          onClick={() => {
+                            setIsInitialOpen(true);
+                            setIsGoalOpen(false);
+                          }}
+                        >
+                          Initial
+                        </button>
+                        <button
+                          type="button"
+                          className={`preview-state-toggle-option${isShowingGoalPreview ? " is-active" : ""}`}
+                          aria-pressed={isShowingGoalPreview}
+                          onClick={() => {
+                            setIsGoalOpen(true);
+                            setIsInitialOpen(false);
+                          }}
+                        >
+                          Goal
+                        </button>
+                      </div>
+                      <Tooltip className="app-tooltip">
+                        Switch the miniature between the initial state and the goal state.
+                      </Tooltip>
+                    </TooltipTrigger>
+                  </div>
+                  <div className="preview-board-canvas">
+                    <PuzzleBoard
+                      structures={previewStructures}
+                      variables={[]}
+                      heapObjects={[]}
+                      events={[]}
+                      isPreview
+                    />
+                  </div>
+                </div>
+
+                <div className="preview-section">
+                  <button
+                    type="button"
+                    className="preview-toggle"
+                    aria-expanded={isConstraintsOpen}
+                    aria-controls={`preview-constraints-${selectedLevel.id}`}
+                    onClick={() => setIsConstraintsOpen((current) => !current)}
+                  >
+                    {isConstraintsOpen
+                      ? t("preview.hideConstraints")
+                      : t("preview.showConstraints")}
+                  </button>
+                  <div
+                    id={`preview-constraints-${selectedLevel.id}`}
+                    hidden={!isConstraintsOpen}
+                    className="preview-panel-body"
+                  >
+                    <div className="tag-row">
+                      {selectedPermittedOperations.map((operation) => (
+                        <span key={operation} className="mini-tag">
+                          {t(`operations.${operation}`)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <Link
+                  className="menu-link preview-play-link"
+                  to={`${APP_ROUTES.play}/${selectedLevel.id}`}
+                  {...tutorialAnchorProps("community-preview-play")}
+                >
+                  {t("actions.play")}
+                </Link>
+              </div>
             ) : (
-              <Panel title={t("preview.levelPreview")} accent="#ffffff">
+              <div className="preview-content">
+                <p className="eyebrow">{t("preview.levelPreview")}</p>
                 <p>{t("preview.selectLevelToSeeDetails")}</p>
-              </Panel>
+              </div>
             )}
           </aside>
         </section>
