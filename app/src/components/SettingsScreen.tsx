@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Panel, Screen } from "@thesis/ui-editor";
 import { getAppLanguage, setAppLanguage, type SupportedLanguage } from "../i18n";
 import { APP_ROUTES } from "../types/routes";
+import { ScreenHeader } from "./ui/ScreenHeader";
 import { getRunLineDelayMs, setRunLineDelayMs } from "../features/settings/execution-speed";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
   ALL_LOCAL_STORAGE_KEYS,
   EDITOR_DRAFTS_STORAGE_KEY,
@@ -130,35 +131,36 @@ export function SettingsScreen() {
   return (
     <Screen mode="editor">
       <div className="settings-shell">
-        <header className="topbar primary-screen-topbar settings-topbar">
-          <Link className="back-link" to={APP_ROUTES.home}>
-            {t("menu.menuLabel")}
-          </Link>
-          <div>
-            <p className="eyebrow">{t("settings.sharedSettings")}</p>
-            <h1>{t("settings.title")}</h1>
-          </div>
-        </header>
+        <ScreenHeader
+          backLabel={t("menu.menuLabel")}
+          backTo={APP_ROUTES.home}
+          eyebrow={t("settings.sharedSettings")}
+          title={t("settings.title")}
+          className="settings-topbar"
+          tutorialAnchorId="settings-topbar"
+        />
 
         <section className="settings-grid">
-          <Panel title={t("settings.preferences")}>
-            <div className="settings-language-group">
-              <p>{t("language")}</p>
-              <div className="app-language-options">
-                {(["es", "en"] as const).map((language) => (
-                  <button
-                    key={language}
-                    type="button"
-                    className={`app-language-button${currentLanguage === language ? " active" : ""}`}
-                    aria-label={`${t("language")}: ${t(`languages.${language}`)}`}
-                    onClick={() => handleLanguageChange(language)}
-                  >
-                    {language.toUpperCase()}
-                  </button>
-                ))}
+          <div {...tutorialAnchorProps("settings-preferences")}>
+            <Panel title={t("settings.preferences")}>
+              <div className="settings-language-group">
+                <p>{t("language")}</p>
+                <div className="app-language-options">
+                  {(["es", "en"] as const).map((language) => (
+                    <button
+                      key={language}
+                      type="button"
+                      className={`app-language-button${currentLanguage === language ? " active" : ""}`}
+                      aria-label={`${t("language")}: ${t(`languages.${language}`)}`}
+                      onClick={() => handleLanguageChange(language)}
+                    >
+                      {language.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </Panel>
+            </Panel>
+          </div>
 
           <Panel title={t("settings.interface")}>
             <div className="settings-action-stack">
@@ -168,51 +170,55 @@ export function SettingsScreen() {
             </div>
           </Panel>
 
-          <Panel title={t("settings.execution")}>
-            <div className="settings-action-stack">
-              <label className="settings-field">
-                <span>{t("settings.lineDelayMs")}</span>
-                <input
-                  type="number"
-                  min={100}
-                  max={5000}
-                  step={100}
-                  value={lineDelayMs}
-                  onChange={(event) => handleRunDelayChange(event.target.value)}
-                />
-              </label>
-            </div>
-          </Panel>
+          <div {...tutorialAnchorProps("settings-execution")}>
+            <Panel title={t("settings.execution")}>
+              <div className="settings-action-stack">
+                <label className="settings-field">
+                  <span>{t("settings.lineDelayMs")}</span>
+                  <input
+                    type="number"
+                    min={100}
+                    max={5000}
+                    step={100}
+                    value={lineDelayMs}
+                    onChange={(event) => handleRunDelayChange(event.target.value)}
+                  />
+                </label>
+              </div>
+            </Panel>
+          </div>
 
-          <Panel title={t("settings.localData")}>
-            <div className="settings-action-stack">
-              <p className="settings-meta-line">
-                {t("settings.localDataStatus")}: {t("settings.localDataStatusDetail", { drafts: localStorageStats.drafts, progress: localStorageStats.progress, levels: localStorageStats.publishedLevels })}
-              </p>
-              <button type="button" className="menu-link" onClick={exportLocalData}>
-                {t("settings.exportBackup")}
-              </button>
-              <button type="button" className="menu-link" onClick={() => importInputRef.current?.click()}>
-                {t("settings.importBackup")}
-              </button>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".json,application/json"
-                onChange={(event) => void importLocalData(event)}
-                hidden
-              />
-              <button type="button" className="menu-link danger" onClick={clearProgress}>
-                {t("settings.clearProgress")}
-              </button>
-              <button type="button" className="menu-link danger" onClick={clearDrafts}>
-                {t("settings.clearDrafts")}
-              </button>
-              <button type="button" className="menu-link danger" onClick={resetAllLocalData}>
-                {t("settings.resetAllLocalData")}
-              </button>
-            </div>
-          </Panel>
+          <div {...tutorialAnchorProps("settings-local-data")}>
+            <Panel title={t("settings.localData")}>
+              <div className="settings-action-stack">
+                <p className="settings-meta-line">
+                  {t("settings.localDataStatus")}: {t("settings.localDataStatusDetail", { drafts: localStorageStats.drafts, progress: localStorageStats.progress, levels: localStorageStats.publishedLevels })}
+                </p>
+                <button type="button" className="menu-link" onClick={exportLocalData}>
+                  {t("settings.exportBackup")}
+                </button>
+                <button type="button" className="menu-link" onClick={() => importInputRef.current?.click()}>
+                  {t("settings.importBackup")}
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={(event) => void importLocalData(event)}
+                  hidden
+                />
+                <button type="button" className="menu-link danger" onClick={clearProgress}>
+                  {t("settings.clearProgress")}
+                </button>
+                <button type="button" className="menu-link danger" onClick={clearDrafts}>
+                  {t("settings.clearDrafts")}
+                </button>
+                <button type="button" className="menu-link danger" onClick={resetAllLocalData}>
+                  {t("settings.resetAllLocalData")}
+                </button>
+              </div>
+            </Panel>
+          </div>
         </section>
 
         {statusMessage ? <p className="level-editor-status">{statusMessage}</p> : null}

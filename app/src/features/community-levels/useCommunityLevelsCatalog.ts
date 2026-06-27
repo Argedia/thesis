@@ -1,30 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   LevelDefinition,
-  LevelDifficulty,
   LevelSource,
   StructureTag
 } from "@thesis/game-system";
 import {
+  JsonLevelRepository,
   LocalProgressRepository,
   parseImportedLevelDefinition
 } from "@thesis/storage";
-import { catalogLevelRepository, localLevelRepository } from "../../backend";
 import {
   filterAndSortLevels,
   toggleFilterValue,
+  type DifficultyRangeId,
   type CompletionFilter,
   type SortMode
 } from "./catalog";
 
+const levelRepository = new JsonLevelRepository();
 const progressRepository = new LocalProgressRepository();
-const isCampaignLevel = (level: LevelDefinition): boolean =>
-  level.id.startsWith("campaign-");
 
 export interface CommunityLevelsCatalogState {
   completedLevelIds: string[];
   completionFilter: CompletionFilter;
-  difficultyFilters: LevelDifficulty[];
+  difficultyFilters: DifficultyRangeId[];
   errorMessage: string;
   filteredLevels: LevelDefinition[];
   levels: LevelDefinition[];
@@ -39,7 +38,7 @@ export interface CommunityLevelsCatalogState {
   setSortMode: (value: SortMode) => void;
   setSourceFilter: (value: LevelSource | "all") => void;
   importLevelFile: (file: File) => Promise<void>;
-  toggleDifficultyFilter: (difficulty: LevelDifficulty) => void;
+  toggleDifficultyFilter: (difficulty: DifficultyRangeId) => void;
   toggleStructureFilter: (tag: StructureTag) => void;
 }
 
@@ -50,17 +49,19 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<LevelSource | "all">("all");
   const [structureFilters, setStructureFilters] = useState<StructureTag[]>([]);
-  const [difficultyFilters, setDifficultyFilters] = useState<LevelDifficulty[]>([]);
+  const [difficultyFilters, setDifficultyFilters] = useState<DifficultyRangeId[]>([]);
   const [completionFilter, setCompletionFilter] = useState<CompletionFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [errorMessage, setErrorMessage] = useState("");
 
   const loadData = useCallback(async () => {
     const [loadedLevels, progress] = await Promise.all([
-      catalogLevelRepository.listLevels(),
+      levelRepository.listLevels(),
       progressRepository.loadProgress()
     ]);
-    const communityLevels = loadedLevels.filter((level) => !isCampaignLevel(level));
+    const communityLevels = loadedLevels.filter(
+      (level) => level.metadata.catalog === "community"
+    );
 
     setLevels(communityLevels);
     setCompletedLevelIds(progress.completedLevelIds);
@@ -107,7 +108,7 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
     setStructureFilters((current) => toggleFilterValue(current, tag));
   }, []);
 
-  const toggleDifficultyFilter = useCallback((difficulty: LevelDifficulty) => {
+  const toggleDifficultyFilter = useCallback((difficulty: DifficultyRangeId) => {
     setDifficultyFilters((current) => toggleFilterValue(current, difficulty));
   }, []);
 
@@ -115,7 +116,7 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
     try {
       const raw = await file.text();
       const normalizedLevel = parseImportedLevelDefinition(JSON.parse(raw) as unknown);
-      await localLevelRepository.importLevel(normalizedLevel);
+      await levelRepository.importLevel(normalizedLevel);
       setErrorMessage("");
       await loadData();
       setSourceFilter("my-levels");

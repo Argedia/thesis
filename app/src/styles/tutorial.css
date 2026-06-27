@@ -76,3 +76,13 @@
 .driver-popover.app-tutorial-popover .driver-popover-footer button:focus {
   background: #f2f7fc;
 }
+
+.driver-active-element {
+  position: relative;
+  z-index: 1000000001 !important;
+  pointer-events: auto !important;
+}
+
+.driver-active-element * {
+  pointer-events: auto !important;
+}
