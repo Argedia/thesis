@@ -38,26 +38,29 @@ export class DropPlacementService {
   ): EditorDocument {
     const activeProgram = getActiveProgram(document);
     const insertedNode = editorBlockToStatement(insertedBlock);
-    if (placement.branchTarget && placement.beforeBlockId) {
-      const parent = findParentContainer(activeProgram, placement.beforeBlockId);
-      if (!parent) {
-        return document;
+    if (placement.branchTarget) {
+      const targetContainer = this.toProgramContainerRef(
+        activeProgram,
+        placement.branchTarget.ownerId,
+        placement.branchTarget.branch
+      );
+      // Use beforeBlockId only when it actually lives inside the target branch.
+      if (placement.beforeBlockId) {
+        const parent = findParentContainer(activeProgram, placement.beforeBlockId);
+        const parentMatchesBranch =
+          parent != null &&
+          parent.container.kind === targetContainer.kind &&
+          parent.container.ownerId === targetContainer.ownerId;
+        if (parentMatchesBranch) {
+          return replaceActiveProgram(
+            document,
+            insertNode(activeProgram, parent.container, parent.index, insertedNode)
+          );
+        }
       }
       return replaceActiveProgram(
         document,
-        insertNode(activeProgram, parent.container, parent.index, insertedNode)
-      );
-    }
-
-    if (placement.branchTarget) {
-      return replaceActiveProgram(
-        document,
-        insertNode(
-          activeProgram,
-          this.toProgramContainerRef(activeProgram, placement.branchTarget.ownerId, placement.branchTarget.branch),
-          Number.MAX_SAFE_INTEGER,
-          insertedNode
-        )
+        insertNode(activeProgram, targetContainer, Number.MAX_SAFE_INTEGER, insertedNode)
       );
     }
 

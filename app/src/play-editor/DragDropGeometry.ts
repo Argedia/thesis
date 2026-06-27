@@ -76,10 +76,19 @@ export class DragDropGeometryService {
 		previousIndent?: number | null
 	): number {
 		const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
-		const prevLine = rowIndex > 0 ? lineLayouts[rowIndex - 1] : null;
 
-		// Skip the dragged block itself when computing minIndent — it will be
-		// removed from the tree, so the constraint comes from whatever follows it.
+		// Skip the dragged block's own rows in both directions — it will be removed
+		// from the tree, so constraints come from its true neighbors.
+		let prevLineIndex = rowIndex - 1;
+		while (
+			prevLineIndex >= 0 &&
+			draggedBlockId != null &&
+			lineLayouts[prevLineIndex]?.blockId === draggedBlockId
+		) {
+			prevLineIndex--;
+		}
+		const prevLine = prevLineIndex >= 0 ? lineLayouts[prevLineIndex] : null;
+
 		let nextLineIndex = rowIndex;
 		while (
 			nextLineIndex < lineLayouts.length &&
@@ -148,18 +157,13 @@ export class DragDropGeometryService {
 		if (chosenIndent > 0 && prev.controlPath.length >= chosenIndent) {
 			const pathEntry = prev.controlPath[chosenIndent - 1];
 			if (pathEntry) {
-				return {
-					branchTarget: pathEntry,
-					beforeBlockId: nextLine?.blockId
-				};
+				return { branchTarget: pathEntry, beforeBlockId: nextLine?.blockId };
 			}
 		}
 
 		// Dropping at root or unresolved — use topLevelIndex of the next line
 		if (nextLine) {
-			return {
-				rootIndex: nextLine.topLevelIndex ?? blocks.length
-			};
+			return { rootIndex: nextLine.topLevelIndex ?? blocks.length };
 		}
 
 		return { rootIndex: blocks.length };
