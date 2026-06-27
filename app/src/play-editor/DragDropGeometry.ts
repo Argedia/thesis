@@ -68,11 +68,23 @@ export class DragDropGeometryService {
 	currentIndentChoice(
 		pointerX: number,
 		rowIndex: number,
-		lineLayouts: EditorLineLayout[]
+		lineLayouts: EditorLineLayout[],
+		draggedBlockId?: string | null
 	): number {
 		const laneLeft = this.editorLane?.getBoundingClientRect().left ?? 0;
 		const prevLine = rowIndex > 0 ? lineLayouts[rowIndex - 1] : null;
-		const nextLine = rowIndex < lineLayouts.length ? lineLayouts[rowIndex] : null;
+
+		// Skip the dragged block itself when computing minIndent — it will be
+		// removed from the tree, so the constraint comes from whatever follows it.
+		let nextLineIndex = rowIndex;
+		while (
+			nextLineIndex < lineLayouts.length &&
+			draggedBlockId != null &&
+			lineLayouts[nextLineIndex]?.blockId === draggedBlockId
+		) {
+			nextLineIndex++;
+		}
+		const nextLine = nextLineIndex < lineLayouts.length ? lineLayouts[nextLineIndex] : null;
 
 		if (!prevLine && !nextLine) {
 			return 0;

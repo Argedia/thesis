@@ -228,7 +228,8 @@ export class DragInteractionController {
         const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
           event.clientX,
           rowIndex,
-          lineLayouts
+          lineLayouts,
+          pendingPress.blockId
         );
         this.ctx.closeWheel();
         const programBlock = this.ctx.findBlockById(this.ctx.getBlocks(), pendingPress.blockId);
@@ -311,7 +312,8 @@ export class DragInteractionController {
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
       event.clientX,
       rowIndex,
-      lineLayouts
+      lineLayouts,
+      dragState.blockId
     );
     this.ctx.setDragState({
       ...dragState,
