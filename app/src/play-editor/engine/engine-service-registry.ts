@@ -284,8 +284,7 @@ export class EngineServiceRegistry {
 				getMultiDragIds: (blockId) => this.deps.getMultiDragIds(blockId),
 				moveBlocksAfter: (document, afterBlockId, blockIds) =>
 					this.deps.moveBlocksAfter(document, afterBlockId, blockIds),
-				onBlockTap: (blockId) => this.deps.onBlockTap(blockId),
-				getPaletteDescriptorService: () => this.getPaletteDescriptorService()
+				onBlockTap: (blockId) => this.deps.onBlockTap(blockId)
 			};
 			this.dragInteraction = new DragInteractionController(context);
 		}
