@@ -10,6 +10,7 @@ interface TutorialContextValue {
   activeTutorialId: TutorialId | null;
   isActive: boolean;
   startTutorial: (tutorialId: TutorialId) => Promise<boolean>;
+  notifyTutorialEvent: (eventId: string) => void;
   stopTutorial: () => void;
 }
 
@@ -23,11 +24,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const activeRef = useRef<{ tutorial: TutorialDefinition; index: number } | null>(null);
   const targetCleanupRef = useRef<(() => void) | null>(null);
   const viewportCleanupRef = useRef<(() => void) | null>(null);
+  const pendingAdvanceRef = useRef<(() => void) | null>(null);
   const requestIdRef = useRef(0);
   const [activeTutorialId, setActiveTutorialId] = useState<TutorialId | null>(null);
 
   const stopTutorial = useCallback(() => {
     requestIdRef.current += 1;
+    pendingAdvanceRef.current = null;
     targetCleanupRef.current?.();
     targetCleanupRef.current = null;
     viewportCleanupRef.current?.();
@@ -65,8 +68,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     const instance = driver({
       animate: true,
-      allowClose: true,
-      allowKeyboardControl: true,
+      allowClose: tutorial.dismissible !== false,
+      allowKeyboardControl: tutorial.dismissible !== false,
       smoothScroll: true,
       overlayColor: "#10233d",
       overlayOpacity: tutorial.overlayOpacity ?? 0.7,
@@ -74,7 +77,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       stageRadius: tutorial.stageRadius ?? 16,
       popoverClass: "app-tutorial-popover",
       onPopoverRender: (popover) => {
-        applyTutorialPopoverStyles(popover);
+        applyTutorialPopoverStyles(popover, activeRef.current);
       },
       nextBtnText: tutorial.nextButtonText,
       prevBtnText: tutorial.previousButtonText,
@@ -91,6 +94,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
             activeRef.current = { tutorial, index };
             setActiveTutorialId(tutorial.id as TutorialId);
           },
+          onRegisterPendingAdvance: (advance) => {
+            pendingAdvanceRef.current = advance;
+          },
           onRegisterTargetCleanup: (cleanup) => {
             targetCleanupRef.current?.();
             targetCleanupRef.current = cleanup;
@@ -98,6 +104,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         })
       ),
       onDestroyed: () => {
+        pendingAdvanceRef.current = null;
         targetCleanupRef.current?.();
         targetCleanupRef.current = null;
         viewportCleanupRef.current?.();
@@ -123,7 +130,15 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
 
     const routePrefix = APP_ROUTE_PREFIXES[active.tutorial.id as TutorialId];
-    if (!routePrefix || location.pathname.startsWith(routePrefix)) {
+    const routeStillMatches =
+      routePrefix === APP_ROUTE_PREFIXES["app-home-basics"] ||
+      routePrefix === APP_ROUTE_PREFIXES["community-basics"] ||
+      routePrefix === APP_ROUTE_PREFIXES["editor-drafts-basics"] ||
+      routePrefix === APP_ROUTE_PREFIXES["settings-basics"]
+        ? location.pathname === routePrefix
+        : !routePrefix || location.pathname.startsWith(routePrefix);
+
+    if (routeStillMatches) {
       return;
     }
 
@@ -132,12 +147,27 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => stopTutorial, [stopTutorial]);
 
+  const notifyTutorialEvent = useCallback((eventId: string) => {
+    const active = activeRef.current;
+    if (!active) {
+      return;
+    }
+
+    const step = active.tutorial.steps[active.index];
+    if (step.advanceOn !== "event" || step.advanceOnEvent !== eventId) {
+      return;
+    }
+
+    pendingAdvanceRef.current?.();
+  }, []);
+
   const value = useMemo<TutorialContextValue>(() => ({
     activeTutorialId,
     isActive: activeTutorialId !== null,
     startTutorial,
+    notifyTutorialEvent,
     stopTutorial
-  }), [activeTutorialId, startTutorial, stopTutorial]);
+  }), [activeTutorialId, notifyTutorialEvent, startTutorial, stopTutorial]);
 
   return <TutorialContext.Provider value={value}>{children}</TutorialContext.Provider>;
 }
@@ -152,8 +182,14 @@ export const useTutorial = (): TutorialContextValue => {
 };
 
 const APP_ROUTE_PREFIXES: Record<TutorialId, string> = {
+  "app-home-basics": "/",
+  "community-basics": "/play",
+  "editor-drafts-basics": "/editor",
+  "settings-basics": "/settings",
   "editor-basics": "/editor/",
-  "campaign-level-basics": "/play/"
+  "campaign-level-basics": "/play/",
+  "campaign-w1-l1-guided": "/play/",
+  "campaign-world-basics": "/campaign"
 };
 
 const buildDriverStep = (options: {
@@ -164,6 +200,7 @@ const buildDriverStep = (options: {
   getActiveRequestId: () => number;
   getDriver: () => Driver | null;
   onStepActivated: () => void;
+  onRegisterPendingAdvance: (advance: (() => void) | null) => void;
   onRegisterTargetCleanup: (cleanup: (() => void) | null) => void;
 }): DriveStep => {
   const {
@@ -174,19 +211,28 @@ const buildDriverStep = (options: {
     getActiveRequestId,
     getDriver,
     onStepActivated,
+    onRegisterPendingAdvance,
     onRegisterTargetCleanup
   } = options;
   const isFirst = index === 0;
   const targetResolver = step.target;
 
   const buttons: AllowedButtons[] =
-    step.advanceOn === "targetClick"
-      ? isFirst
-        ? ["close"]
-        : ["previous", "close"]
-      : isFirst
-        ? ["next", "close"]
-        : ["previous", "next", "close"];
+    step.advanceOn === "targetClick" || step.advanceOn === "event"
+      ? tutorial.dismissible === false
+        ? isFirst
+          ? []
+          : ["previous"]
+        : isFirst
+          ? ["close"]
+          : ["previous", "close"]
+      : tutorial.dismissible === false
+        ? isFirst
+          ? ["next"]
+          : ["previous", "next"]
+        : isFirst
+          ? ["next", "close"]
+          : ["previous", "next", "close"];
 
   return {
     element:
@@ -208,6 +254,27 @@ const buildDriverStep = (options: {
       }, 40);
     },
     onHighlighted: (element, _currentStep, options) => {
+      onRegisterPendingAdvance(null);
+
+      if (step.advanceOn === "event") {
+        onRegisterTargetCleanup(null);
+        onRegisterPendingAdvance(() => {
+          const nextStep = tutorial.steps[index + 1];
+          if (!nextStep) {
+            options.driver.destroy();
+            return;
+          }
+
+          void waitForTutorialTarget(
+            nextStep.target,
+            nextStep.timeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS
+          ).then(() => {
+            options.driver.moveNext();
+          }).catch(() => undefined);
+        });
+        return;
+      }
+
       if (!element || step.advanceOn !== "targetClick") {
         onRegisterTargetCleanup(null);
         return;
@@ -234,6 +301,7 @@ const buildDriverStep = (options: {
       });
     },
     onDeselected: () => {
+      onRegisterPendingAdvance(null);
       onRegisterTargetCleanup(null);
     },
     popover: {
@@ -245,7 +313,7 @@ const buildDriverStep = (options: {
       nextBtnText: step.nextButtonText,
       prevBtnText: step.previousButtonText,
       onNextClick:
-        step.advanceOn === "targetClick"
+        step.advanceOn === "targetClick" || step.advanceOn === "event"
           ? undefined
           : () => {
               void navigateToStep({
@@ -274,8 +342,15 @@ const buildDriverStep = (options: {
   };
 };
 
-const applyTutorialPopoverStyles = (popover: PopoverDOM): void => {
+const applyTutorialPopoverStyles = (
+  popover: PopoverDOM,
+  active: { tutorial: TutorialDefinition; index: number } | null
+): void => {
   const { wrapper, title, description, closeButton, footer, footerButtons, previousButton, nextButton } = popover;
+  const activeStep = active ? active.tutorial.steps[active.index] : null;
+  const hideCloseButton = active?.tutorial.dismissible === false;
+  const hidePreviousButton = !active || active.index === 0;
+  const hideNextButton = activeStep?.advanceOn === "targetClick" || activeStep?.advanceOn === "event";
 
   wrapper.style.all = "unset";
   wrapper.style.position = "fixed";
@@ -324,6 +399,7 @@ const applyTutorialPopoverStyles = (popover: PopoverDOM): void => {
   closeButton.style.fontSize = "18px";
   closeButton.style.lineHeight = "1";
   closeButton.style.textAlign = "center";
+  closeButton.style.display = hideCloseButton ? "none" : "block";
 
   [previousButton, nextButton].forEach((button) => {
     button.style.all = "unset";
@@ -341,6 +417,11 @@ const applyTutorialPopoverStyles = (popover: PopoverDOM): void => {
     button.style.cursor = "pointer";
     button.style.boxSizing = "border-box";
   });
+
+  previousButton.style.display = hidePreviousButton ? "none" : "inline-flex";
+  nextButton.style.display = hideNextButton ? "none" : "inline-flex";
+  footerButtons.style.justifyContent =
+    hidePreviousButton && hideNextButton ? "flex-end" : "space-between";
 };
 
 const navigateToStep = async (options: {

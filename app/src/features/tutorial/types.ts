@@ -1,7 +1,7 @@
 import type { Alignment, Side } from "driver.js";
 import type { TutorialTarget } from "./anchors";
 
-export type TutorialAdvanceMode = "next" | "targetClick";
+export type TutorialAdvanceMode = "next" | "targetClick" | "event";
 
 export interface TutorialStepDefinition {
   id: string;
@@ -11,6 +11,7 @@ export interface TutorialStepDefinition {
   side?: Side;
   align?: Alignment;
   advanceOn?: TutorialAdvanceMode;
+  advanceOnEvent?: string;
   allowInteraction?: boolean;
   padding?: number;
   timeoutMs?: number;
@@ -24,6 +25,7 @@ export interface TutorialDefinition {
   label: string;
   route?: string;
   steps: TutorialStepDefinition[];
+  dismissible?: boolean;
   overlayOpacity?: number;
   stagePadding?: number;
   stageRadius?: number;
