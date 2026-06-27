@@ -79,7 +79,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["stack"],
-    "difficulty": "easy",
+    "difficulty": 1.5,
     "author": "Core Team",
     "description": "Learn stack basics: use POP on A and PUSH into B to move the top element."
   },

@@ -40,30 +40,6 @@
           "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
-      },
-      {
-        "id": "D",
-        "kind": "doubly-linked-list",
-        "values": [
-          11,
-          12
-        ],
-        "properties": {
-          "color": "#c6a8ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "E",
-        "kind": "circular-list",
-        "values": [
-          13,
-          14
-        ],
-        "properties": {
-          "color": "#7ad3ba",
-          "nodeAutoTaint": false
-        }
       }
     ],
     "goalState": [
@@ -104,30 +80,6 @@
           "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
-      },
-      {
-        "id": "D",
-        "kind": "doubly-linked-list",
-        "values": [
-          11,
-          12
-        ],
-        "properties": {
-          "color": "#c6a8ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "E",
-        "kind": "circular-list",
-        "values": [
-          13,
-          14
-        ],
-        "properties": {
-          "color": "#7ad3ba",
-          "nodeAutoTaint": false
-        }
       }
     ],
     "constraints": {
@@ -142,16 +94,7 @@
         "REMOVE_LAST": "permitted",
         "GET_HEAD": "permitted",
         "GET_TAIL": "permitted",
-        "SIZE": "permitted",
-        "PEEK": "permitted",
-        "IS_EMPTY": "permitted",
-        "GET_AT": "permitted",
-        "INSERT_AT": "permitted",
-        "REMOVE_AT": "permitted",
-        "CONTAINS": "permitted",
-        "FIND": "permitted",
-        "REVERSE": "permitted",
-        "CLEAR": "permitted"
+        "SIZE": "permitted"
       },
       "forbiddenBlocks": [],
       "maxSteps": 99
@@ -168,9 +111,7 @@
       "structureOrder": [
         "A",
         "B",
-        "C",
-        "D",
-        "E"
+        "C"
       ],
       "leftPanel": "palette",
       "rightPanel": "inspector",
@@ -185,21 +126,17 @@
       "structuresUsed": [
         "stack",
         "queue",
-        "list",
-        "doubly-linked-list",
-        "circular-list"
+        "list"
       ],
-      "difficulty": "easy",
+      "difficulty": 1.5,
       "author": "Core Team",
-      "description": "Open sandbox with all five data structure types: stack, queue, singly linked list, doubly linked list, and circular list."
+      "description": "Open sandbox level with one stack, one queue, and one list."
     },
     "tooling": {
       "availableStructures": [
         "stack",
         "queue",
-        "list",
-        "doubly-linked-list",
-        "circular-list"
+        "list"
       ],
       "advancedToolsEnabled": true
     }
@@ -317,7 +254,7 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "hard",
+      "difficulty": 4.5,
       "author": "Core Team",
       "description": "Solve the basic Tower of Hanoi using three stacks."
     },
@@ -440,7 +377,7 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "easy",
+      "difficulty": 1.5,
       "author": "Core Team",
       "description": "Learn stack basics: use POP on A and PUSH into B to move the top element."
     },
@@ -564,7 +501,7 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "easy",
+      "difficulty": 1.5,
       "author": "Core Team",
       "description": "Practice repetition: empty A with POP and build B from scratch using PUSH only."
     },
@@ -687,7 +624,7 @@
         "queue",
         "stack"
       ],
-      "difficulty": "medium",
+      "difficulty": 3.0,
       "author": "Core Team",
       "description": "Mix default data structures: reverse queue Q using stack S as auxiliary memory."
     },
@@ -793,7 +730,7 @@
       "structuresUsed": [
         "list"
       ],
-      "difficulty": "medium",
+      "difficulty": 3.0,
       "author": "Core Team",
       "description": "Learn list edge operations: trim exactly one item from each side of L."
     },
@@ -870,10 +807,7 @@
         "SIZE": "forbidden"
       },
       "forbiddenBlocks": [],
-      "maxSteps": 20,
-      "maxBlocksGlobal": 6,
-      "minRoutineCount": 2,
-      "requiresRoutineCall": true
+      "maxSteps": 10
     },
     "playLayout": {
       "panelOrder": [
@@ -901,7 +835,7 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "medium",
+      "difficulty": 3.0,
       "author": "Core Team",
       "description": "Create a helper function (for example moveOne) and reuse it to transfer A into B."
     },
@@ -909,50 +843,7 @@
       "availableStructures": [
         "stack"
       ],
-      "advancedToolsEnabled": true,
-      "starterDocumentJson": "{\"version\":3,\"activeRoutineId\":\"routine-main-05\",\"routines\":[{\"id\":\"routine-main-05\",\"name\":\"principal\",\"program\":{\"id\":\"program-main-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-while-05\",\"kind\":\"while\",\"condition\":null,\"body\":[{\"id\":\"stmt-call-05\",\"kind\":\"routine-call\",\"routineId\":\"routine-helper-05\",\"routineName\":\"mover\",\"args\":[],\"returnKind\":\"none\"}]}]}},{\"id\":\"routine-helper-05\",\"name\":\"mover\",\"program\":{\"id\":\"program-helper-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-funcdef-05\",\"kind\":\"function-definition\",\"routineId\":\"routine-helper-05\",\"name\":\"mover\"}]}}]}",
-      "lockedBlockIds": [
-        "stmt-while-05",
-        "stmt-call-05",
-        "stmt-funcdef-05"
-      ]
-    },
-    "teaching": {
-      "introduces": [
-        "custom functions",
-        "naming a reusable action",
-        "abstraction over repeated steps"
-      ],
-      "messages": [
-        {
-          "trigger": "level_start",
-          "title": "This level introduces custom functions",
-          "body": "A function lets you name a sequence you want to reuse. Here, the important idea is not only moving values, but packaging that move into a helper so the program becomes repeatable and easier to control.",
-          "concepts": [
-            "function",
-            "reuse",
-            "abstraction"
-          ]
-        },
-        {
-          "trigger": "first_failure",
-          "title": "The helper should do one clear job",
-          "body": "If the function is hard to reuse, it may be doing too much. A good first function here is a small transfer action that can be called again when needed.",
-          "concepts": [
-            "single responsibility",
-            "helper action"
-          ]
-        },
-        {
-          "trigger": "repeated_failure",
-          "title": "Reuse beats copy-paste thinking",
-          "body": "This level teaches a structural idea: once a sequence is valid, you should call it again instead of rebuilding the same logic each time in the main flow.",
-          "concepts": [
-            "call again",
-            "main flow vs helper"
-          ]
-        }
-      ]
+      "advancedToolsEnabled": true
     }
   },
   {
@@ -1050,7 +941,7 @@
         "stack",
         "queue"
       ],
-      "difficulty": "medium",
+      "difficulty": 3.0,
       "author": "Core Team",
       "description": "Define a custom function and reuse it to move values from stack A into queue Q."
     },
@@ -1152,7 +1043,7 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "hard",
+      "difficulty": 4.5,
       "author": "Core Team",
       "description": "Create a custom type (example: Box), then solve the stack transfer using your own model objects if you want."
     },
@@ -1280,9 +1171,4134 @@
         "stack",
         "queue"
       ],
-      "difficulty": "hard",
+      "difficulty": 4.5,
       "author": "Core Team",
       "description": "Final challenge: solve with default structures and optionally model helper data using a custom type."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-1",
+    "title": "2-1 · Invertir secuencia",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-2",
+    "title": "2-2 · Transferencia estable",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-3",
+    "title": "2-3 · Filtrar por regla",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-4",
+    "title": "2-4 · Partición",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-5",
+    "title": "2-5 · Checkpoint",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-3a",
+    "title": "2-3A · Filtro estricto",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w2-3b",
+    "title": "2-3B · Filtro compuesto",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 2 · Patrones de transformación."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w3-1",
+    "title": "3-1 · Coordinación básica",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 3 · Composición de estructuras."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w3-2",
+    "title": "3-2 · Buffer intermedio",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 3 · Composición de estructuras."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w3-3",
+    "title": "3-3 · Fase triple I",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 3 · Composición de estructuras."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w3-4",
+    "title": "3-4 · Fase triple II",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 3 · Composición de estructuras."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w3-5",
+    "title": "3-5 · Checkpoint",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 3 · Composición de estructuras."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w3-2a",
+    "title": "3-2A · Buffer profundo",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 3 · Composición de estructuras."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-1",
+    "title": "4-1 · Primer helper",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-2",
+    "title": "4-2 · Reusar helper",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-3",
+    "title": "4-3 · Dos funciones",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-4",
+    "title": "4-4 · Función con condicional",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-5",
+    "title": "4-5 · Checkpoint",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-2a",
+    "title": "4-2A · Reuso intensivo",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w4-4a",
+    "title": "4-4A · Condicional avanzada",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 4 · Abstracción con funciones."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-1",
+    "title": "5-1 · Definir tipo",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-2",
+    "title": "5-2 · Instanciar",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-3",
+    "title": "5-3 · Tipos en EDD",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-4",
+    "title": "5-4 · Leer/actualizar campos",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-5",
+    "title": "5-5 · Checkpoint",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-3a",
+    "title": "5-3A · Nodo doble",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w5-4a",
+    "title": "5-4A · Doble lista mínima",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 5 · Modelado con tipos."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w6-1",
+    "title": "6-1 · Capstone I",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 6 · Integración final."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w6-2",
+    "title": "6-2 · Capstone II",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 6 · Integración final."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w6-3",
+    "title": "6-3 · Capstone III",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 6 · Integración final."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w6-4",
+    "title": "6-4 · Capstone IV",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 6 · Integración final."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w6-5",
+    "title": "6-5 · Final del castillo",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 6 · Integración final."
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack",
+        "queue",
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    }
+  },
+  {
+    "id": "campaign-w6-3a",
+    "title": "6-3A · Modo experto",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.5,
+      "author": "Core Team",
+      "description": "Stub level for World 6 · Integración final."
     },
     "tooling": {
       "availableStructures": [

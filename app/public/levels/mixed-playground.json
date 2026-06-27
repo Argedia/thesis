@@ -28,24 +28,6 @@
         "color": "#c6a8ff",
         "nodeAutoTaint": false
       }
-    },
-    {
-      "id": "D",
-      "kind": "doubly-linked-list",
-      "values": [11, 12],
-      "properties": {
-        "color": "#c6a8ff",
-        "nodeAutoTaint": false
-      }
-    },
-    {
-      "id": "E",
-      "kind": "circular-list",
-      "values": [13, 14],
-      "properties": {
-        "color": "#7ad3ba",
-        "nodeAutoTaint": false
-      }
     }
   ],
   "goalState": [
@@ -75,24 +57,6 @@
         "color": "#c6a8ff",
         "nodeAutoTaint": false
       }
-    },
-    {
-      "id": "D",
-      "kind": "doubly-linked-list",
-      "values": [11, 12],
-      "properties": {
-        "color": "#c6a8ff",
-        "nodeAutoTaint": false
-      }
-    },
-    {
-      "id": "E",
-      "kind": "circular-list",
-      "values": [13, 14],
-      "properties": {
-        "color": "#7ad3ba",
-        "nodeAutoTaint": false
-      }
     }
   ],
   "constraints": {
@@ -107,16 +71,7 @@
       "REMOVE_LAST": "permitted",
       "GET_HEAD": "permitted",
       "GET_TAIL": "permitted",
-      "SIZE": "permitted",
-      "PEEK": "permitted",
-      "IS_EMPTY": "permitted",
-      "GET_AT": "permitted",
-      "INSERT_AT": "permitted",
-      "REMOVE_AT": "permitted",
-      "CONTAINS": "permitted",
-      "FIND": "permitted",
-      "REVERSE": "permitted",
-      "CLEAR": "permitted"
+      "SIZE": "permitted"
     },
     "forbiddenBlocks": [],
     "maxSteps": 99
@@ -126,7 +81,7 @@
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B", "C", "D", "E"],
+    "structureOrder": ["A", "B", "C"],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
@@ -134,13 +89,13 @@
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue", "list", "doubly-linked-list", "circular-list"],
-    "difficulty": "easy",
+    "structuresUsed": ["stack", "queue", "list"],
+    "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Open sandbox with all five data structure types: stack, queue, singly linked list, doubly linked list, and circular list."
+    "description": "Open sandbox level with one stack, one queue, and one list."
   },
   "tooling": {
-    "availableStructures": ["stack", "queue", "list", "doubly-linked-list", "circular-list"],
+    "availableStructures": ["stack", "queue", "list"],
     "advancedToolsEnabled": true
   }
 }

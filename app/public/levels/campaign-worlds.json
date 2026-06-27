@@ -1,0 +1,244 @@
+[
+  {
+    "id": "world-1-default-structures",
+    "name": "World 1 · Estructuras por defecto",
+    "theme": "foundations",
+    "mapStyle": "grid",
+    "worldUnlockRule": "always",
+    "requiredCompletions": 5,
+    "startNodeId": "n1",
+    "hubGoal": {
+      "title": "Materiales base",
+      "objective": "Domina stack, queue y list para recolectar materiales iniciales.",
+      "milestones": [
+        { "id": "m1", "minCompleted": 1, "title": "Primer material", "description": "Arrancaste la reconstrucción." },
+        { "id": "m2", "minCompleted": 3, "title": "Suministro estable", "description": "Ya controlas operaciones esenciales." },
+        { "id": "m3", "minCompleted": 5, "title": "Meta mínima del mundo", "description": "Puedes abrir el siguiente mundo." },
+        { "id": "m4", "minCompleted": 8, "title": "Mundo completado", "description": "Recolectaste todos los materiales del mundo." }
+      ]
+    },
+    "nodes": [
+      { "id": "n1", "levelId": "campaign-01-stack-top-transfer", "gridCol": 0, "gridRow": 0, "titleOverride": "1-1 · Stack Top Transfer" },
+      { "id": "n2", "levelId": "campaign-02-stack-build-from-scratch", "gridCol": 1, "gridRow": 0, "titleOverride": "1-2 · Build Stack From Scratch" },
+      { "id": "n3", "levelId": "campaign-03-queue-stack-reverse", "gridCol": 2, "gridRow": 0, "titleOverride": "1-3 · Queue + Stack Reverse" },
+      { "id": "n4", "levelId": "campaign-04-list-trim-edges", "gridCol": 3, "gridRow": 0, "titleOverride": "1-4 · List Edge Ops" },
+      { "id": "n5", "levelId": "campaign-05-custom-function-helper", "gridCol": 0, "gridRow": 1, "branchGroup": "functions", "titleOverride": "1-3A · Function Helper" },
+      { "id": "n6", "levelId": "campaign-06-custom-function-mixed", "gridCol": 1, "gridRow": 1, "branchGroup": "functions", "titleOverride": "1-4A · Function Mixed" },
+      { "id": "n7", "levelId": "campaign-07-custom-type-intro", "gridCol": 2, "gridRow": 1, "branchGroup": "types", "titleOverride": "1-5 · Type Intro" },
+      { "id": "n8", "levelId": "campaign-08-custom-type-integration", "gridCol": 3, "gridRow": 1, "titleOverride": "1-5A · Type Integration" }
+    ],
+    "edges": [
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" },
+      { "from": "n3", "to": "n4", "type": "normal" },
+      { "from": "n1", "to": "n5", "type": "branch" },
+      { "from": "n2", "to": "n6", "type": "branch" },
+      { "from": "n3", "to": "n7", "type": "branch" },
+      { "from": "n4", "to": "n8", "type": "branch" },
+      { "from": "n5", "to": "n6", "type": "normal" },
+      { "from": "n6", "to": "n7", "type": "normal" },
+      { "from": "n7", "to": "n8", "type": "normal" }
+    ],
+    "branchUnlockRules": [
+      { "branchGroup": "functions", "requiresNodeIds": ["n3"], "mode": "all" },
+      { "branchGroup": "types", "requiresNodeIds": ["n6"], "mode": "all" }
+    ],
+    "grid": { "columns": 4, "rows": 2, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-2-transformations",
+    "name": "World 2 · Patrones de transformación",
+    "theme": "transforms",
+    "mapStyle": "grid",
+    "requiredCompletions": 5,
+    "startNodeId": "n1",
+    "hubGoal": {
+      "title": "Materiales de ensamblaje",
+      "objective": "Aplica patrones de transformación para abrir nuevas rutas.",
+      "milestones": [
+        { "id": "m1", "minCompleted": 1, "title": "Arranque", "description": "Primer patrón completado." },
+        { "id": "m2", "minCompleted": 3, "title": "Patrones dominados", "description": "Ya controlas varias transformaciones." },
+        { "id": "m3", "minCompleted": 5, "title": "Meta mínima del mundo", "description": "Siguiente mundo desbloqueable." },
+        { "id": "m4", "minCompleted": 7, "title": "Mundo completado", "description": "Toda la rama de transformación terminada." }
+      ]
+    },
+    "nodes": [
+      { "id": "n1", "levelId": "campaign-w2-1", "gridCol": 0, "gridRow": 0, "titleOverride": "2-1 · Invertir secuencia" },
+      { "id": "n2", "levelId": "campaign-w2-2", "gridCol": 1, "gridRow": 0, "titleOverride": "2-2 · Transferencia estable" },
+      { "id": "n3", "levelId": "campaign-w2-3", "gridCol": 1, "gridRow": 1, "titleOverride": "2-3 · Filtrar por regla" },
+      { "id": "n4", "levelId": "campaign-w2-4", "gridCol": 2, "gridRow": 0, "titleOverride": "2-4 · Partición" },
+      { "id": "n5", "levelId": "campaign-w2-5", "gridCol": 3, "gridRow": 0, "titleOverride": "2-5 · Checkpoint" },
+      { "id": "n6", "levelId": "campaign-w2-3a", "gridCol": 2, "gridRow": 1, "titleOverride": "2-3A · Filtro estricto", "branchGroup": "depth" },
+      { "id": "n7", "levelId": "campaign-w2-3b", "gridCol": 3, "gridRow": 1, "titleOverride": "2-3B · Filtro compuesto", "branchGroup": "depth" }
+    ],
+    "edges": [
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n1", "to": "n3", "type": "branch" },
+      { "from": "n2", "to": "n4", "type": "normal" },
+      { "from": "n3", "to": "n4", "type": "branch" },
+      { "from": "n4", "to": "n5", "type": "normal" },
+      { "from": "n3", "to": "n6", "type": "branch" },
+      { "from": "n6", "to": "n7", "type": "normal" }
+    ],
+    "branchUnlockRules": [
+      { "branchGroup": "depth", "requiresNodeIds": ["n3"], "mode": "all" }
+    ],
+    "grid": { "columns": 4, "rows": 2, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-3-composition",
+    "name": "World 3 · Composición de estructuras",
+    "theme": "composition",
+    "mapStyle": "grid",
+    "requiredCompletions": 5,
+    "startNodeId": "n1",
+    "hubGoal": {
+      "title": "Materiales de unión",
+      "objective": "Coordina estructuras para resolver pipelines y composición.",
+      "milestones": [
+        { "id": "m1", "minCompleted": 1, "title": "Inicio", "description": "Primera coordinación realizada." },
+        { "id": "m2", "minCompleted": 3, "title": "Composición parcial", "description": "El flujo entre estructuras ya es estable." },
+        { "id": "m3", "minCompleted": 5, "title": "Meta mínima del mundo", "description": "Siguiente mundo desbloqueable." },
+        { "id": "m4", "minCompleted": 6, "title": "Mundo completado", "description": "Todas las rutas de composición resueltas." }
+      ]
+    },
+    "nodes": [
+      { "id": "n1", "levelId": "campaign-w3-1", "gridCol": 0, "gridRow": 0, "titleOverride": "3-1 · Coordinación básica" },
+      { "id": "n2", "levelId": "campaign-w3-2", "gridCol": 1, "gridRow": 0, "titleOverride": "3-2 · Buffer intermedio" },
+      { "id": "n3", "levelId": "campaign-w3-3", "gridCol": 1, "gridRow": 1, "titleOverride": "3-3 · Fase triple I" },
+      { "id": "n4", "levelId": "campaign-w3-4", "gridCol": 2, "gridRow": 0, "titleOverride": "3-4 · Fase triple II" },
+      { "id": "n5", "levelId": "campaign-w3-5", "gridCol": 3, "gridRow": 0, "titleOverride": "3-5 · Checkpoint" },
+      { "id": "n6", "levelId": "campaign-w3-2a", "gridCol": 2, "gridRow": 1, "titleOverride": "3-2A · Buffer profundo", "branchGroup": "depth" }
+    ],
+    "edges": [
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n1", "to": "n3", "type": "branch" },
+      { "from": "n2", "to": "n4", "type": "normal" },
+      { "from": "n3", "to": "n4", "type": "branch" },
+      { "from": "n4", "to": "n5", "type": "normal" },
+      { "from": "n2", "to": "n6", "type": "branch" }
+    ],
+    "branchUnlockRules": [
+      { "branchGroup": "depth", "requiresNodeIds": ["n2"], "mode": "all" }
+    ],
+    "grid": { "columns": 4, "rows": 2, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-4-functions",
+    "name": "World 4 · Abstracción con funciones",
+    "theme": "functions",
+    "mapStyle": "grid",
+    "requiredCompletions": 5,
+    "startNodeId": "n1",
+    "hubGoal": {
+      "title": "Materiales de planos",
+      "objective": "Encapsula lógica repetida para reducir complejidad.",
+      "milestones": [
+        { "id": "m1", "minCompleted": 1, "title": "Primer helper", "description": "Ya creaste tu primera función útil." },
+        { "id": "m2", "minCompleted": 3, "title": "Abstracción activa", "description": "Reutilización consistente en progreso." },
+        { "id": "m3", "minCompleted": 5, "title": "Meta mínima del mundo", "description": "Siguiente mundo desbloqueable." },
+        { "id": "m4", "minCompleted": 7, "title": "Mundo completado", "description": "Todas las rutas con funciones completas." }
+      ]
+    },
+    "nodes": [
+      { "id": "n1", "levelId": "campaign-w4-1", "gridCol": 0, "gridRow": 0, "titleOverride": "4-1 · Primer helper" },
+      { "id": "n2", "levelId": "campaign-w4-2", "gridCol": 1, "gridRow": 0, "titleOverride": "4-2 · Reusar helper" },
+      { "id": "n3", "levelId": "campaign-w4-3", "gridCol": 2, "gridRow": 0, "titleOverride": "4-3 · Dos funciones" },
+      { "id": "n4", "levelId": "campaign-w4-4", "gridCol": 3, "gridRow": 0, "titleOverride": "4-4 · Función con condicional" },
+      { "id": "n5", "levelId": "campaign-w4-5", "gridCol": 3, "gridRow": 1, "titleOverride": "4-5 · Checkpoint" },
+      { "id": "n6", "levelId": "campaign-w4-2a", "gridCol": 1, "gridRow": 1, "titleOverride": "4-2A · Reuso intensivo", "branchGroup": "depth" },
+      { "id": "n7", "levelId": "campaign-w4-4a", "gridCol": 2, "gridRow": 1, "titleOverride": "4-4A · Condicional avanzada", "branchGroup": "depth" }
+    ],
+    "edges": [
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" },
+      { "from": "n3", "to": "n4", "type": "normal" },
+      { "from": "n4", "to": "n5", "type": "normal" },
+      { "from": "n2", "to": "n6", "type": "branch" },
+      { "from": "n4", "to": "n7", "type": "branch" }
+    ],
+    "branchUnlockRules": [
+      { "branchGroup": "depth", "requiresNodeIds": ["n2"], "mode": "any" }
+    ],
+    "grid": { "columns": 4, "rows": 2, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-5-types",
+    "name": "World 5 · Modelado con tipos",
+    "theme": "types",
+    "mapStyle": "grid",
+    "requiredCompletions": 5,
+    "startNodeId": "n1",
+    "hubGoal": {
+      "title": "Materiales de arquitectura",
+      "objective": "Modela entidades y campos para estructuras más expresivas.",
+      "milestones": [
+        { "id": "m1", "minCompleted": 1, "title": "Tipo base", "description": "El primer tipo ya existe." },
+        { "id": "m2", "minCompleted": 3, "title": "Modelado parcial", "description": "Campos e instancias en marcha." },
+        { "id": "m3", "minCompleted": 5, "title": "Meta mínima del mundo", "description": "Siguiente mundo desbloqueable." },
+        { "id": "m4", "minCompleted": 7, "title": "Mundo completado", "description": "Modelo de tipos completo." }
+      ]
+    },
+    "nodes": [
+      { "id": "n1", "levelId": "campaign-w5-1", "gridCol": 0, "gridRow": 0, "titleOverride": "5-1 · Definir tipo" },
+      { "id": "n2", "levelId": "campaign-w5-2", "gridCol": 1, "gridRow": 0, "titleOverride": "5-2 · Instanciar" },
+      { "id": "n3", "levelId": "campaign-w5-3", "gridCol": 2, "gridRow": 0, "titleOverride": "5-3 · Tipos en EDD" },
+      { "id": "n4", "levelId": "campaign-w5-4", "gridCol": 2, "gridRow": 1, "titleOverride": "5-4 · Leer/actualizar campos" },
+      { "id": "n5", "levelId": "campaign-w5-5", "gridCol": 3, "gridRow": 0, "titleOverride": "5-5 · Checkpoint" },
+      { "id": "n6", "levelId": "campaign-w5-3a", "gridCol": 1, "gridRow": 1, "titleOverride": "5-3A · Nodo doble", "branchGroup": "depth" },
+      { "id": "n7", "levelId": "campaign-w5-4a", "gridCol": 3, "gridRow": 1, "titleOverride": "5-4A · Doble lista mínima", "branchGroup": "depth" }
+    ],
+    "edges": [
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" },
+      { "from": "n2", "to": "n4", "type": "branch" },
+      { "from": "n3", "to": "n5", "type": "normal" },
+      { "from": "n4", "to": "n5", "type": "branch" },
+      { "from": "n3", "to": "n6", "type": "branch" },
+      { "from": "n4", "to": "n7", "type": "branch" }
+    ],
+    "branchUnlockRules": [
+      { "branchGroup": "depth", "requiresNodeIds": ["n3", "n4"], "mode": "any" }
+    ],
+    "grid": { "columns": 4, "rows": 2, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-6-integration",
+    "name": "World 6 · Integración final",
+    "theme": "integration",
+    "mapStyle": "grid",
+    "requiredCompletions": 5,
+    "startNodeId": "n1",
+    "hubGoal": {
+      "title": "Materiales de coronación",
+      "objective": "Integra todo lo aprendido para completar la reconstrucción.",
+      "milestones": [
+        { "id": "m1", "minCompleted": 1, "title": "Capstone iniciado", "description": "Comenzó la fase final." },
+        { "id": "m2", "minCompleted": 3, "title": "Integración parcial", "description": "Varias piezas funcionando juntas." },
+        { "id": "m3", "minCompleted": 5, "title": "Meta mínima del mundo", "description": "Castillo prácticamente completo." },
+        { "id": "m4", "minCompleted": 6, "title": "Mundo completado", "description": "Reconstrucción total lograda." }
+      ]
+    },
+    "nodes": [
+      { "id": "n1", "levelId": "campaign-w6-1", "gridCol": 0, "gridRow": 0, "titleOverride": "6-1 · Capstone I" },
+      { "id": "n2", "levelId": "campaign-w6-2", "gridCol": 1, "gridRow": 0, "titleOverride": "6-2 · Capstone II" },
+      { "id": "n3", "levelId": "campaign-w6-3", "gridCol": 1, "gridRow": 1, "titleOverride": "6-3 · Capstone III" },
+      { "id": "n4", "levelId": "campaign-w6-4", "gridCol": 2, "gridRow": 0, "titleOverride": "6-4 · Capstone IV" },
+      { "id": "n5", "levelId": "campaign-w6-5", "gridCol": 3, "gridRow": 0, "titleOverride": "6-5 · Final del castillo" },
+      { "id": "n6", "levelId": "campaign-w6-3a", "gridCol": 2, "gridRow": 1, "titleOverride": "6-3A · Modo experto", "branchGroup": "expert" }
+    ],
+    "edges": [
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n1", "to": "n3", "type": "branch" },
+      { "from": "n1", "to": "n4", "type": "branch" },
+      { "from": "n2", "to": "n5", "type": "normal" },
+      { "from": "n3", "to": "n5", "type": "branch" },
+      { "from": "n4", "to": "n5", "type": "branch" },
+      { "from": "n3", "to": "n6", "type": "branch" }
+    ],
+    "branchUnlockRules": [
+      { "branchGroup": "expert", "requiresNodeIds": ["n3"], "mode": "all" }
+    ],
+    "grid": { "columns": 4, "rows": 2, "marginX": 16, "marginY": 34 }
+  }
+]

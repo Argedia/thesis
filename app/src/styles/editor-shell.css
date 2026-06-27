@@ -578,6 +578,13 @@
 	margin-bottom: 0;
 }
 
+.editor-drafts-topbar-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	justify-content: end;
+}
+
 .editor-drafts-list {
 	display: grid;
 	gap: 0.7rem;

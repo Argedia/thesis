@@ -60,7 +60,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["stack"],
-    "difficulty": "hard",
+    "difficulty": 4.5,
     "author": "Core Team",
     "description": "Create a custom type (example: Box), then solve the stack transfer using your own model objects if you want.",
     "hidden": true

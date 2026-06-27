@@ -5,24 +5,14 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [
-        1,
-        2,
-        3
-      ],
-      "properties": {
-        "color": "#f6b457",
-        "nodeAutoTaint": false
-      }
+      "values": [1, 2, 3],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
     },
     {
       "id": "B",
       "kind": "stack",
       "values": [],
-      "properties": {
-        "color": "#8ec5ff",
-        "nodeAutoTaint": false
-      }
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
     }
   ],
   "goalState": [
@@ -30,23 +20,13 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": {
-        "color": "#f6b457",
-        "nodeAutoTaint": false
-      }
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
     },
     {
       "id": "B",
       "kind": "stack",
-      "values": [
-        3,
-        2,
-        1
-      ],
-      "properties": {
-        "color": "#8ec5ff",
-        "nodeAutoTaint": false
-      }
+      "values": [3, 2, 1],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
     }
   ],
   "constraints": {
@@ -61,100 +41,31 @@
       "REMOVE_LAST": "forbidden",
       "GET_HEAD": "forbidden",
       "GET_TAIL": "forbidden",
-      "SIZE": "permitted",
-      "PEEK": "permitted",
-      "IS_EMPTY": "permitted",
-      "GET_AT": "permitted",
-      "INSERT_AT": "permitted",
-      "REMOVE_AT": "permitted",
-      "CONTAINS": "permitted",
-      "FIND": "permitted",
-      "REVERSE": "permitted",
-      "CLEAR": "permitted"
+      "SIZE": "forbidden"
     },
     "forbiddenBlocks": [],
-    "maxSteps": 20,
-    "maxBlocksGlobal": 6,
-    "minRoutineCount": 2,
-    "requiresRoutineCall": true
+    "maxSteps": 10
   },
   "playLayout": {
-    "panelOrder": [
-      "board",
-      "steps",
-      "timeline"
-    ],
+    "panelOrder": ["board", "steps", "timeline"],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": [
-      "A",
-      "B"
-    ],
+    "structureOrder": ["A", "B"],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": [
-      "canvas",
-      "preview"
-    ]
+    "openTabs": ["canvas", "preview"]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": [
-      "stack"
-    ],
-    "difficulty": "medium",
+    "structuresUsed": ["stack"],
+    "difficulty": 3.0,
     "author": "Core Team",
     "description": "Create a helper function (for example moveOne) and reuse it to transfer A into B."
   },
   "tooling": {
-    "availableStructures": [
-      "stack"
-    ],
-    "advancedToolsEnabled": true,
-    "starterDocumentJson": "{\"version\":3,\"activeRoutineId\":\"routine-main-05\",\"routines\":[{\"id\":\"routine-main-05\",\"name\":\"principal\",\"program\":{\"id\":\"program-main-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-while-05\",\"kind\":\"while\",\"condition\":null,\"body\":[{\"id\":\"stmt-call-05\",\"kind\":\"routine-call\",\"routineId\":\"routine-helper-05\",\"routineName\":\"mover\",\"args\":[],\"returnKind\":\"none\"}]}]}},{\"id\":\"routine-helper-05\",\"name\":\"mover\",\"program\":{\"id\":\"program-helper-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-funcdef-05\",\"kind\":\"function-definition\",\"routineId\":\"routine-helper-05\",\"name\":\"mover\"}]}}]}",
-    "lockedBlockIds": [
-      "stmt-while-05",
-      "stmt-call-05",
-      "stmt-funcdef-05"
-    ]
-  },
-  "teaching": {
-    "introduces": [
-      "custom functions",
-      "naming a reusable action",
-      "abstraction over repeated steps"
-    ],
-    "messages": [
-      {
-        "trigger": "level_start",
-        "title": "This level introduces custom functions",
-        "body": "A function lets you name a sequence you want to reuse. Here, the important idea is not only moving values, but packaging that move into a helper so the program becomes repeatable and easier to control.",
-        "concepts": [
-          "function",
-          "reuse",
-          "abstraction"
-        ]
-      },
-      {
-        "trigger": "first_failure",
-        "title": "The helper should do one clear job",
-        "body": "If the function is hard to reuse, it may be doing too much. A good first function here is a small transfer action that can be called again when needed.",
-        "concepts": [
-          "single responsibility",
-          "helper action"
-        ]
-      },
-      {
-        "trigger": "repeated_failure",
-        "title": "Reuse beats copy-paste thinking",
-        "body": "This level teaches a structural idea: once a sequence is valid, you should call it again instead of rebuilding the same logic each time in the main flow.",
-        "concepts": [
-          "call again",
-          "main flow vs helper"
-        ]
-      }
-    ]
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
   }
 }

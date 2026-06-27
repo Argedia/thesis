@@ -14,6 +14,9 @@ import {
 } from "../features/community-levels/catalog";
 import { useCommunityLevelsCatalog } from "../features/community-levels/useCommunityLevelsCatalog";
 
+const formatDifficultyScore = (difficulty: number): string =>
+  difficulty.toFixed(1);
+
 export function CommunityLevelsScreen() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -137,12 +140,12 @@ export function CommunityLevelsScreen() {
               <div className="chip-group">
                 {difficultyOptions.map((difficulty) => (
                   <button
-                    key={difficulty}
+                    key={difficulty.id}
                     type="button"
-                    className={difficultyFilters.includes(difficulty) ? "chip-button active" : "chip-button"}
-                    onClick={() => toggleDifficultyFilter(difficulty)}
+                    className={difficultyFilters.includes(difficulty.id) ? "chip-button active" : "chip-button"}
+                    onClick={() => toggleDifficultyFilter(difficulty.id)}
                   >
-                    {t(`preview.difficultyOption.${difficulty}`)}
+                    {difficulty.label}
                   </button>
                 ))}
               </div>
@@ -187,7 +190,7 @@ export function CommunityLevelsScreen() {
                       onClick={() => setSelectedLevel(level)}
                     >
                       <div className="level-card-header">
-                        <span className="difficulty-pill">{t(`preview.difficultyOption.${level.metadata.difficulty}`)}</span>
+                        <span className="difficulty-pill">{formatDifficultyScore(level.metadata.difficulty)}</span>
                         <span className="completion-pill">
                           {isCompleted ? t("preview.completionOption.completed") : t("preview.completionOption.pending")}
                         </span>
@@ -219,7 +222,7 @@ export function CommunityLevelsScreen() {
                       <p className="eyebrow">{t("preview.readyToPlay")}</p>
                       <h2>{selectedLevel.title}</h2>
                     </div>
-                    <span className="difficulty-pill">{selectedLevel.metadata.difficulty}</span>
+                    <span className="difficulty-pill">{formatDifficultyScore(selectedLevel.metadata.difficulty)}</span>
                   </div>
 
                   <p className="preview-description">

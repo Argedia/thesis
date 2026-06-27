@@ -79,7 +79,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["queue", "stack"],
-    "difficulty": "medium",
+    "difficulty": 3.0,
     "author": "Core Team",
     "description": "Mix default data structures: reverse queue Q using stack S as auxiliary memory."
   },

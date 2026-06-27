@@ -96,7 +96,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["stack"],
-    "difficulty": "hard",
+    "difficulty": 4.5,
     "author": "Core Team",
     "description": "Solve the basic Tower of Hanoi using three stacks."
   },

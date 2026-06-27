@@ -72,7 +72,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["stack"],
-    "difficulty": "easy",
+    "difficulty": 1.5,
     "author": "Core Team",
     "description": "Move the top item from A into B."
   },

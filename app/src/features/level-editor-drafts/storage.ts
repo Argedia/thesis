@@ -5,6 +5,7 @@ import {
   serializeProgramDocument
 } from "../program-editor-core";
 import { createDefaultBlockLimits } from "../../play-editor/block-limits";
+import { CAMPAIGN_PLAN_TEMPLATES } from "./campaign-plan";
 import type {
   LevelEditorDraftRecord,
   LevelEditorDraftSnapshot
@@ -28,7 +29,7 @@ const slugify = (name: string): string =>
 const createDefaultSnapshot = (): LevelEditorDraftSnapshot => ({
   description: "",
   author: "",
-  difficulty: "easy",
+  difficulty: 2.5,
   maxSteps: 99,
   allowAdditionalRoutines: false,
   maxRoutineCount: 8,
@@ -101,5 +102,48 @@ export const createEditorDraftRecord = (name: string): LevelEditorDraftRecord =>
     name: normalizedName,
     updatedAt: nowIso(),
     snapshot: createDefaultSnapshot()
+  };
+};
+
+export const seedCampaignPlanDraftRecords = (): {
+  createdCount: number;
+  totalTemplates: number;
+  createdIds: string[];
+} => {
+  const now = nowIso();
+  const existing = safeParseRecords(window.localStorage.getItem(STORAGE_KEY));
+  const taken = new Set(existing.map((record) => record.id));
+  const created: LevelEditorDraftRecord[] = [];
+
+  CAMPAIGN_PLAN_TEMPLATES.forEach((template) => {
+    const id = `plan-${template.id}`;
+    if (taken.has(id)) return;
+
+    const snapshot: LevelEditorDraftSnapshot = {
+      ...createDefaultSnapshot(),
+      description: `[${template.worldId.toUpperCase()} · ${template.worldName}] ${template.description}`,
+      author: "Plan campaña",
+      difficulty: template.difficulty,
+      maxSteps: template.maxSteps,
+      maxBlocksGlobal: Math.max(99, template.maxSteps)
+    };
+
+    created.push({
+      id,
+      name: template.name,
+      updatedAt: now,
+      snapshot
+    });
+    taken.add(id);
+  });
+
+  if (created.length > 0) {
+    writeRecords([...existing, ...created]);
+  }
+
+  return {
+    createdCount: created.length,
+    totalTemplates: CAMPAIGN_PLAN_TEMPLATES.length,
+    createdIds: created.map((record) => record.id)
   };
 };

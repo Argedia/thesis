@@ -67,7 +67,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["list"],
-    "difficulty": "medium",
+    "difficulty": 3.0,
     "author": "Core Team",
     "description": "Learn list edge operations: trim exactly one item from each side of L."
   },

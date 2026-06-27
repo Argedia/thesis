@@ -75,7 +75,7 @@
   "metadata": {
     "source": "community",
     "structuresUsed": ["stack", "queue"],
-    "difficulty": "hard",
+    "difficulty": 4.5,
     "author": "Core Team",
     "description": "Final challenge: solve with default structures and optionally model helper data using a custom type.",
     "hidden": true
