@@ -701,3 +701,64 @@
 	background: #e8f2ff;
 }
 
+.editor-icon-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2rem;
+	height: 2rem;
+	border: 1px solid #9ec5e5;
+	border-radius: 10px;
+	background: #ffffff;
+	color: #355070;
+	cursor: pointer;
+	transition: background 0.1s, border-color 0.1s;
+}
+
+.editor-icon-action:hover:not([data-disabled]) {
+	background: #f0f8ff;
+	border-color: #6aadd8;
+}
+
+.editor-icon-action[data-disabled] {
+	opacity: 0.45;
+	cursor: default;
+}
+
+.editor-shell .editor-icon-action {
+	border-color: var(--editor-control-accent);
+	background: var(--editor-control-soft);
+	box-shadow: inset 0 0 0 1px rgba(240, 180, 62, 0.14);
+}
+
+.editor-shell .editor-icon-action:hover:not([data-disabled]) {
+	border-color: var(--editor-control-accent-strong);
+}
+
+.editor-shell .editor-icon-action:focus-visible {
+	outline: 2px solid var(--editor-control-accent);
+	outline-offset: 1px;
+	box-shadow: 0 0 0 3px var(--editor-control-focus);
+}
+
+.editor-icon-action--primary {
+	background: #355070;
+	border-color: #355070;
+	color: #ffffff;
+}
+
+.editor-icon-action--primary:hover:not([data-disabled]) {
+	background: #2a4060;
+	border-color: #2a4060;
+}
+
+.editor-shell .editor-icon-action--primary {
+	background: var(--editor-control-accent);
+	border-color: var(--editor-control-accent-strong);
+	color: #fff;
+}
+
+.editor-shell .editor-icon-action--primary:hover:not([data-disabled]) {
+	background: var(--editor-control-accent-strong);
+}
+

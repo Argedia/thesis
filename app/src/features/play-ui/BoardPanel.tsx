@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { PuzzleBoard } from "@thesis/ui-editor";
 import { getRunLineDelayMs } from "../settings/execution-speed";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
+import { RotateCcw, Settings2, Eye, EyeOff } from "lucide-react";
 import type { EngineEvent, StructureSnapshot } from "@thesis/core-engine";
 import type { HeapObjectSnapshot, RuntimeVariableSnapshot } from "../play-session/types";
 import type { StructureConfigClickPayload } from "@thesis/ui-editor";
@@ -78,14 +79,16 @@ export function BoardPanel({
                 isDisabled={isRunning}
                 aria-label={t("actions.reset")}
               >
-                ↺
+                <RotateCcw size={15} />
               </Button>
               <Tooltip className="app-tooltip">{t("actions.reset")}</Tooltip>
             </TooltipTrigger>
           ) : null}
           <button
             type="button"
-            className={`board-preview-action${isShowingGoalPreview ? " is-active" : ""}`}
+            className={`board-preview-action board-icon-action${isShowingGoalPreview ? " is-active" : ""}`}
+            aria-label={isShowingGoalPreview ? t("common.hideResult") : t("common.previewResult")}
+            title={isShowingGoalPreview ? t("common.hideResult") : t("common.previewResult")}
             {...tutorialAnchorProps("play-preview-goal")}
             onClick={onTogglePreview}
             onPointerDown={onPreviewPointerDown}
@@ -93,7 +96,7 @@ export function BoardPanel({
             onPointerLeave={onPreviewPointerLeave}
             onPointerCancel={onPreviewPointerCancel}
           >
-            {isShowingGoalPreview ? t("common.hideResult") : t("common.previewResult")}
+            {isShowingGoalPreview ? <EyeOff size={15} /> : <Eye size={15} />}
           </button>
           {onToggleConfig ? (
             <TooltipTrigger delay={200} closeDelay={80}>
@@ -103,7 +106,7 @@ export function BoardPanel({
                 onPress={onToggleConfig}
                 aria-label={configureBoardLabel}
               >
-                ⚙
+                <Settings2 size={15} />
               </Button>
               <Tooltip className="app-tooltip">{configureBoardLabel}</Tooltip>
             </TooltipTrigger>

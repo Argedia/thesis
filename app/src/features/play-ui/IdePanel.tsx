@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
+import { Play, SkipForward, Square, Trash2, type LucideIcon } from "lucide-react";
 import type { StructureSnapshot } from "@thesis/core-engine";
 import type { EditorDocument, CompiledRoutine } from "../program-editor-core/types";
 import { PlayEditorSurface } from "../../play-editor/PlayEditorSurface";
@@ -46,7 +47,7 @@ interface IdePanelProps {
   outputMetaControl?: ReactNode;
 }
 
-function RunIconButton({ icon, label, onClick, disabled }: { icon: string; label: string; onClick: () => void; disabled?: boolean }) {
+function RunIconButton({ Icon, label, onClick, disabled }: { Icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
   return (
     <TooltipTrigger delay={200} closeDelay={80}>
       <Button
@@ -55,7 +56,7 @@ function RunIconButton({ icon, label, onClick, disabled }: { icon: string; label
         onPress={disabled ? undefined : onClick}
         isDisabled={disabled}
       >
-        {icon}
+        <Icon size={16} />
       </Button>
       <Tooltip className="app-tooltip">{label}</Tooltip>
     </TooltipTrigger>
@@ -166,10 +167,10 @@ export function IdePanel({
 
             {!hideRunActions ? (
               <div className="ide-run-actions" {...tutorialAnchorProps("play-run-actions")}>
-                <RunIconButton icon="▶" label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
-                <RunIconButton icon="⏭" label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
-                <RunIconButton icon="⏹" label={t("actions.stop")} onClick={onPause} disabled={disabledRunButtons} />
-                <RunIconButton icon="🗑" label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
+                <RunIconButton Icon={Play} label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
+                <RunIconButton Icon={SkipForward} label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
+                <RunIconButton Icon={Square} label={t("actions.stop")} onClick={onPause} disabled={disabledRunButtons} />
+                <RunIconButton Icon={Trash2} label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
               </div>
             ) : null}
           </div>

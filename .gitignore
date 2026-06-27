@@ -58,3 +58,5 @@ docs/tesis/
 .codex/
 plugins/
 vite.config.ts.timestamp-*.mjs
+
+.worktrees/

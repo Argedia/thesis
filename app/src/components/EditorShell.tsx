@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Input, Label, TextField, Tooltip, TooltipTrigger } from "react-aria-components";
+import { Save, Upload, Play, Download, GraduationCap } from "lucide-react";
 import type { BuilderOperation } from "../features/program-editor-core/types";
 import {
   LEVEL_OPERATIONS,
@@ -868,35 +869,62 @@ export function EditorShell(_props: EditorShellProps) {
             <span className={`mini-tag ${savedLevelId ? "is-published" : "is-draft"}`}>
               {savedLevelId ? t("common.published") : t("common.draft")}
             </span>
-            <button
-              type="button"
-              {...tutorialAnchorProps("editor-start-tutorial")}
-              onClick={() => {
-                void startTutorial("editor-basics");
-              }}
-            >
-              {t("editorShell.tutorial")}
-            </button>
-            <button type="button" disabled={!isBootstrapped} onClick={handleExportJson}>
-              {t("editorShell.exportJson")}
-            </button>
-            <button
-              type="button"
-              {...tutorialAnchorProps("editor-test-level")}
-              disabled={!canPlay}
-              onClick={() => {
-                if (!canPlay) return;
-                void handlePlayDraft();
-              }}
-            >
-              {t("editorShell.testLevel")}
-            </button>
-            <button type="button" disabled={!canSave || isSaving} onClick={() => void handleSaveDraft()}>
-              {t("editorShell.save")}
-            </button>
-            <button type="button" disabled={!canSave || isSaving} onClick={() => void handlePublish()}>
-              {isSaving ? t("editorShell.publishing") : t("editorShell.publish")}
-            </button>
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className="editor-icon-action"
+                {...tutorialAnchorProps("editor-start-tutorial")}
+                onPress={() => { void startTutorial("editor-basics"); }}
+                aria-label={t("editorShell.tutorial")}
+              >
+                <GraduationCap size={16} />
+              </Button>
+              <Tooltip className="app-tooltip">{t("editorShell.tutorial")}</Tooltip>
+            </TooltipTrigger>
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className="editor-icon-action"
+                isDisabled={!isBootstrapped}
+                onPress={handleExportJson}
+                aria-label={t("editorShell.exportJson")}
+              >
+                <Download size={16} />
+              </Button>
+              <Tooltip className="app-tooltip">{t("editorShell.exportJson")}</Tooltip>
+            </TooltipTrigger>
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className="editor-icon-action"
+                {...tutorialAnchorProps("editor-test-level")}
+                isDisabled={!canPlay}
+                onPress={() => { if (!canPlay) return; void handlePlayDraft(); }}
+                aria-label={t("editorShell.testLevel")}
+              >
+                <Play size={16} />
+              </Button>
+              <Tooltip className="app-tooltip">{t("editorShell.testLevel")}</Tooltip>
+            </TooltipTrigger>
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className="editor-icon-action"
+                isDisabled={!canSave || isSaving}
+                onPress={() => void handleSaveDraft()}
+                aria-label={t("editorShell.save")}
+              >
+                <Save size={16} />
+              </Button>
+              <Tooltip className="app-tooltip">{t("editorShell.save")}</Tooltip>
+            </TooltipTrigger>
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <Button
+                className="editor-icon-action editor-icon-action--primary"
+                isDisabled={!canSave || isSaving}
+                onPress={() => void handlePublish()}
+                aria-label={isSaving ? t("editorShell.publishing") : t("editorShell.publish")}
+              >
+                <Upload size={16} />
+              </Button>
+              <Tooltip className="app-tooltip">{isSaving ? t("editorShell.publishing") : t("editorShell.publish")}</Tooltip>
+            </TooltipTrigger>
           </div>
         </div>
 
