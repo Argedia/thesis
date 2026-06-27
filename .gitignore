@@ -57,3 +57,4 @@ docs/tesis/
 .agents/
 .codex/
 plugins/
+vite.config.ts.timestamp-*.mjs
