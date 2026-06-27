@@ -316,6 +316,7 @@ export class DragInteractionController {
       dragState.blockId,
       dragState.chosenIndent
     );
+    const slotTargetKey = this.ctx.getGeometryService().currentSlotTarget(dragGeometry);
     this.ctx.setDragState({
       ...dragState,
       x: event.clientX - dragState.offsetX,
@@ -323,7 +324,7 @@ export class DragInteractionController {
       rowIndex,
       chosenIndent,
       isOverEditor,
-      slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry),
+      slotTargetKey,
       originSlotOwnerId: dragState.originSlotOwnerId ?? null
     });
     this.ctx.render();

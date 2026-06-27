@@ -2,6 +2,7 @@ import type { EditorBlock, EditorDragState, EditorLineLayout } from "./model";
 import type { DragGeometry } from "./layout";
 import type { ResolvedDropPlacement } from "./contracts/types";
 import { INDENT_STEP_PX, ROW_HEIGHT_PX } from "../features/program-editor-core/editor-layout-constants";
+import { PREVIEW_BLOCK_ID } from "./contracts/constants";
 
 export function ghostGeometry(
 	pointerX: number,
@@ -168,10 +169,12 @@ export class DragDropGeometryService {
 		const enterThreshold = 0.45;
 		const leaveThreshold = 0.2;
 		const originReenterThreshold = 0.78;
-		const slotRects = Array.from(this.slotRefs.entries()).map(([slotKey, element]) => ({
-			slotKey,
-			rect: element.getBoundingClientRect()
-		}));
+		const slotRects = Array.from(this.slotRefs.entries())
+			.filter(([slotKey]) => !this.parseSlotKey(slotKey).ownerId.startsWith(PREVIEW_BLOCK_ID))
+			.map(([slotKey, element]) => ({
+				slotKey,
+				rect: element.getBoundingClientRect()
+			}));
 
 		const overlapRatio = (rect: DOMRect): number => {
 			const overlapLeft = Math.max(drag.left, rect.left);
