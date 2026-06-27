@@ -295,9 +295,7 @@ export class DragInteractionController {
     }
 
     const baseBlocks = this.ctx.getBlocks();
-    // Use the rendered layout (with inline preview) so geometry matches what's on screen.
-    const renderedBlocks = this.ctx.getInlinePreviewBlocks() ?? baseBlocks;
-    const lineLayouts = buildEditorLineLayout(renderedBlocks);
+    const lineLayouts = buildEditorLineLayout(baseBlocks);
     const dragGeometry = ghostGeometry(
       event.clientX,
       event.clientY,
