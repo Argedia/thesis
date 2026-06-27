@@ -48,8 +48,6 @@ export interface DragInteractionControllerContext {
       slotTargetId?: string | null;
       rowIndex?: number;
       chosenIndent?: number;
-      branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
-      beforeBlockId?: string | null;
     }
   ): { nextDocument: EditorDocument; status: string };
   setDocument(nextDocument: EditorDocument): void;
@@ -138,13 +136,7 @@ export class DragInteractionController {
       rowIndex,
       chosenIndent,
       isOverEditor,
-      slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry),
-      dropBeforeBlockId: this.ctx
-        .getGeometryService()
-        .currentBeforeBlockId(this.ctx.getBlocks(), rowIndex, lineLayouts, chosenIndent),
-      branchTarget: this.ctx
-        .getGeometryService()
-        .currentBranchTarget(this.ctx.getBlocks(), rowIndex, lineLayouts, chosenIndent)
+      slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry)
     });
     this.ctx.render();
   }
@@ -290,13 +282,7 @@ export class DragInteractionController {
           originSlotOwnerId: this.ctx.findInputOwnerId(
             this.ctx.getBlocks(),
             pendingPress.blockId
-          ),
-          dropBeforeBlockId: this.ctx
-            .getGeometryService()
-            .currentBeforeBlockId(this.ctx.getBlocks(), rowIndex, lineLayouts, chosenIndent),
-          branchTarget: this.ctx
-            .getGeometryService()
-            .currentBranchTarget(this.ctx.getBlocks(), rowIndex, lineLayouts, chosenIndent)
+          )
         });
         this.ctx.render();
       }
@@ -335,13 +321,7 @@ export class DragInteractionController {
       chosenIndent,
       isOverEditor,
       slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry),
-      originSlotOwnerId: dragState.originSlotOwnerId ?? null,
-      dropBeforeBlockId: this.ctx
-        .getGeometryService()
-        .currentBeforeBlockId(renderedBlocks, rowIndex, lineLayouts, chosenIndent),
-      branchTarget: this.ctx
-        .getGeometryService()
-        .currentBranchTarget(renderedBlocks, rowIndex, lineLayouts, chosenIndent)
+      originSlotOwnerId: dragState.originSlotOwnerId ?? null
     });
     this.ctx.render();
   };
@@ -502,14 +482,7 @@ export class DragInteractionController {
           const result = this.ctx.applyDropDestination(baseDocument, insertedBlock, {
             slotTargetId: effectiveSlotTargetId,
             rowIndex: dragState.rowIndex,
-            chosenIndent: dragState.chosenIndent,
-            branchTarget: dragState.branchTarget ?? undefined,
-            beforeBlockId:
-              dragState.dropBeforeBlockId &&
-              dragState.dropBeforeBlockId !== dragState.blockId &&
-              !(dragState.multiDragIds?.includes(dragState.dropBeforeBlockId) ?? false)
-                ? dragState.dropBeforeBlockId
-                : undefined
+            chosenIndent: dragState.chosenIndent
           });
           let finalDocument = result.nextDocument;
 

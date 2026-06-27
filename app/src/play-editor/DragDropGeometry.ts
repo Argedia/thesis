@@ -1,4 +1,4 @@
-import type { EditorBlock, EditorDragState, EditorLineLayout, ControlBodyKey } from "./model";
+import type { EditorBlock, EditorDragState, EditorLineLayout } from "./model";
 import type { DragGeometry } from "./layout";
 import type { ResolvedDropPlacement } from "./contracts/types";
 import { INDENT_STEP_PX, ROW_HEIGHT_PX } from "../features/program-editor-core/editor-layout-constants";
@@ -29,9 +29,6 @@ export function ghostGeometry(
 	};
 }
 
-type ControlEditorBlock = EditorBlock & { kind: "conditional" | "else" | "while" | "for_each" };
-type BranchTarget = { ownerId: string; branch: ControlBodyKey };
-
 const SENTINEL: Pick<EditorLineLayout, "indentCurrent" | "opensBody" | "controlPath" | "blockId" | "role"> = {
 	indentCurrent: 0,
 	opensBody: false,
@@ -46,10 +43,7 @@ export class DragDropGeometryService {
 		private slotRefs: Map<string, HTMLDivElement>,
 		private dragState: EditorDragState | null,
 		private parseSlotKey: (key: string) => { ownerId: string; slotId: string },
-		private canUseSlotTarget: (targetSlotKey: string) => boolean,
-		private findBlockById: (blocks: EditorBlock[], blockId: string) => EditorBlock | null,
-		private isControlBlock: (block: EditorBlock | null | undefined) => block is ControlEditorBlock,
-		private getBlocks: () => EditorBlock[]
+		private canUseSlotTarget: (targetSlotKey: string) => boolean
 	) { }
 
 	currentDropWithPoint(
@@ -212,30 +206,4 @@ export class DragDropGeometryService {
 		return bestSlotId ?? preservedPreviousSlotId;
 	}
 
-	currentBranchTarget(
-		blocks: EditorBlock[],
-		rowIndex: number,
-		lineLayouts: EditorLineLayout[],
-		chosenIndent: number
-	): BranchTarget | null {
-		return this.resolveDropPlacement(blocks, lineLayouts, rowIndex, chosenIndent).branchTarget ?? null;
-	}
-
-	currentBeforeBlockId(
-		blocks: EditorBlock[],
-		rowIndex: number,
-		lineLayouts: EditorLineLayout[],
-		chosenIndent: number
-	): string | null {
-		return this.resolveDropPlacement(blocks, lineLayouts, rowIndex, chosenIndent).beforeBlockId ?? null;
-	}
-
-	isImplicitBodyTarget(target: BranchTarget | null | undefined): boolean {
-		if (!target || target.branch !== "body") {
-			return false;
-		}
-
-		const owner = this.findBlockById(this.getBlocks(), target.ownerId);
-		return owner !== null && this.isControlBlock(owner) && (owner.bodyBlocks?.length ?? 0) === 0;
-	}
 }

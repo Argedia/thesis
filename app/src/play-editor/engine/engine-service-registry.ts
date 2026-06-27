@@ -96,8 +96,6 @@ export interface EngineRegistryDeps {
 			slotTargetId?: string | null;
 			rowIndex?: number;
 			chosenIndent?: number;
-			branchTarget?: { ownerId: string; branch: ControlBodyKey } | null;
-			beforeBlockId?: string | null;
 		}
 	) => { nextDocument: PlayEditorSurfaceProps["value"]; status: string };
 	resolveInsertedBlockFromDrag: (
@@ -204,10 +202,7 @@ export class EngineServiceRegistry {
 			this.deps.getSlotRefs(),
 			this.deps.getDragState(),
 			(key) => this.deps.parseSlotKey(key),
-			(key) => this.deps.canUseSlotTarget(key),
-			(blocks, id) => this.getTreeService().findBlockById(blocks, id),
-			(block) => this.deps.isControlBlock(block),
-			() => this.deps.getBlocks()
+			(key) => this.deps.canUseSlotTarget(key)
 		);
 	}
 
