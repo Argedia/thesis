@@ -14,9 +14,19 @@ const resources = {
 			menu: {
 				menuLabel: "Menu",
 				campaign: "Campaign Mode",
+				campaignDesc: "Guided path to learn data structures step by step",
 				community: "Community Levels",
+				communityDesc: "Explore and play levels shared by others",
 				editor: "Level Editor",
-				settings: "Settings"
+				editorDesc: "Create and publish your own exercises",
+				settings: "Settings",
+				settingsDesc: "Language, speed, and preferences",
+				tagline: "Visual tool for learning linear data structures",
+				features: {
+					structures: "Stacks · Queues · Lists",
+					visual: "Visual pseudocode",
+					guided: "Guided exercises"
+				}
 			},
 			settings: {
 				title: "Settings",
@@ -565,9 +575,19 @@ const resources = {
 			menu: {
 				menuLabel: "Menú",
 				campaign: "Modo Campaña",
+				campaignDesc: "Camino guiado para aprender estructuras de datos paso a paso",
 				community: "Niveles de la Comunidad",
+				communityDesc: "Explora y resuelve niveles compartidos por otros",
 				editor: "Editor de Niveles",
-				settings: "Ajustes"
+				editorDesc: "Crea y publica tus propios ejercicios",
+				settings: "Ajustes",
+				settingsDesc: "Idioma, velocidad y preferencias",
+				tagline: "Herramienta visual para aprender estructuras de datos lineales",
+				features: {
+					structures: "Pilas · Colas · Listas",
+					visual: "Pseudocódigo visual",
+					guided: "Ejercicios guiados"
+				}
 			},
 			settings: {
 				title: "Ajustes",
