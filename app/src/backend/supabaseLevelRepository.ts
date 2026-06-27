@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { t } from "../i18n-helpers";
 import type { LevelDefinition } from "@thesis/game-system";
 import {
   JsonLevelRepository,
@@ -35,7 +36,7 @@ export class SupabasePublishedLevelRepository implements LevelRepository {
         .single();
 
       if (error || !data) {
-        throw new Error(`Level "${id}" could not be loaded.`);
+        throw new Error(t("editor.levelCouldNotBeLoaded", { id }));
       }
 
       return this.parsePublishedLevel(data);

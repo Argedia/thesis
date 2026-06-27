@@ -16,7 +16,6 @@ export interface EditorRuntimeState {
   branchLineRefs: BranchLineRef[];
   editorLane: HTMLDivElement | null;
   dragState: EditorDragState | null;
-  dragBaseLineRects: Array<{ id: string; rect: DOMRect }> | null;
   pressState: PendingPress | null;
   wheelState: WheelState | null;
 }

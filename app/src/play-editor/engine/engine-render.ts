@@ -149,7 +149,7 @@ export const buildInlinePreviewBlocks = (deps: {
 	const placement = deps.getGeometryService().resolveDropPlacement(
 		baseBlocks,
 		baseLineLayouts,
-		dragState.visualLineIndex,
+		dragState.rowIndex,
 		dragState.chosenIndent
 	);
 

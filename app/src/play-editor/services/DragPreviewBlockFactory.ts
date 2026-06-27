@@ -333,6 +333,16 @@ export class DragPreviewBlockFactory {
       }
     }
 
-    return previewBlock ? { ...previewBlock, id: PREVIEW_BLOCK_ID } : null;
+    if (!previewBlock) {
+      previewBlock = this.buildFallbackEditorBlock(dragState);
+    }
+
+    return { ...previewBlock, id: PREVIEW_BLOCK_ID };
+  }
+
+  private buildFallbackEditorBlock(dragState: EditorDragState): EditorBlock {
+    const palette = this.buildFallbackPaletteBlock(dragState);
+    const { label: _label, ...rest } = palette;
+    return { ...rest, operation: null };
   }
 }

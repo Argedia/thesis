@@ -59,18 +59,6 @@ export interface ResolvedDropPlacement {
   beforeBlockId?: string;
 }
 
-export interface PreviewDescriptor {
-  label: string;
-  chip?: string;
-  color?: string;
-  expressionFamily?: EditorBlock["expressionFamily"];
-  accentClass?: string;
-  operation: EditorBlock["operation"];
-  pending?: boolean;
-  control?: boolean;
-  variable?: boolean;
-}
-
 export interface WheelOption {
   label: string;
   className: string;

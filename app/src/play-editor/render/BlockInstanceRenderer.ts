@@ -48,9 +48,9 @@ export class BlockInstanceRenderer {
 
 	private getDeclarationTypeTone(
 		block: EditorBlock
-	): "bool" | "int" | "double" | "string" | "user" | "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list" {
+	): "bool" | "number" | "string" | "user" | "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list" {
 		if (block.kind !== "var_declaration") {
-			return "double";
+			return "number";
 		}
 		if (block.declaredTypeRef?.kind === "structure") {
 			if (block.declaredTypeRef.structureKind === "stack") return "stack";
@@ -63,15 +63,11 @@ export class BlockInstanceRenderer {
 			return "user";
 		}
 		if (block.declaredTypeRef?.kind === "primitive") {
-			if (block.declaredTypeRef.primitive === "boolean") {
-				return "bool";
-			}
-			if (block.declaredTypeRef.primitive === "text") {
-				return "string";
-			}
-			return "double";
+			if (block.declaredTypeRef.primitive === "boolean") return "bool";
+			if (block.declaredTypeRef.primitive === "text") return "string";
+			return "number";
 		}
-		return "double";
+		return "number";
 	}
 
 	private getDeclarationTypeLabel(
@@ -102,6 +98,35 @@ export class BlockInstanceRenderer {
 			}
 		}
 		return t("blocks.value");
+	}
+
+	private getDeclarationTypeSymbol(block: EditorBlock): { symbol: string; tooltip: string } {
+		if (block.kind !== "var_declaration") {
+			return { symbol: "#", tooltip: t("blocks.value") };
+		}
+		if (block.declaredTypeRef?.kind === "structure") {
+			switch (block.declaredTypeRef.structureKind) {
+				case "stack":   return { symbol: "{ }", tooltip: t("structures.stack") };
+				case "queue":   return { symbol: "( )", tooltip: t("structures.queue") };
+				case "doubly-linked-list": return { symbol: "↔", tooltip: t("structures.doubly-linked-list") };
+				case "circular-list":     return { symbol: "↻", tooltip: t("structures.circular-list") };
+				default:        return { symbol: "[ ]", tooltip: t("structures.list") };
+			}
+		}
+		if (block.declaredTypeRef?.kind === "user") {
+			const fullName = this.ctx.resolveTypeName(block.declaredTypeRef.typeRoutineId) ?? t("blocks.type");
+			const symbol = fullName.slice(0, 2);
+			return { symbol, tooltip: fullName };
+		}
+		if (block.declaredTypeRef?.kind === "primitive") {
+			switch (block.declaredTypeRef.primitive) {
+				case "boolean": return { symbol: "T|F", tooltip: t("blocks.boolean") };
+				case "text":    return { symbol: "\"A\"", tooltip: t("blocks.text") };
+				case "value":
+				default:        return { symbol: "#", tooltip: t("blocks.value") };
+			}
+		}
+		return { symbol: "#", tooltip: t("blocks.value") };
 	}
 
 	private getVariableOperationToken(mode: EditorBlock["variableOperationMode"]): string {
@@ -141,14 +166,14 @@ export class BlockInstanceRenderer {
 
 	private renderOperatorSelect(block: EditorBlock): HTMLElement {
 		const ALL_GROUPS: Record<string, Array<{ label: string; ops: Array<{ value: string; token: string }> }>> = {
-			arithmetic: [{ label: "Aritmética", ops: [
+			arithmetic: [{ label: t("editor.operatorGroupArithmetic"), ops: [
 				{ value: "add", token: "+" },
 				{ value: "subtract", token: "-" },
 				{ value: "multiply", token: "*" },
 				{ value: "divide", token: "/" },
 				{ value: "modulo", token: "%" },
 			]}],
-			comparison: [{ label: "Comparación", ops: [
+			comparison: [{ label: t("editor.operatorGroupComparison"), ops: [
 				{ value: "equals", token: "==" },
 				{ value: "not_equals", token: "!=" },
 				{ value: "greater_than", token: ">" },
@@ -156,7 +181,7 @@ export class BlockInstanceRenderer {
 				{ value: "less_than", token: "<" },
 				{ value: "less_or_equal", token: "<=" },
 			]}],
-			logical: [{ label: "Lógica", ops: [
+			logical: [{ label: t("editor.operatorGroupLogical"), ops: [
 				{ value: "and", token: "and" },
 				{ value: "or", token: "or" },
 				{ value: "not", token: "not" },
@@ -242,8 +267,8 @@ export class BlockInstanceRenderer {
 	private renderConditionalKindSelect(block: EditorBlock): HTMLElement {
 		const isIf = block.kind === "conditional";
 		const options = [
-			{ label: "Si", value: "conditional" as const },
-			{ label: "Sino", value: "else" as const }
+			{ label: t("blocks.if"), value: "conditional" as const },
+			{ label: t("blocks.else"), value: "else" as const }
 		];
 
 		const wrapper = document.createElement("div");
@@ -252,7 +277,7 @@ export class BlockInstanceRenderer {
 		const trigger = document.createElement("button");
 		trigger.type = "button";
 		trigger.className = "editor-operator-trigger";
-		trigger.textContent = isIf ? "Si" : "Sino";
+		trigger.textContent = isIf ? t("blocks.if") : t("blocks.else");
 		wrapper.appendChild(trigger);
 
 		const closeDropdown = () => {
@@ -305,13 +330,9 @@ export class BlockInstanceRenderer {
 		return wrapper;
 	}
 
-	private getLiteralKind(value: EditorBlock["literalValue"]): "bool" | "int" | "double" | "string" {
-		if (typeof value === "boolean") {
-			return "bool";
-		}
-		if (typeof value === "number") {
-			return Number.isInteger(value) ? "int" : "double";
-		}
+	private getLiteralKind(value: EditorBlock["literalValue"]): "bool" | "number" | "string" {
+		if (typeof value === "boolean") return "bool";
+		if (typeof value === "number") return "number";
 		return "string";
 	}
 
@@ -330,9 +351,15 @@ export class BlockInstanceRenderer {
 
 	private createValueTypeBadge(value: EditorBlock["literalValue"]): HTMLSpanElement {
 		const kind = this.getLiteralKind(value);
+		const { symbol, tooltip } = kind === "bool"
+			? { symbol: "T|F", tooltip: t("blocks.boolean") }
+			: kind === "string"
+				? { symbol: "\"A\"", tooltip: t("blocks.text") }
+				: { symbol: "#", tooltip: t("blocks.value") };
 		const badge = document.createElement("span");
 		badge.className = `editor-value-type editor-value-type-${kind}`;
-		badge.textContent = kind;
+		badge.textContent = symbol;
+		badge.title = tooltip;
 		return badge;
 	}
 
@@ -362,6 +389,24 @@ export class BlockInstanceRenderer {
 			}${accentClass ? ` ${accentClass}` : ""}${declarationTypeClass ? ` ${declarationTypeClass}` : ""}
       }`.trim();
 		this.ctx.applyBlockColor(element, block.color);
+
+		if (!nested && !preview) {
+			const invalidSlotErrors = getBlockInputSlots(block)
+				.filter((slot) => {
+					const slotBlock = getBlockSlotBlock(block, slot.id);
+					return slotBlock != null && !isSlotCompatible(block, slotBlock, slot.id);
+				})
+				.map((slot) => {
+					const slotBlock = getBlockSlotBlock(block, slot.id)!;
+					const got = getOutputType(slotBlock);
+					const expected = slot.expectedType;
+					return `"${slot.title}": expects ${expected}, got ${got}`;
+				});
+			if (invalidSlotErrors.length > 0) {
+				element.classList.add("has-slot-error");
+				element.title = invalidSlotErrors.join("\n");
+			}
+		}
 
 		if (!nested) {
 			const dragDots = document.createElement("span");
@@ -569,9 +614,11 @@ export class BlockInstanceRenderer {
 			label.className = "editor-block-instance-label";
 			label.textContent = t(`bindings.${block.bindingKind === "expect" ? "expect" : "declare"}`);
 			main.appendChild(label);
+			const { symbol, tooltip } = this.getDeclarationTypeSymbol(block);
 			const typeBadge = document.createElement("span");
 			typeBadge.className = `editor-value-type editor-value-type-${this.getDeclarationTypeTone(block)}`;
-			typeBadge.textContent = this.getDeclarationTypeLabel(block);
+			typeBadge.textContent = symbol;
+			typeBadge.title = tooltip;
 			main.appendChild(typeBadge);
 			main.appendChild(createVariableNameControl());
 			return;

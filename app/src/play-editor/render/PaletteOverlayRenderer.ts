@@ -1,18 +1,29 @@
 import type { WheelOption, WheelState } from "../contracts/types";
 import { t } from "../../i18n-helpers";
 
-const OP_GROUPS: Record<string, string> = {
-  PUSH: "Insertar", ENQUEUE: "Insertar", APPEND: "Insertar",
-  PREPEND: "Insertar", INSERT_AT: "Insertar",
-  POP: "Extraer", DEQUEUE: "Extraer", REMOVE_FIRST: "Extraer",
-  REMOVE_LAST: "Extraer", REMOVE_AT: "Extraer",
-  PEEK: "Consultar", SIZE: "Consultar", IS_EMPTY: "Consultar",
-  GET_HEAD: "Consultar", GET_TAIL: "Consultar",
-  GET_AT: "Consultar", CONTAINS: "Consultar", FIND: "Consultar",
-  REVERSE: "Mutar", CLEAR: "Mutar",
+type OpGroupKey = "insert" | "extract" | "query" | "mutate";
+
+const OP_GROUPS: Record<string, OpGroupKey> = {
+  PUSH: "insert", ENQUEUE: "insert", APPEND: "insert",
+  PREPEND: "insert", INSERT_AT: "insert",
+  POP: "extract", DEQUEUE: "extract", REMOVE_FIRST: "extract",
+  REMOVE_LAST: "extract", REMOVE_AT: "extract",
+  PEEK: "query", SIZE: "query", IS_EMPTY: "query",
+  GET_HEAD: "query", GET_TAIL: "query",
+  GET_AT: "query", CONTAINS: "query", FIND: "query",
+  REVERSE: "mutate", CLEAR: "mutate",
 };
 
-const GROUP_ORDER = ["Insertar", "Extraer", "Consultar", "Mutar"];
+const GROUP_ORDER: OpGroupKey[] = ["insert", "extract", "query", "mutate"];
+
+const translateGroupKey = (key: OpGroupKey): string => {
+  switch (key) {
+    case "insert": return t("editor.opGroupInsert");
+    case "extract": return t("editor.opGroupExtract");
+    case "query": return t("editor.opGroupQuery");
+    case "mutate": return t("editor.opGroupMutate");
+  }
+};
 
 const labelToOpKey = (label: string): string => {
   const part = label.includes(".") ? label.split(".").pop()! : label;
@@ -109,7 +120,7 @@ export class PaletteOverlayRenderer {
         if (groupName !== "__top__") {
           const header = document.createElement("div");
           header.className = "op-palette-group-header";
-          header.textContent = groupName;
+          header.textContent = translateGroupKey(groupName as OpGroupKey);
           listEl.appendChild(header);
         }
 
