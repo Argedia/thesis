@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Screen } from "@thesis/ui-editor";
-import { useTranslation } from "react-i18next";
 import { APP_ROUTES, buildEditorDraftRoute } from "../types/routes";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
 import { AppDialogs } from "../features/play-ui/AppDialogs";
+import { ScreenHeader } from "./ui/ScreenHeader";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
   createEditorDraftRecord,
   deleteEditorDraftRecord,
   listEditorDraftRecords,
-  saveEditorDraftRecord
+  saveEditorDraftRecord,
+  seedCampaignPlanDraftRecords
 } from "../features/level-editor-drafts/storage";
 import type { LevelEditorDraftRecord } from "../features/level-editor-drafts/types";
 
@@ -22,7 +24,6 @@ const formatDate = (rawIso: string): string => {
 };
 
 export function EditorDraftsScreen() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const dialog = useDialogManager();
   const [drafts, setDrafts] = useState<LevelEditorDraftRecord[]>([]);
@@ -40,9 +41,9 @@ export function EditorDraftsScreen() {
 
   const handleCreate = async () => {
     const requestedName = await dialog.requestTextInput({
-      title: t("drafts.newLevelPrompt"),
-      initialValue: t("drafts.newLevelDefault"),
-      validate: (value) => (value.trim() ? null : t("drafts.nameRequired"))
+      title: "Nombre del nivel",
+      initialValue: "Nuevo nivel",
+      validate: (value) => (value.trim() ? null : "El nombre no puede estar vacío.")
     });
     if (requestedName === null) return;
     const draft = createEditorDraftRecord(requestedName);
@@ -55,24 +56,47 @@ export function EditorDraftsScreen() {
     refreshDrafts();
   };
 
+  const handleSeedCampaignPlan = async () => {
+    const result = seedCampaignPlanDraftRecords();
+    refreshDrafts();
+    await dialog.showAlert({
+      title: "Plantillas de campaña",
+      message:
+        result.createdCount > 0
+          ? `Se crearon ${result.createdCount} niveles base de ${result.totalTemplates} planificados.`
+          : "Todas las plantillas de campaña ya estaban creadas."
+    });
+  };
+
   return (
     <Screen mode="editor">
       <main className="editor-drafts-shell">
-        <header className="topbar primary-screen-topbar editor-drafts-topbar">
-          <Link className="back-link" to={APP_ROUTES.home}>{t("common.menu")}</Link>
-          <div>
-            <p className="eyebrow">{t("menu.editor")}</p>
-            <h1>{t("drafts.title")}</h1>
-          </div>
-          <button type="button" className="menu-link" onClick={() => void handleCreate()}>
-            + {t("drafts.newLevel")}
-          </button>
-        </header>
-        <section className="editor-drafts-list">
+        <ScreenHeader
+          backLabel="Menu"
+          backTo={APP_ROUTES.home}
+          eyebrow="Editor"
+          title="Mis niveles"
+          className="editor-drafts-topbar"
+          tutorialAnchorId="editor-drafts-topbar"
+          actions={
+            <div className="editor-drafts-topbar-actions" {...tutorialAnchorProps("editor-drafts-actions")}>
+              <button type="button" className="menu-link" onClick={() => void handleSeedCampaignPlan()}>
+                Generar estructura campaña
+              </button>
+              <button type="button" className="menu-link" onClick={() => void handleCreate()}>
+                + Nuevo nivel
+              </button>
+            </div>
+          }
+        />
+        <section
+          className="editor-drafts-list"
+          {...tutorialAnchorProps("editor-drafts-list")}
+        >
           {drafts.length === 0 ? (
             <article className="editor-draft-card">
-              <h2>{t("drafts.emptyTitle")}</h2>
-              <p>{t("drafts.emptyBody")}</p>
+              <h2>No hay niveles guardados</h2>
+              <p>Crea un nivel para comenzar.</p>
             </article>
           ) : (
             drafts.map((draft) => (
@@ -80,12 +104,12 @@ export function EditorDraftsScreen() {
                 <div className="editor-draft-card-head">
                   <h2>{draft.name}</h2>
                   <span className={`mini-tag ${draft.publishedAt ? "is-published" : "is-draft"}`}>
-                    {draft.publishedAt ? t("common.published") : t("common.draft")}
+                    {draft.publishedAt ? "Publicado" : "Borrador"}
                   </span>
                 </div>
-                <p>{t("drafts.lastEdited", { date: formatDate(draft.updatedAt) })}</p>
+                <p>Última edición: {formatDate(draft.updatedAt)}</p>
                 {draft.publishedAt ? (
-                  <p>{t("drafts.publishedAt", { date: formatDate(draft.publishedAt) })}</p>
+                  <p>Publicado: {formatDate(draft.publishedAt)}</p>
                 ) : null}
                 <div className="editor-draft-card-actions">
                   <button
@@ -93,14 +117,14 @@ export function EditorDraftsScreen() {
                     className="menu-link"
                     onClick={() => navigate(buildEditorDraftRoute(draft.id))}
                   >
-                    {t("drafts.openEditor")}
+                    Abrir editor
                   </button>
                   <button
                     type="button"
                     className="menu-link danger"
                     onClick={() => handleDelete(draft.id)}
                   >
-                    {t("common.delete")}
+                    Eliminar
                   </button>
                 </div>
               </article>
