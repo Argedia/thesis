@@ -176,6 +176,7 @@ export interface EditorDragState {
 	rowIndex: number;
 	chosenIndent: number;
 	isOverEditor: boolean;
+	laneLogicalTop: number;
 	slotTargetKey?: string | null;
 	originSlotOwnerId?: string | null;
 	multiDragIds?: string[];

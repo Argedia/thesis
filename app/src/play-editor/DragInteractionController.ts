@@ -85,7 +85,7 @@ export class DragInteractionController {
       rect.height
     );
     const lineLayouts = buildEditorLineLayout(this.ctx.getBlocks());
-    const { rowIndex, isOverEditor } =
+    const { rowIndex, isOverEditor, laneLogicalTop } =
       this.ctx.getGeometryService().currentDropWithPoint(dragGeometry, lineLayouts);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
       event.clientX,
@@ -136,6 +136,7 @@ export class DragInteractionController {
       rowIndex,
       chosenIndent,
       isOverEditor,
+      laneLogicalTop,
       slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry)
     });
     this.ctx.render();
@@ -221,7 +222,7 @@ export class DragInteractionController {
           pendingPress.height
         );
         const lineLayouts = buildEditorLineLayout(this.ctx.getBlocks());
-        const { rowIndex, isOverEditor } =
+        const { rowIndex, isOverEditor, laneLogicalTop } =
           this.ctx
             .getGeometryService()
             .currentDropWithPoint(dragGeometry, lineLayouts);
@@ -279,6 +280,7 @@ export class DragInteractionController {
           rowIndex,
           chosenIndent,
           isOverEditor,
+          laneLogicalTop,
           slotTargetKey: this.ctx.getGeometryService().currentSlotTarget(dragGeometry),
           originSlotOwnerId: this.ctx.findInputOwnerId(
             this.ctx.getBlocks(),
@@ -306,7 +308,7 @@ export class DragInteractionController {
     );
     const { rowIndex, isOverEditor } = this.ctx
       .getGeometryService()
-      .currentDropWithPoint(dragGeometry, lineLayouts);
+      .currentDropWithPoint(dragGeometry, lineLayouts, dragState.laneLogicalTop);
     const chosenIndent = this.ctx.getGeometryService().currentIndentChoice(
       event.clientX,
       rowIndex,

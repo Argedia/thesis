@@ -48,8 +48,9 @@ export class DragDropGeometryService {
 
 	currentDropWithPoint(
 		drag: DragGeometry,
-		lineLayouts: EditorLineLayout[]
-	): { rowIndex: number; isOverEditor: boolean } {
+		lineLayouts: EditorLineLayout[],
+		frozenLaneLogicalTop?: number
+	): { rowIndex: number; isOverEditor: boolean; laneLogicalTop: number } {
 		const laneRect = this.editorLane?.getBoundingClientRect();
 		const nearThreshold = 56;
 		const isOverEditor = laneRect != null &&
@@ -58,11 +59,12 @@ export class DragDropGeometryService {
 			drag.bottom >= laneRect.top - nearThreshold &&
 			drag.top <= laneRect.bottom + nearThreshold;
 
-		const laneLogicalTop = (laneRect?.top ?? 0) - (this.editorLane?.scrollTop ?? 0);
+		// Use frozen top when provided (avoids oscillation as preview rows shift the lane vertically).
+		const laneLogicalTop = frozenLaneLogicalTop ?? ((laneRect?.top ?? 0) - (this.editorLane?.scrollTop ?? 0));
 		const rawRow = Math.floor((drag.pointerY - laneLogicalTop) / ROW_HEIGHT_PX);
 		const rowIndex = Math.max(0, Math.min(rawRow, lineLayouts.length));
 
-		return { rowIndex, isOverEditor };
+		return { rowIndex, isOverEditor, laneLogicalTop };
 	}
 
 	currentIndentChoice(
