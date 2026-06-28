@@ -25,6 +25,7 @@ interface IdePanelProps {
   maxBlocksForDisplay?: number;
   outputMode: "hidden" | "runtime" | "diagnostics";
   visibleRoutineOperations: number;
+  forceSidePaletteExpanded?: boolean;
   dialog: DialogManager;
   onToggleBreakpoint: (nodeId: string) => void;
   onChange: (document: EditorDocument) => void;
@@ -48,7 +49,19 @@ interface IdePanelProps {
   outputMetaControl?: ReactNode;
 }
 
-function RunIconButton({ Icon, label, onClick, disabled }: { Icon: LucideIcon; label: string; onClick: () => void; disabled?: boolean }) {
+function RunIconButton({
+  Icon,
+  label,
+  onClick,
+  disabled,
+  tutorialAnchorId
+}: {
+  Icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tutorialAnchorId?: string;
+}) {
   return (
     <TooltipTrigger delay={200} closeDelay={80}>
       <Button
@@ -56,6 +69,7 @@ function RunIconButton({ Icon, label, onClick, disabled }: { Icon: LucideIcon; l
         aria-label={label}
         onPress={disabled ? undefined : onClick}
         isDisabled={disabled}
+        {...(tutorialAnchorId ? tutorialAnchorProps(tutorialAnchorId) : {})}
       >
         <Icon size={16} />
       </Button>
@@ -81,6 +95,7 @@ export function IdePanel({
   maxBlocksForDisplay,
   outputMode,
   visibleRoutineOperations,
+  forceSidePaletteExpanded,
   dialog,
   disabledRunButtons,
   onToggleBreakpoint,
@@ -131,36 +146,36 @@ export function IdePanel({
         </div>
       </div>
 
-      <div className="terminal-panel">
-        <div className={`ide-shell${isOutputVisible ? " has-output" : ""}${isOutputVisible && isOutputCollapsed ? " output-collapsed" : ""}`}>
-          <div className="ide-topbar">
-            <div ref={routineTabsRef} className="routine-strip ide-tabs">
-              {document.routines.map((routine) => (
-                <button
-                  key={routine.id}
-                  type="button"
-                  className={`routine-chip${routine.id === document.activeRoutineId ? " active" : ""}`}
-                  disabled={runState === "running"}
-                  onClick={() => onSelectRoutine(routine.id)}
-                  onDoubleClick={() => onRenameRoutine(routine.id, routine.name)}
+      <div className={`ide-shell${isOutputVisible ? " has-output" : ""}${isOutputVisible && isOutputCollapsed ? " output-collapsed" : ""}`}>
+        <div className="ide-topbar">
+          <div ref={routineTabsRef} className="routine-strip ide-tabs ide-topbar-tabs">
+            {document.routines.map((routine) => (
+              <button
+                key={routine.id}
+                type="button"
+                className={`routine-chip${routine.id === document.activeRoutineId ? " active" : ""}`}
+                disabled={runState === "running"}
+                onClick={() => onSelectRoutine(routine.id)}
+                onDoubleClick={() => onRenameRoutine(routine.id, routine.name)}
+              >
+                {routine.name}
+              </button>
+            ))}
+            {!disableCreateRoutine && (
+              <TooltipTrigger delay={200} closeDelay={80}>
+                <Button
+                  className="routine-chip routine-chip-add"
+                  aria-label={addScriptLabel}
+                  isDisabled={runState === "running"}
+                  onPress={onCreateRoutine}
                 >
-                  {routine.name}
-                </button>
-              ))}
-              {!disableCreateRoutine && (
-                <TooltipTrigger delay={200} closeDelay={80}>
-                  <Button
-                    className="routine-chip routine-chip-add"
-                    aria-label={addScriptLabel}
-                    isDisabled={runState === "running"}
-                    onPress={onCreateRoutine}
-                  >
-                    +
-                  </Button>
-                  <Tooltip className="app-tooltip">{addScriptLabel}</Tooltip>
-                </TooltipTrigger>
-              )}
-            </div>
+                  +
+                </Button>
+                <Tooltip className="app-tooltip">{addScriptLabel}</Tooltip>
+              </TooltipTrigger>
+            )}
+          </div>
+          <div className="ide-topbar-side">
             {topbarControls ? (
               <div className="ide-topbar-controls">
                 {topbarControls}
@@ -169,84 +184,91 @@ export function IdePanel({
 
             {!hideRunActions ? (
               <div className="ide-run-actions" {...tutorialAnchorProps("play-run-actions")}>
-                <RunIconButton Icon={Play} label={t("actions.play")} onClick={onRun} disabled={disabledRunButtons} />
+                <RunIconButton
+                  Icon={Play}
+                  label={t("actions.play")}
+                  onClick={onRun}
+                  disabled={disabledRunButtons}
+                  tutorialAnchorId="play-run-button"
+                />
                 <RunIconButton Icon={SkipForward} label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
                 <RunIconButton Icon={Square} label={t("actions.stop")} onClick={onPause} disabled={disabledRunButtons} />
                 <RunIconButton Icon={Trash2} label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
               </div>
             ) : null}
           </div>
-
-          <div className="ide-editor-frame" {...tutorialAnchorProps("play-program-surface")}>
-            <PlayEditorSurface
-              structures={structures}
-              lockedBlockIds={lockedBlockIds}
-              allowedOperations={allowedOperations}
-              blockLimits={blockLimits}
-              onSetBlockLimit={onSetBlockLimit}
-              maxBlocks={maxBlocksForSurface}
-              value={document}
-              disabled={runState === "running"}
-              highlightedNodeId={highlightedNodeId}
-              breakpointNodeIds={breakpointNodeIds}
-              onToggleBreakpoint={onToggleBreakpoint}
-              onChange={onChange}
-              onStatus={onStatus}
-              onRequestTextInput={dialog.requestTextInput}
-              onRequestSelectInput={dialog.requestSelectInput}
-              onRequestDeclarationInput={dialog.requestDeclarationInput}
-              onShowAlert={dialog.showAlert}
-            />
-          </div>
-
-          {isOutputVisible ? (
-            <div className={`ide-output-panel${isOutputCollapsed ? " collapsed" : ""}`}>
-              <div className="ide-output-tabs">
-                <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
-                <TooltipTrigger delay={200} closeDelay={80}>
-                  <Button
-                    className="ide-output-toggle"
-                    aria-label={outputToggleLabel}
-                    onPress={() => setIsOutputCollapsed((previous) => !previous)}
-                  >
-                    {isOutputCollapsed ? "▴" : "▾"}
-                  </Button>
-                  <Tooltip className="app-tooltip">{outputToggleLabel}</Tooltip>
-                </TooltipTrigger>
-                {outputMetaControl}
-                {!hideOutputBlocksCounter ? (
-                  <span className={`ide-output-meta ide-output-meta--${maxBlocksForCounter <= 0 ? "green" : visibleRoutineOperations / maxBlocksForCounter > 0.8 ? "red" : visibleRoutineOperations / maxBlocksForCounter > 0.5 ? "yellow" : "green"}`}>
-                    {t("board.blocksCount", { count: visibleRoutineOperations, max: maxBlocksForCounter })}
-                  </span>
-                ) : null}
-              </div>
-              <div ref={outputBodyRef} className="ide-output-body" hidden={isOutputCollapsed}>
-                {outputMode === "diagnostics" ? (
-                  <>
-                    <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
-                    {activeRoutineCompiled.diagnostics.length > 0 ? (
-                      activeRoutineCompiled.diagnostics.map((d, i) => (
-                        <div key={`${d}-${i}`} className="ide-output-line console-error">
-                          <span className="console-badge badge-error">⚠️</span>
-                          <span>{translateDiagnostic(d)}</span>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="ide-output-line console-muted">{t("board.runHint")}</div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
-                    {events.length === 0 ? (
-                      <div className="ide-output-line console-muted">{t("board.runHint")}</div>
-                    ) : null}
-                  </>
-                )}
-              </div>
-            </div>
-          ) : null}
         </div>
+
+        <div className="ide-editor-frame" {...tutorialAnchorProps("play-program-surface")}>
+          <PlayEditorSurface
+            structures={structures}
+            lockedBlockIds={lockedBlockIds}
+            allowedOperations={allowedOperations}
+            blockLimits={blockLimits}
+            onSetBlockLimit={onSetBlockLimit}
+            maxBlocks={maxBlocksForSurface}
+            value={document}
+            disabled={runState === "running"}
+            forceSidePaletteExpanded={forceSidePaletteExpanded}
+            highlightedNodeId={highlightedNodeId}
+            breakpointNodeIds={breakpointNodeIds}
+            onToggleBreakpoint={onToggleBreakpoint}
+            onChange={onChange}
+            onStatus={onStatus}
+            onRequestTextInput={dialog.requestTextInput}
+            onRequestSelectInput={dialog.requestSelectInput}
+            onRequestDeclarationInput={dialog.requestDeclarationInput}
+            onShowAlert={dialog.showAlert}
+          />
+        </div>
+
+        {isOutputVisible ? (
+          <div className={`ide-output-panel${isOutputCollapsed ? " collapsed" : ""}`}>
+            <div className="ide-output-tabs">
+              <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
+              <TooltipTrigger delay={200} closeDelay={80}>
+                <Button
+                  className="ide-output-toggle"
+                  aria-label={outputToggleLabel}
+                  onPress={() => setIsOutputCollapsed((previous) => !previous)}
+                >
+                  {isOutputCollapsed ? "▴" : "▾"}
+                </Button>
+                <Tooltip className="app-tooltip">{outputToggleLabel}</Tooltip>
+              </TooltipTrigger>
+              {outputMetaControl}
+              {!hideOutputBlocksCounter ? (
+                <span className={`ide-output-meta ide-output-meta--${maxBlocksForCounter <= 0 ? "green" : visibleRoutineOperations / maxBlocksForCounter > 0.8 ? "red" : visibleRoutineOperations / maxBlocksForCounter > 0.5 ? "yellow" : "green"}`}>
+                  {t("board.blocksCount", { count: visibleRoutineOperations, max: maxBlocksForCounter })}
+                </span>
+              ) : null}
+            </div>
+            <div ref={outputBodyRef} className="ide-output-body" hidden={isOutputCollapsed}>
+              {outputMode === "diagnostics" ? (
+                <>
+                  <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
+                  {activeRoutineCompiled.diagnostics.length > 0 ? (
+                    activeRoutineCompiled.diagnostics.map((d, i) => (
+                      <div key={`${d}-${i}`} className="ide-output-line console-error">
+                        <span className="console-badge badge-error">⚠️</span>
+                        <span>{translateDiagnostic(d)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="ide-output-line console-muted">{t("board.runHint")}</div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
+                  {events.length === 0 ? (
+                    <div className="ide-output-line console-muted">{t("board.runHint")}</div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
     </aside>
   );
