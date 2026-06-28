@@ -5,7 +5,11 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
+      "values": [
+        1,
+        2,
+        3
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -14,7 +18,9 @@
     {
       "id": "B",
       "kind": "stack",
-      "values": [8],
+      "values": [
+        8
+      ],
       "properties": {
         "color": "#8ec5ff",
         "nodeAutoTaint": false
@@ -25,7 +31,10 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2],
+      "values": [
+        1,
+        2
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -34,7 +43,10 @@
     {
       "id": "B",
       "kind": "stack",
-      "values": [8, 3],
+      "values": [
+        8,
+        3
+      ],
       "properties": {
         "color": "#8ec5ff",
         "nodeAutoTaint": false
@@ -59,25 +71,41 @@
     "maxSteps": 2
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": [
+      "A",
+      "B"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
+    "structuresUsed": [
+      "stack"
+    ],
     "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Move the top item from A into B."
+    "description": "Move the top item from A into B.",
+    "catalog": "community"
   },
   "tooling": {
-    "availableStructures": ["stack", "queue"],
+    "availableStructures": [
+      "stack",
+      "queue"
+    ],
     "advancedToolsEnabled": true
   }
 }

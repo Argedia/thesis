@@ -38,6 +38,7 @@ interface IdePanelProps {
   onRun: () => void;
   onStep: () => void;
   onPause: () => void;
+  onReset?: () => void;
   onClear: () => void;
   translateDiagnostic: (diagnostic: string) => string;
   status: string;
@@ -93,6 +94,7 @@ export function IdePanel({
   onRun,
   onStep,
   onPause,
+  onReset: _onReset,
   onClear,
   translateDiagnostic,
   status,

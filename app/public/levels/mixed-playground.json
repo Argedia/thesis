@@ -5,7 +5,11 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
+      "values": [
+        1,
+        2,
+        3
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -14,7 +18,10 @@
     {
       "id": "B",
       "kind": "queue",
-      "values": [4, 5],
+      "values": [
+        4,
+        5
+      ],
       "properties": {
         "color": "#7ad3ba",
         "nodeAutoTaint": false
@@ -23,7 +30,11 @@
     {
       "id": "C",
       "kind": "list",
-      "values": [8, 9, 10],
+      "values": [
+        8,
+        9,
+        10
+      ],
       "properties": {
         "color": "#c6a8ff",
         "nodeAutoTaint": false
@@ -34,7 +45,11 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
+      "values": [
+        1,
+        2,
+        3
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -43,7 +58,10 @@
     {
       "id": "B",
       "kind": "queue",
-      "values": [4, 5],
+      "values": [
+        4,
+        5
+      ],
       "properties": {
         "color": "#7ad3ba",
         "nodeAutoTaint": false
@@ -52,7 +70,11 @@
     {
       "id": "C",
       "kind": "list",
-      "values": [8, 9, 10],
+      "values": [
+        8,
+        9,
+        10
+      ],
       "properties": {
         "color": "#c6a8ff",
         "nodeAutoTaint": false
@@ -77,25 +99,45 @@
     "maxSteps": 99
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B", "C"],
+    "structureOrder": [
+      "A",
+      "B",
+      "C"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue", "list"],
+    "structuresUsed": [
+      "stack",
+      "queue",
+      "list"
+    ],
     "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Open sandbox level with one stack, one queue, and one list."
+    "description": "Open sandbox level with one stack, one queue, and one list.",
+    "catalog": "community"
   },
   "tooling": {
-    "availableStructures": ["stack", "queue", "list"],
+    "availableStructures": [
+      "stack",
+      "queue",
+      "list"
+    ],
     "advancedToolsEnabled": true
   }
 }

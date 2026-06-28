@@ -5,7 +5,6 @@ import type {
   StructureTag
 } from "@thesis/game-system";
 import {
-  JsonCampaignWorldRepository,
   JsonLevelRepository,
   LocalProgressRepository,
   parseImportedLevelDefinition
@@ -19,7 +18,6 @@ import {
 } from "./catalog";
 
 const levelRepository = new JsonLevelRepository();
-const campaignWorldRepository = new JsonCampaignWorldRepository();
 const progressRepository = new LocalProgressRepository();
 
 export interface CommunityLevelsCatalogState {
@@ -57,16 +55,12 @@ export const useCommunityLevelsCatalog = (): CommunityLevelsCatalogState => {
   const [errorMessage, setErrorMessage] = useState("");
 
   const loadData = useCallback(async () => {
-    const [loadedLevels, progress, worlds] = await Promise.all([
+    const [loadedLevels, progress] = await Promise.all([
       levelRepository.listLevels(),
-      progressRepository.loadProgress(),
-      campaignWorldRepository.listWorlds().catch(() => [])
+      progressRepository.loadProgress()
     ]);
-    const campaignLevelIds = new Set(
-      worlds.flatMap((world) => world.nodes.map((node) => node.levelId))
-    );
-    const communityLevels = loadedLevels.filter((level) =>
-      campaignLevelIds.size > 0 ? !campaignLevelIds.has(level.id) : !level.id.startsWith("campaign-")
+    const communityLevels = loadedLevels.filter(
+      (level) => level.metadata.catalog === "community"
     );
 
     setLevels(communityLevels);

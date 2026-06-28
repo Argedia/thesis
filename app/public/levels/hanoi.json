@@ -5,7 +5,11 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [3, 2, 1],
+      "values": [
+        3,
+        2,
+        1
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -52,7 +56,11 @@
     {
       "id": "C",
       "kind": "stack",
-      "values": [3, 2, 1],
+      "values": [
+        3,
+        2,
+        1
+      ],
       "properties": {
         "color": "#c6a8ff",
         "nodeAutoTaint": false
@@ -83,25 +91,41 @@
     }
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B", "C"],
+    "structureOrder": [
+      "A",
+      "B",
+      "C"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
+    "structuresUsed": [
+      "stack"
+    ],
     "difficulty": 4.5,
     "author": "Core Team",
-    "description": "Solve the basic Tower of Hanoi using three stacks."
+    "description": "Solve the basic Tower of Hanoi using three stacks.",
+    "catalog": "community"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   }
 }

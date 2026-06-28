@@ -5,14 +5,24 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [3, 2, 1],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        3,
+        2,
+        1
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "Q",
       "kind": "queue",
       "values": [],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -20,13 +30,23 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "Q",
       "kind": "queue",
-      "values": [1, 2, 3],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -66,25 +86,42 @@
     "requiresRoutineCall": true
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "Q"],
+    "structureOrder": [
+      "A",
+      "Q"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue"],
-    "difficulty": 3.0,
+    "structuresUsed": [
+      "stack",
+      "queue"
+    ],
+    "difficulty": 3,
     "author": "Core Team",
-    "description": "Define a custom function and reuse it to move values from stack A into queue Q."
+    "description": "Define a custom function and reuse it to move values from stack A into queue Q.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack", "queue"],
+    "availableStructures": [
+      "stack",
+      "queue"
+    ],
     "advancedToolsEnabled": true
   }
 }

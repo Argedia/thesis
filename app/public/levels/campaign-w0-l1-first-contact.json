@@ -1,0 +1,128 @@
+{
+  "id": "campaign-w0-l1-first-contact",
+  "title": "W1-L1 · First Contact",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2, 3],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "permitted",
+      "PUSH": "forbidden",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden",
+      "PEEK": "permitted"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 1,
+    "maxBlocksGlobal": 2,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": 1.0,
+    "author": "Core Team",
+    "description": "Place the stack block, choose one operation, and run it. Only one action should happen: remove the top of A.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": ["placing one structure block, selecting an operation, and executing it"],
+    "reinforces": ["read initial state", "read goal state", "top element of a stack"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Place the stack block and choose an operation",
+        "body": "Look at the initial and goal boards first. The only difference is that the top value of A disappears. Drag structure A into the program, choose an operation for it, then press Play and watch what happens.",
+        "concepts": ["structure block", "operation choice", "run", "top value"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "One operation changes the stack, one only looks at it",
+        "body": "In this level, one available operation inspects the stack and the other one changes it. Compare the board after running and choose the operation that actually removes the top.",
+        "concepts": ["PEEK", "POP", "inspect vs change"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Match the exact visible difference",
+        "body": "The goal board is missing exactly one value: the current top of A. Use the operation that removes that top value, then run again and observe the board.",
+        "concepts": ["goal comparison", "top element", "single operation"]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": ["placing one structure block, selecting an operation, and executing it"],
+    "reinforces": ["read initial state", "read goal state", "top element of a stack"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Place the stack block and choose an operation",
+        "body": "Look at the initial and goal boards first. The only difference is that the top value of A disappears. Drag structure A into the program, choose an operation for it, then press Play and watch what happens.",
+        "concepts": ["structure block", "operation choice", "run", "top value"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "One operation changes the stack, one only looks at it",
+        "body": "In this level, one available operation inspects the stack and the other one changes it. Compare the board after running and choose the operation that actually removes the top.",
+        "concepts": ["PEEK", "POP", "inspect vs change"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Match the exact visible difference",
+        "body": "The goal board is missing exactly one value: the current top of A. Use the operation that removes that top value, then run again and observe the board.",
+        "concepts": ["goal comparison", "top element", "single operation"]
+      }
+    ]
+  }
+}

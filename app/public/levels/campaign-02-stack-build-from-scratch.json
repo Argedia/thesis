@@ -5,14 +5,25 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3, 4],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -20,13 +31,24 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
-      "values": [4, 3, 2, 1],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "values": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -66,25 +88,40 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": [
+      "A",
+      "B"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
+    "structuresUsed": [
+      "stack"
+    ],
     "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Practice repetition: empty A with POP and build B from scratch using PUSH only."
+    "description": "Practice repetition: empty A with POP and build B from scratch using PUSH only.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {

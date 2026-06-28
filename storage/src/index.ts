@@ -1,6 +1,7 @@
 import {
   LEVEL_OPERATIONS,
   createOperationPolicy,
+  type LevelDifficulty,
   type LevelDefinition,
   type LevelOperationPolicy
 } from "@thesis/game-system";
@@ -51,7 +52,7 @@ export interface CampaignHubGoal {
 
 export interface CampaignNode {
   id: string;
-  levelId: string;
+  levelId?: string;
   x?: number;
   y?: number;
   gridCol?: number;
@@ -104,6 +105,7 @@ export interface UiPreferencesRepository {
 const playerPanelIdSchema = z.enum(["board", "steps", "timeline"]);
 const editorPanelIdSchema = z.enum(["palette", "canvas", "inspector", "preview", "timeline"]);
 const structureKindSchema = z.enum(["stack", "queue", "list", "doubly-linked-list", "circular-list"]);
+const levelCatalogCategorySchema = z.enum(["campaign", "community"]);
 const levelSourceSchema = z.enum(["community", "my-levels"]);
 const structureTagSchema = z.enum(["stack", "queue", "list", "doubly-linked-list", "circular-list"]);
 const levelDifficultySchema = z.number().min(0).max(5);
@@ -240,10 +242,13 @@ const levelTeachingMessageSchema = z.object({
 
 const levelTeachingPlanSchema = z.object({
   introduces: z.array(z.string().min(1)),
-  messages: z.array(levelTeachingMessageSchema)
+  messages: z.array(levelTeachingMessageSchema),
+  reinforces: z.array(z.string().min(1)).optional(),
+  inf261Reference: z.string().min(1).optional()
 });
 
 const levelCatalogMetadataSchema = z.object({
+  catalog: levelCatalogCategorySchema,
   source: levelSourceSchema,
   structuresUsed: z.array(structureTagSchema),
   difficulty: levelDifficultySchema,
@@ -260,8 +265,9 @@ const levelDefinitionSchema = z.object({
   playLayout: playLayoutSchema,
   editorLayout: editorLayoutSchema,
   metadata: levelCatalogMetadataSchema,
-  tooling: editorToolingSchema.optional(),
-  teaching: levelTeachingPlanSchema.optional()
+  teachingPlan: levelTeachingPlanSchema.optional(),
+  teaching: levelTeachingPlanSchema.optional(),
+  tooling: editorToolingSchema.optional()
 });
 
 const importedLevelConstraintsSchema = z
@@ -299,6 +305,7 @@ const importedLevelCandidateSchema = z.object({
   editorLayout: editorLayoutSchema.optional(),
   metadata: z
     .object({
+      catalog: levelCatalogCategorySchema.optional(),
       source: levelSourceSchema.optional(),
       structuresUsed: z.array(structureTagSchema).optional(),
       difficulty: importedDifficultySchema.optional(),
@@ -306,6 +313,7 @@ const importedLevelCandidateSchema = z.object({
       description: z.string().optional()
     })
     .optional(),
+  teachingPlan: levelTeachingPlanSchema.optional(),
   tooling: z
     .object({
       availableStructures: z.array(z.string()).optional(),
@@ -326,7 +334,7 @@ const campaignEdgeSchema = z.object({
 
 const campaignNodeSchema = z.object({
   id: z.string().min(1),
-  levelId: z.string().min(1),
+  levelId: z.string().min(1).optional(),
   x: z.number().min(0).max(100).optional(),
   y: z.number().min(0).max(100).optional(),
   gridCol: z.number().int().nonnegative().optional(),
@@ -414,14 +422,14 @@ const LEGACY_DIFFICULTY_MAP = {
 
 const normalizeDifficultyValue = (
   difficulty: z.infer<typeof importedDifficultySchema> | undefined
-): number => {
+): LevelDifficulty => {
   if (typeof difficulty === "string") {
     return LEGACY_DIFFICULTY_MAP[difficulty];
   }
   if (typeof difficulty === "number" && Number.isFinite(difficulty)) {
-    return Math.max(0, Math.min(5, Number(difficulty.toFixed(1))));
+    return Math.max(0, Math.min(5, Number(difficulty.toFixed(1)))) as LevelDifficulty;
   }
-  return 2.5;
+  return 2.5 as LevelDifficulty;
 };
 
 const normalizeOperationToken = (operation: string): string =>
@@ -539,12 +547,14 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
       openTabs: ["canvas", "preview"]
     },
     metadata: {
+      catalog: level.metadata?.catalog ?? "community",
       source: "my-levels",
       structuresUsed: level.metadata?.structuresUsed ?? [],
       difficulty: normalizeDifficultyValue(level.metadata?.difficulty),
       author: level.metadata?.author ?? "You",
       description: level.metadata?.description ?? "Imported level"
     },
+    ...(level.teachingPlan ? { teachingPlan: level.teachingPlan } : {}),
     tooling: {
       availableStructures: level.tooling?.availableStructures ?? ["stack", "queue", "list"],
       advancedToolsEnabled: level.tooling?.advancedToolsEnabled ?? true,
@@ -583,10 +593,10 @@ const parsePersistedLevelDefinitions = (raw: string): LevelDefinition[] => {
 };
 
 export const parseLevelDefinition = (input: unknown): LevelDefinition =>
-  parseWithSchema(levelDefinitionSchema, input, "Level");
+  parseWithSchema(levelDefinitionSchema, input, "Level") as LevelDefinition;
 
 export const parseLevelDefinitions = (input: unknown): LevelDefinition[] =>
-  parseWithSchema(z.array(levelDefinitionSchema), input, "Level index");
+  parseWithSchema(z.array(levelDefinitionSchema), input, "Level index") as LevelDefinition[];
 
 export const parseImportedLevelDefinition = (input: unknown): LevelDefinition => {
   const candidate = parseWithSchema(importedLevelCandidateSchema, input, "Imported level");
@@ -602,10 +612,12 @@ const validateCampaignWorldDefinition = (world: CampaignWorldDefinition): Campai
       throw new Error(`Campaign world "${world.id}" has duplicate node id "${node.id}".`);
     }
     nodeIds.add(node.id);
-    if (levelIds.has(node.levelId)) {
-      throw new Error(`Campaign world "${world.id}" reuses level id "${node.levelId}" in multiple nodes.`);
+    if (node.levelId) {
+      if (levelIds.has(node.levelId)) {
+        throw new Error(`Campaign world "${world.id}" reuses level id "${node.levelId}" in multiple nodes.`);
+      }
+      levelIds.add(node.levelId);
     }
-    levelIds.add(node.levelId);
 
     if (world.grid && typeof node.gridCol === "number" && typeof node.gridRow === "number") {
       if (node.gridCol >= world.grid.columns || node.gridRow >= world.grid.rows) {

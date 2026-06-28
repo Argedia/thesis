@@ -5,28 +5,48 @@
     {
       "id": "Q",
       "kind": "queue",
-      "values": [1, 2, 3],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "S",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
     {
       "id": "Q",
       "kind": "queue",
-      "values": [3, 2, 1],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "values": [
+        3,
+        2,
+        1
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "S",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -66,25 +86,42 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["Q", "S"],
+    "structureOrder": [
+      "Q",
+      "S"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["queue", "stack"],
-    "difficulty": 3.0,
+    "structuresUsed": [
+      "queue",
+      "stack"
+    ],
+    "difficulty": 3,
     "author": "Core Team",
-    "description": "Mix default data structures: reverse queue Q using stack S as auxiliary memory."
+    "description": "Mix default data structures: reverse queue Q using stack S as auxiliary memory.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack", "queue"],
+    "availableStructures": [
+      "stack",
+      "queue"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {

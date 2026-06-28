@@ -1,5 +1,8 @@
 # Plan de contenidos de campaña por mundos
 
+> Nota: este documento describe una exploración anterior con castillo, materiales y mundos de funciones/tipos.
+> La referencia vigente para el alcance de tesis es [docs/proyecto/gamification-thesis-scope.md](C:\Users\aguerra\Documents\thesis\.worktrees\gamification\docs\proyecto\gamification-thesis-scope.md).
+
 ## Objetivo
 Definir qué enseña cada mundo y qué niveles lo componen, para implementar una progresión clara en la campaña tipo mapa.
 

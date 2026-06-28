@@ -5,20 +5,33 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "Q",
       "kind": "queue",
       "values": [],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -26,19 +39,32 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
-      "values": [3, 2, 1],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "values": [
+        3,
+        2,
+        1
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "Q",
       "kind": "queue",
       "values": [],
-      "properties": { "color": "#7ad3ba", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -62,26 +88,45 @@
     }
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B", "Q"],
+    "structureOrder": [
+      "A",
+      "B",
+      "Q"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue"],
+    "structuresUsed": [
+      "stack",
+      "queue"
+    ],
     "difficulty": 4.5,
     "author": "Core Team",
     "description": "Final challenge: solve with default structures and optionally model helper data using a custom type.",
-    "hidden": true
+    "hidden": true,
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack", "queue", "list"],
+    "availableStructures": [
+      "stack",
+      "queue",
+      "list"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {

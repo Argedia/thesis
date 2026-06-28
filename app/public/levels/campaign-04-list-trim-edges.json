@@ -5,16 +5,32 @@
     {
       "id": "L",
       "kind": "list",
-      "values": [1, 2, 3, 4, 5],
-      "properties": { "color": "#c6a8ff", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
     {
       "id": "L",
       "kind": "list",
-      "values": [2, 3, 4],
-      "properties": { "color": "#c6a8ff", "nodeAutoTaint": false }
+      "values": [
+        2,
+        3,
+        4
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -54,25 +70,39 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["L"],
+    "structureOrder": [
+      "L"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["list"],
-    "difficulty": 3.0,
+    "structuresUsed": [
+      "list"
+    ],
+    "difficulty": 3,
     "author": "Core Team",
-    "description": "Learn list edge operations: trim exactly one item from each side of L."
+    "description": "Learn list edge operations: trim exactly one item from each side of L.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["list"],
+    "availableStructures": [
+      "list"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {

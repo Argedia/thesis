@@ -335,7 +335,16 @@ export class EngineServiceRegistry {
 				togglePaletteGroupExpanded: (lane, groupId) => {
 					const key = `${lane}:${groupId}`;
 					const ids = this.deps.getExpandedPaletteGroupIds();
-					if (ids.has(key)) { ids.delete(key); } else { ids.add(key); }
+					if (ids.has(key)) {
+						ids.delete(key);
+					} else {
+						for (const id of Array.from(ids)) {
+							if (id.startsWith(`${lane}:`)) {
+								ids.delete(id);
+							}
+						}
+						ids.add(key);
+					}
 					this.deps.render();
 				},
 				getPaletteGroupId: (block) => this.deps.getPaletteGroupId(block),

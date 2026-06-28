@@ -1,0 +1,139 @@
+{
+  "id": "campaign-w0-l3-read-before-run",
+  "title": "W1-L3 · Read Before Run",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2, 3],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [8],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [8, 3],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "required",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 4,
+    "maxBlocksGlobal": 4,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": 1.4,
+    "author": "Core Team",
+    "description": "Practice comparing the initial and goal boards before writing anything. One value moves, but one value must stay where it is.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": ["reading initial and goal states before planning a solution"],
+    "reinforces": ["preserve unchanged values", "compare both structures carefully"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Read the target before touching the program",
+        "body": "This level is about planning first. Compare both boards and notice that not everything changes: one value must move, but another value on B must stay exactly where it already is.",
+        "concepts": ["planning", "unchanged values", "goal reading"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Not every visible value should move",
+        "body": "If B lost the value it already had, then the program changed more than the goal asks for. Match the target board carefully before running again.",
+        "concepts": ["preserve existing state", "target comparison"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Solve the exact difference",
+        "body": "A good plan starts by asking what is different between the two boards. This level can be solved by changing only that exact difference.",
+        "concepts": ["exact difference", "intentional planning"]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": ["reading initial and goal states before planning a solution"],
+    "reinforces": ["preserve unchanged values", "compare both structures carefully"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Read the target before touching the program",
+        "body": "This level is about planning first. Compare both boards and notice that not everything changes: one value must move, but another value on B must stay exactly where it already is.",
+        "concepts": ["planning", "unchanged values", "goal reading"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Not every visible value should move",
+        "body": "If B lost the value it already had, then the program changed more than the goal asks for. Match the target board carefully before running again.",
+        "concepts": ["preserve existing state", "target comparison"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Solve the exact difference",
+        "body": "A good plan starts by asking what is different between the two boards. This level can be solved by changing only that exact difference.",
+        "concepts": ["exact difference", "intentional planning"]
+      }
+    ]
+  }
+}

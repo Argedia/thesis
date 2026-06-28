@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Screen } from "@thesis/ui-editor";
 import { APP_ROUTES, buildEditorDraftRoute } from "../types/routes";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
 import { AppDialogs } from "../features/play-ui/AppDialogs";
+import { ScreenHeader } from "./ui/ScreenHeader";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
   createEditorDraftRecord,
   deleteEditorDraftRecord,
@@ -69,22 +71,28 @@ export function EditorDraftsScreen() {
   return (
     <Screen mode="editor">
       <main className="editor-drafts-shell">
-        <header className="topbar primary-screen-topbar editor-drafts-topbar">
-          <Link className="back-link" to={APP_ROUTES.home}>Menu</Link>
-          <div>
-            <p className="eyebrow">Editor</p>
-            <h1>Mis niveles</h1>
-          </div>
-          <div className="editor-drafts-topbar-actions">
-            <button type="button" className="menu-link" onClick={() => void handleSeedCampaignPlan()}>
-              Generar estructura campaña
-            </button>
-            <button type="button" className="menu-link" onClick={() => void handleCreate()}>
-              + Nuevo nivel
-            </button>
-          </div>
-        </header>
-        <section className="editor-drafts-list">
+        <ScreenHeader
+          backLabel="Menu"
+          backTo={APP_ROUTES.home}
+          eyebrow="Editor"
+          title="Mis niveles"
+          className="editor-drafts-topbar"
+          tutorialAnchorId="editor-drafts-topbar"
+          actions={
+            <div className="editor-drafts-topbar-actions" {...tutorialAnchorProps("editor-drafts-actions")}>
+              <button type="button" className="menu-link" onClick={() => void handleSeedCampaignPlan()}>
+                Generar estructura campaña
+              </button>
+              <button type="button" className="menu-link" onClick={() => void handleCreate()}>
+                + Nuevo nivel
+              </button>
+            </div>
+          }
+        />
+        <section
+          className="editor-drafts-list"
+          {...tutorialAnchorProps("editor-drafts-list")}
+        >
           {drafts.length === 0 ? (
             <article className="editor-draft-card">
               <h2>No hay niveles guardados</h2>

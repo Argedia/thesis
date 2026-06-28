@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "react-aria-components";
-import { LocalProgressRepository } from "@thesis/storage";
+import { JsonCampaignWorldRepository, LocalProgressRepository } from "@thesis/storage";
 import { Screen } from "@thesis/ui-editor";
 import {
   getPermittedOperationsFromPolicy,
@@ -13,7 +13,10 @@ import {
   compileEditorDocument,
   createEditorDocument,
   projectDocumentToEditorBlocks,
-  projectProgramToEditorBlocks
+  projectProgramToEditorBlocks,
+  type EditorDocument,
+  type ExpressionNode,
+  type StatementNode
 } from "../program-editor-core";
 import {
   createPlaySessionController,
@@ -31,14 +34,24 @@ import { BoardPanel } from "./BoardPanel";
 import { normalizeBlockLimits } from "../../play-editor/block-limits";
 import { countEditorBlocks } from "../../play-editor/block-count";
 import {
+  hasCompletedLevelTutorial,
   recordLevelTeachingFailure,
   resetLevelTeachingFailures,
   hasSeenPlayLevelBasicsTutorial,
+  markLevelTutorialCompleted,
   markPlayLevelBasicsTutorialSeen
 } from "../level-teaching/storage";
 import { useTutorial } from "../tutorial/TutorialProvider";
 
 const progressRepository = new LocalProgressRepository();
+const campaignWorldRepository = new JsonCampaignWorldRepository();
+const GUIDED_W1_L1_LEVEL_ID = "campaign-w0-l1-first-contact";
+const GUIDED_W1_L1_TUTORIAL_ID = "campaign-w1-l1-guided";
+const W1_L1_TUTORIAL_EVENTS = {
+  structurePlaced: "campaign:w1-l1:structure-placed",
+  operationSelected: "campaign:w1-l1:operation-selected",
+  runPressed: "campaign:w1-l1:run-pressed"
+} as const;
 
 const initialSessionState = (): PlaySessionState => ({
   document: createEditorDocument(),
@@ -58,6 +71,52 @@ const initialSessionState = (): PlaySessionState => ({
   compiledProgram: compileEditorDocument(createEditorDocument())
 });
 
+const getGuidedCampaignTutorialId = (levelId: string | null | undefined) =>
+  levelId === GUIDED_W1_L1_LEVEL_ID ? GUIDED_W1_L1_TUTORIAL_ID : null;
+
+const getStructureEditorState = (
+  document: EditorDocument
+): { hasStructureBlock: boolean; hasSelectedOperation: boolean } => {
+  const activeRoutine = document.routines.find((routine) => routine.id === document.activeRoutineId);
+  if (!activeRoutine) {
+    return { hasStructureBlock: false, hasSelectedOperation: false };
+  }
+
+  let hasStructureBlock = false;
+  let hasSelectedOperation = false;
+
+  for (const statement of activeRoutine.program.statements) {
+    const structureOperation = readStructureOperation(statement);
+    if (structureOperation === undefined) {
+      continue;
+    }
+
+    hasStructureBlock = true;
+    if (structureOperation !== null) {
+      hasSelectedOperation = true;
+      break;
+    }
+  }
+
+  return { hasStructureBlock, hasSelectedOperation };
+};
+
+const readStructureOperation = (statement: StatementNode): string | null | undefined => {
+  if (statement.kind === "call" && statement.calleeKind === "structure") {
+    return statement.operation;
+  }
+
+  if (statement.kind === "expression") {
+    return readStructureExpressionOperation(statement.expression);
+  }
+
+  return undefined;
+};
+
+const readStructureExpressionOperation = (expression: ExpressionNode): string | null | undefined => {
+  return expression.kind === "structure" ? expression.operation : undefined;
+};
+
 export function PlayLevelScreen() {
   const { t } = useTranslation();
   const { levelId } = useParams<{ levelId: string }>();
@@ -75,7 +134,13 @@ export function PlayLevelScreen() {
   const previousStatusRef = useRef<string>("");
   const previousOutcomeRef = useRef(sessionState.lastEvaluationOutcome);
   const uiSessionIdRef = useRef<string>(crypto.randomUUID());
-  const { activeTutorialId: _activeTutorialId, startTutorial } = useTutorial();
+  const tutorialEventStateRef = useRef({
+    levelId: "",
+    structurePlaced: false,
+    operationSelected: false,
+    runPressed: false
+  });
+  const { activeTutorialId, startTutorial, notifyTutorialEvent } = useTutorial();
 
   const dialog = useDialogManager();
   const isCompactLayout = viewportWidth <= 640;
@@ -147,16 +212,14 @@ export function PlayLevelScreen() {
         let nextLevelId: string | null = null;
         if (currentLevel.id.startsWith("campaign-")) {
           try {
-            const allLevels = await catalogLevelRepository.listLevels();
-            const campaignLevels = allLevels
-              .filter((l) => l.id.startsWith("campaign-") && !l.metadata.hidden)
-              .sort((a, b) => {
-                const aNum = Number(a.title.match(/(\d+)/)?.[1] ?? Number.MAX_SAFE_INTEGER);
-                const bNum = Number(b.title.match(/(\d+)/)?.[1] ?? Number.MAX_SAFE_INTEGER);
-                return aNum - bNum;
-              });
-            const idx = campaignLevels.findIndex((l) => l.id === currentLevel.id);
-            nextLevelId = campaignLevels[idx + 1]?.id ?? null;
+            const worlds = await campaignWorldRepository.listWorlds();
+            const orderedCampaignLevelIds = worlds.flatMap((world) =>
+              world.nodes
+                .map((node) => node.levelId)
+                .filter((levelId): levelId is string => typeof levelId === "string" && levelId.length > 0)
+            );
+            const idx = orderedCampaignLevelIds.findIndex((id) => id === currentLevel.id);
+            nextLevelId = idx >= 0 ? orderedCampaignLevelIds[idx + 1] ?? null : null;
           } catch {
             // ignore — no next level
           }
@@ -182,12 +245,69 @@ export function PlayLevelScreen() {
       return;
     }
 
-    window.setTimeout(() => {
-      void startTutorial("campaign-level-basics");
+    tutorialEventStateRef.current = {
+      levelId: sessionState.level.id,
+      structurePlaced: false,
+      operationSelected: false,
+      runPressed: false
+    };
+
+    const guidedTutorialId = getGuidedCampaignTutorialId(sessionState.level.id);
+    const timeoutId = window.setTimeout(() => {
+      if (guidedTutorialId && !hasCompletedLevelTutorial(sessionState.level!.id)) {
+        void startTutorial(guidedTutorialId);
+        return;
+      }
+
+      if (
+        sessionState.level!.id.startsWith("campaign-") &&
+        !hasSeenPlayLevelBasicsTutorial()
+      ) {
+        void startTutorial("campaign-level-basics").then((started) => {
+          if (started) {
+            markPlayLevelBasicsTutorialSeen();
+          }
+        });
+      }
     }, 120);
 
     previousOutcomeRef.current = null;
+    return () => window.clearTimeout(timeoutId);
   }, [sessionState.level, startTutorial]);
+
+  useEffect(() => {
+    const level = sessionState.level;
+    if (!level) {
+      return;
+    }
+
+    const guidedTutorialId = getGuidedCampaignTutorialId(level.id);
+    if (guidedTutorialId !== GUIDED_W1_L1_TUTORIAL_ID || activeTutorialId !== guidedTutorialId) {
+      return;
+    }
+
+    const tutorialState = tutorialEventStateRef.current;
+    if (tutorialState.levelId !== level.id) {
+      tutorialEventStateRef.current = {
+        levelId: level.id,
+        structurePlaced: false,
+        operationSelected: false,
+        runPressed: false
+      };
+    }
+
+    const editorState = getStructureEditorState(sessionState.document);
+
+    if (editorState.hasStructureBlock && !tutorialEventStateRef.current.structurePlaced) {
+      tutorialEventStateRef.current.structurePlaced = true;
+      notifyTutorialEvent(W1_L1_TUTORIAL_EVENTS.structurePlaced);
+    }
+
+    if (editorState.hasSelectedOperation && !tutorialEventStateRef.current.operationSelected) {
+      tutorialEventStateRef.current.operationSelected = true;
+      notifyTutorialEvent(W1_L1_TUTORIAL_EVENTS.operationSelected);
+    }
+  }, [activeTutorialId, notifyTutorialEvent, sessionState.document, sessionState.level]);
 
   useEffect(() => {
     if (!sessionState.level) {
@@ -218,8 +338,9 @@ export function PlayLevelScreen() {
 
     const failureCount = recordLevelTeachingFailure(sessionState.level.id);
     const trigger = failureCount <= 1 ? "first_failure" : "repeated_failure";
+    const levelTeaching = sessionState.level.teaching ?? sessionState.level.teachingPlan;
     const reminder =
-      sessionState.level.teaching?.messages.find((message) => message.trigger === trigger) ?? null;
+      levelTeaching?.messages.find((message) => message.trigger === trigger) ?? null;
     if (reminder) {
       setActiveTeachingMessage(reminder);
     }
@@ -342,6 +463,24 @@ export function PlayLevelScreen() {
     if (nextName !== null) controller.renameRoutine(routineId, nextName.trim() || currentName);
   };
 
+  const handleRun = () => {
+    ensureMainRoutineActive();
+    setOutputMode("runtime");
+
+    const guidedTutorialId = getGuidedCampaignTutorialId(level.id);
+    if (
+      guidedTutorialId === GUIDED_W1_L1_TUTORIAL_ID &&
+      activeTutorialId === guidedTutorialId &&
+      !tutorialEventStateRef.current.runPressed
+    ) {
+      tutorialEventStateRef.current.runPressed = true;
+      notifyTutorialEvent(W1_L1_TUTORIAL_EVENTS.runPressed);
+      markLevelTutorialCompleted(level.id);
+    }
+
+    void controller.run().finally(openOutputForExecutionAttempt);
+  };
+
   return (
     <Screen mode="player">
       <div className="play-shell">
@@ -354,7 +493,8 @@ export function PlayLevelScreen() {
             </div>
           </div>
           {(() => {
-            const startMessage = level.teaching?.messages.find((m) => m.trigger === "level_start");
+            const levelTeaching = level.teaching ?? level.teachingPlan;
+            const startMessage = levelTeaching?.messages.find((m) => m.trigger === "level_start");
             if (!startMessage) return null;
             return (
               <div className={`play-level-instructions${isInstructionsOpen ? "" : " is-collapsed"}`}>
@@ -440,7 +580,7 @@ export function PlayLevelScreen() {
             onRenameRoutine={handleRenameRoutine}
             onCreateRoutine={handleCreateRoutine}
             disableCreateRoutine={disableCreateRoutine}
-            onRun={() => { ensureMainRoutineActive(); setOutputMode("runtime"); void controller.run().finally(openOutputForExecutionAttempt); }}
+            onRun={handleRun}
             onStep={() => { ensureMainRoutineActive(); setOutputMode("runtime"); void controller.step().finally(openOutputForExecutionAttempt); }}
             onPause={() => controller.pause()}
             onClear={() => controller.clearDocument()}
