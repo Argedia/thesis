@@ -257,10 +257,13 @@
 	display: grid;
 	grid-column: 2 / 4;
 	grid-template-columns: minmax(0, 1fr) auto;
+	grid-row: 1;
 	align-items: stretch;
 	min-height: 56px;
 	background: #eef3f8;
 	border-bottom: 1px solid #d8e2ee;
+	position: relative;
+	z-index: 2;
 }
 
 .ide-topbar-tabs {
@@ -388,9 +391,12 @@
 .ide-editor-frame {
 	display: grid;
 	grid-column: 1 / -1;
+	grid-row: 1 / -1;
 	min-height: 0;
 	background: #f8fbff;
 	overflow: hidden;
+	position: relative;
+	z-index: 1;
 }
 
 .ide-editor-frame .play-editor-surface {
@@ -479,9 +485,14 @@
 	grid-template-rows: minmax(0, 1fr);
 	min-height: 0;
 	gap: 0;
+	margin-top: 56px;
 	padding: 0.8rem 0.95rem 0.95rem;
 	background: #f8fbff;
 	overflow: hidden;
+}
+
+.ide-editor-frame .scratch-palette-right {
+	margin-top: 56px;
 }
 
 .ide-editor-frame .builder-heading {
@@ -644,10 +655,23 @@
 .ide-output-panel {
 	display: grid;
 	grid-column: 2 / 4;
+	grid-row: 3;
 	grid-template-rows: auto minmax(0, 1fr);
 	min-height: 0;
 	background: #f5f8fc;
 	border-top: 1px solid #d8e2ee;
+	position: relative;
+	z-index: 2;
+}
+
+.ide-shell.has-output .ide-editor-frame .scratch-editor,
+.ide-shell.has-output .ide-editor-frame .scratch-palette-right {
+	margin-bottom: 112px;
+}
+
+.ide-shell.has-output.output-collapsed .ide-editor-frame .scratch-editor,
+.ide-shell.has-output.output-collapsed .ide-editor-frame .scratch-palette-right {
+	margin-bottom: 46px;
 }
 
 .ide-output-tabs {
