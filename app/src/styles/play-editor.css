@@ -102,13 +102,13 @@
 }
 
 .board-preview-action {
-	min-height: 1.8rem;
-	padding: 0.2rem 0.72rem;
+	min-height: 1.65rem;
+	padding: 0.14rem 0.62rem;
 	border: 1px solid rgba(201, 214, 227, 0.9);
 	border-radius: 8px;
 	background: rgba(255, 255, 255, 0.18);
 	color: #f1f6ff;
-	font-size: 0.74rem;
+	font-size: 0.7rem;
 	font-weight: 800;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
@@ -116,12 +116,12 @@
 }
 
 .board-icon-action {
-	min-width: 1.9rem;
-	padding: 0.2rem 0.45rem;
+	min-width: 1.75rem;
+	padding: 0.14rem 0.4rem;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 0.95rem;
+	font-size: 0.88rem;
 	line-height: 1;
 }
 
@@ -139,6 +139,8 @@
 	color: #f1f6ff;
 	font-weight: 900;
 	letter-spacing: 0.04em;
+	font-size: 0.82rem;
+	line-height: 1.1;
 }
 
 .play-editor-surface {
@@ -397,6 +399,19 @@
 	overflow: hidden;
 	position: relative;
 	z-index: 1;
+}
+
+.ide-editor-block-counter {
+	position: absolute;
+	right: 1.15rem;
+	bottom: 126px;
+	z-index: 3;
+	padding: 0.32rem 0.68rem;
+	border: 1px solid rgba(158, 197, 229, 0.92);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.94);
+	box-shadow: 0 6px 18px rgba(67, 100, 132, 0.12);
+	pointer-events: none;
 }
 
 .ide-editor-frame .play-editor-surface {
@@ -672,6 +687,10 @@
 .ide-shell.has-output.output-collapsed .ide-editor-frame .scratch-editor,
 .ide-shell.has-output.output-collapsed .ide-editor-frame .scratch-palette-right {
 	margin-bottom: 46px;
+}
+
+.ide-shell.has-output.output-collapsed .ide-editor-block-counter {
+	bottom: 60px;
 }
 
 .ide-output-tabs {
@@ -1367,6 +1386,12 @@
 	flex: 0 0 auto;
 }
 
+.editor-block.palette .block-chip-icon {
+	width: 0.95rem;
+	height: 0.95rem;
+	display: block;
+}
+
 .editor-block.palette strong {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -1374,6 +1399,42 @@
 	white-space: normal;
 	word-break: break-word;
 	line-height: 1.1;
+}
+
+.editor-block.palette.palette-compact-metric strong {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.palette-block-meta {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.28rem;
+	margin-left: auto;
+	padding-left: 0.45rem;
+	flex: 0 0 auto;
+	color: inherit;
+}
+
+.palette-block-meta-count {
+	font-size: 0.8rem;
+	font-weight: 800;
+	line-height: 1;
+}
+
+.palette-block-meta-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 0.95rem;
+	height: 0.95rem;
+	opacity: 0.92;
+}
+
+.palette-block-meta-icon .block-chip-icon {
+	width: 0.82rem;
+	height: 0.82rem;
 }
 
 .palette-limit-controls {
@@ -1835,7 +1896,7 @@
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.18);
 	box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14);
-	color: rgba(84, 61, 20, 0.72);
+	color: rgba(88, 98, 112, 0.8);
 	font-size: 0.75rem;
 	font-weight: 800;
 	white-space: nowrap;
@@ -1862,8 +1923,9 @@
 }
 
 .editor-block-instance-cavity-text::placeholder {
-	color: rgba(255, 255, 255, 0.45);
-	font-style: italic;
+	color: rgba(96, 106, 120, 0.62);
+	font-style: normal;
+	font-weight: 700;
 }
 
 .editor-block-instance-cavity.filled {

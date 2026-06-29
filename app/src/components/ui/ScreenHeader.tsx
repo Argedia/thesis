@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { tutorialAnchorProps } from "../../features/tutorial/anchors";
 
@@ -27,8 +28,8 @@ export function ScreenHeader({
 
   return (
     <header className={rootClassName} {...(tutorialAnchorId ? tutorialAnchorProps(tutorialAnchorId) : {})}>
-      <Link className="back-link" to={backTo}>
-        {backLabel}
+      <Link className="back-link back-link--icon" to={backTo} aria-label={backLabel} title={backLabel}>
+        <ArrowLeft size={20} aria-hidden="true" />
       </Link>
       <div className="screen-header-copy">
         <p className="eyebrow">{eyebrow}</p>

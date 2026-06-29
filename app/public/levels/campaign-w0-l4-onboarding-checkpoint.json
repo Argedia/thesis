@@ -101,7 +101,7 @@
     "advancedToolsEnabled": true
   },
   "teachingPlan": {
-    "introduces": ["autonomous resolution of a short challenge using the full editor flow"],
+    "introduces": ["resolución autónoma de un reto corto usando el flujo completo del editor"],
     "reinforces": ["plan move order", "run and correct intentionally"],
     "messages": [
       {
@@ -125,7 +125,7 @@
     ]
   },
   "teaching": {
-    "introduces": ["autonomous resolution of a short challenge using the full editor flow"],
+    "introduces": ["resolución autónoma de un reto corto usando el flujo completo del editor"],
     "reinforces": ["plan move order", "run and correct intentionally"],
     "messages": [
       {

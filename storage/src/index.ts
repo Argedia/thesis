@@ -116,26 +116,26 @@ const importedDifficultySchema = z.union([
 const dataValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 const levelOperationStateSchema = z.enum(["forbidden", "permitted", "required"]);
 const operationPolicySchema = z.object({
-  POP: levelOperationStateSchema,
-  PUSH: levelOperationStateSchema,
-  DEQUEUE: levelOperationStateSchema,
-  ENQUEUE: levelOperationStateSchema,
-  APPEND: levelOperationStateSchema,
-  PREPEND: levelOperationStateSchema,
-  REMOVE_FIRST: levelOperationStateSchema,
-  REMOVE_LAST: levelOperationStateSchema,
-  GET_HEAD: levelOperationStateSchema,
-  GET_TAIL: levelOperationStateSchema,
-  SIZE: levelOperationStateSchema,
-  PEEK: levelOperationStateSchema.default("permitted"),
-  IS_EMPTY: levelOperationStateSchema.default("permitted"),
-  GET_AT: levelOperationStateSchema.default("permitted"),
-  INSERT_AT: levelOperationStateSchema.default("permitted"),
-  REMOVE_AT: levelOperationStateSchema.default("permitted"),
-  CONTAINS: levelOperationStateSchema.default("permitted"),
-  FIND: levelOperationStateSchema.default("permitted"),
-  REVERSE: levelOperationStateSchema.default("permitted"),
-  CLEAR: levelOperationStateSchema.default("permitted")
+  POP: levelOperationStateSchema.default("forbidden"),
+  PUSH: levelOperationStateSchema.default("forbidden"),
+  DEQUEUE: levelOperationStateSchema.default("forbidden"),
+  ENQUEUE: levelOperationStateSchema.default("forbidden"),
+  APPEND: levelOperationStateSchema.default("forbidden"),
+  PREPEND: levelOperationStateSchema.default("forbidden"),
+  REMOVE_FIRST: levelOperationStateSchema.default("forbidden"),
+  REMOVE_LAST: levelOperationStateSchema.default("forbidden"),
+  GET_HEAD: levelOperationStateSchema.default("forbidden"),
+  GET_TAIL: levelOperationStateSchema.default("forbidden"),
+  SIZE: levelOperationStateSchema.default("forbidden"),
+  PEEK: levelOperationStateSchema.default("forbidden"),
+  IS_EMPTY: levelOperationStateSchema.default("forbidden"),
+  GET_AT: levelOperationStateSchema.default("forbidden"),
+  INSERT_AT: levelOperationStateSchema.default("forbidden"),
+  REMOVE_AT: levelOperationStateSchema.default("forbidden"),
+  CONTAINS: levelOperationStateSchema.default("forbidden"),
+  FIND: levelOperationStateSchema.default("forbidden"),
+  REVERSE: levelOperationStateSchema.default("forbidden"),
+  CLEAR: levelOperationStateSchema.default("forbidden")
 });
 
 const importedOperationPolicySchema = z.object({

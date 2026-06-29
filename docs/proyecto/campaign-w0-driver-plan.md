@@ -15,23 +15,16 @@ Dejar implementado el primer mundo de campaña como onboarding real del software
 ### `W1-L2 · Step and Reset`
 - Archivo: `campaign-w0-l2-step-and-reset`
 - Meta pedagógica:
-  aprender a usar `step` y `reset` para inspeccionar una solución corta.
+  aprender a usar `step` y `reset` para inspeccionar una solución corta sobre una sola pila.
 - `introduces`:
-  `step-by-step execution and reset for debugging a short solution`
+  `step-by-step execution and reset while repeating one stack action`
 
-### `W1-L3 · Read Before Run`
+### `W1-L3 · Description, Blocks and Output`
 - Archivo: `campaign-w0-l3-read-before-run`
 - Meta pedagógica:
-  leer el estado inicial y el objetivo antes de programar.
+  terminar la inducción enseñando cómo usar la descripción del nivel, la paleta de bloques izquierda y la salida para resolver un nivel.
 - `introduces`:
-  `reading initial and goal states before planning a solution`
-
-### `W1-L4 · Onboarding Checkpoint`
-- Archivo: `campaign-w0-l4-onboarding-checkpoint`
-- Meta pedagógica:
-  resolver un mini reto de forma autónoma usando el flujo completo del editor.
-- `introduces`:
-  `autonomous resolution of a short challenge using the full editor flow`
+  `using the level description, the left block palette, and output feedback to complete a level`
 
 ## Driver general de pantalla de nivel
 
@@ -67,25 +60,18 @@ Ese driver general no debería intentar enseñar detalles muy específicos de UI
 - Razón:
   aquí se introduce explícitamente `step` y `reset`, que son elementos de UI y no solo contenido del problema.
 - Focos:
-  botones de `step`, `run`, `reset`, y registro visual de ejecución.
+  botones de `step`, `run`, `reset`, y estado intermedio del tablero.
 
 ### `W1-L3`
 - Driver específico recomendado: sí.
 - Razón:
-  aquí conviene guiar al usuario a mirar primero el tablero y el objetivo antes de tocar bloques.
+  aquí conviene guiar al usuario a leer la descripción, usar la paleta izquierda y apoyarse en la salida para corregir lo que falta.
 - Focos:
-  panel del tablero, comparación entre estado inicial y objetivo, luego superficie del programa.
-
-### `W1-L4`
-- Driver específico recomendado: no obligatorio.
-- Razón:
-  este nivel funciona mejor como checkpoint.
-- Alternativa:
-  usar solo mensajes de `teaching` / `teachingPlan` y no un driver nuevo, para no sobre-guiar el cierre del onboarding.
+  `play-level-description`, `editor-palette-base-body`, `play-output-panel`, además de la colocación mínima de estructura y literal.
 
 ## Regla sugerida para implementación
 
 - Mantener un driver genérico para todos los niveles.
 - Añadir drivers específicos solo cuando un nivel introduce un elemento nuevo de interfaz.
 - En onboarding, eso aplica claramente a `W1-L1`, `W1-L2` y `W1-L3`.
-- `W1-L4` puede quedarse sin driver específico para medir autonomía básica.
+- El mundo de onboarding queda recortado a `W1-L1`–`W1-L3`; no se necesita un `W1-L4`.

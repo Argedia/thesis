@@ -25,6 +25,7 @@ export interface PlayEditorSurfaceProps extends EditorSurfaceAdapter {
 	onSetBlockLimit?: (limitKey: string, nextValue: number) => void;
 	maxBlocks: number;
 	disabled?: boolean;
+	forceSidePaletteExpanded?: boolean;
 	highlightedNodeId?: string | null;
 	breakpointNodeIds?: string[];
 	onToggleBreakpoint?: (nodeId: string) => void;

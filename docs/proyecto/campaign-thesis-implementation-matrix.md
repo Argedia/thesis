@@ -1,7 +1,7 @@
 # Matriz de implementación de campaña para tesis
 
 ## Propósito
-Traducir la secuencia pedagógica final a una decisión práctica de implementación:
+Traducir la secuencia canónica de campaña a una decisión práctica de implementación:
 
 - qué niveles del repo ya sirven;
 - cuáles requieren adaptación;
@@ -12,6 +12,9 @@ Traducir la secuencia pedagógica final a una decisión práctica de implementac
 
 ### Niveles ya útiles o casi útiles
 - `intro-transfer`
+- `campaign-w0-l1-first-contact`
+- `campaign-w0-l2-step-and-reset`
+- `campaign-w0-l3-read-before-run`
 - `campaign-01-stack-top-transfer`
 - `campaign-02-stack-build-from-scratch`
 - `campaign-03-queue-stack-reverse`
@@ -38,24 +41,23 @@ Los niveles `campaign-w2-*`, `campaign-w3-*`, `campaign-w4-*`, `campaign-w5-*`, 
 
 | Nivel tesis | Objetivo principal | Fuente sugerida | Estado | Decisión |
 |---|---|---|---|---|
-| `W1-L1` | primer contacto con arrastrar, ejecutar y observar | `intro-transfer` | viable | `Adaptar` |
-| `W1-L2` | usar `step` y `reset` para depurar | `intro-transfer` | viable | `Adaptar` |
-| `W1-L3` | leer estado inicial y objetivo antes de programar | `campaign-01-stack-top-transfer` | viable | `Adaptar` |
-| `W1-L4` | mini reto autónomo de onboarding | `campaign-01-stack-top-transfer` o nivel nuevo corto | parcial | `Crear` |
+| `W1-L1` | arrastrar, elegir operación y ejecutar | `campaign-w0-l1-first-contact` | listo | `Ya sirve` |
+| `W1-L2` | usar `step` y `reset` para depurar | `campaign-w0-l2-step-and-reset` | listo | `Ya sirve` |
+| `W1-L3` | usar descripción, paleta izquierda y salida | `campaign-w0-l3-read-before-run` | listo | `Ya sirve` |
 | `W2-L1` | LIFO básico con transferencia de tope | `campaign-01-stack-top-transfer` | listo | `Ya sirve` |
 | `W2-L2` | construir pila objetivo con repetición | `campaign-02-stack-build-from-scratch` | listo | `Ya sirve` |
-| `W2-L3` | usar pila auxiliar para reordenar | `campaign-05-custom-function-helper` sin función obligatoria | base técnica útil | `Adaptar` |
-| `W2-L4` | cierre de pila con restricción simple | variante de `campaign-02` o `campaign-05` | parcial | `Crear` |
-| `W3-L1` | FIFO básico en cola | variante simplificada de `campaign-03-queue-stack-reverse` sin foco en stack | parcial | `Crear` |
-| `W3-L2` | rotación sin romper FIFO | nivel nuevo de cola | faltante | `Crear` |
-| `W3-L3` | cierre de cola en reto simple | variante de `W3-L2` con restricción | faltante | `Crear` |
-| `W4-L1` | operaciones en extremos de lista | nivel nuevo con `append/prepend` | faltante | `Crear` |
+| `W2-L3` | usar pila auxiliar para destapar y restaurar | variante nueva de pila | faltante | `Crear` |
+| `W2-L4` | cierre de pila con restricción simple | variante nueva de pila | faltante | `Crear` |
+| `W3-L1` | FIFO básico en cola pura | nivel nuevo de cola | faltante | `Crear` |
+| `W3-L2` | rotación de cola sin inversión | nivel nuevo de cola | faltante | `Crear` |
+| `W3-L3` | invertir cola usando pila auxiliar | `campaign-03-queue-stack-reverse` | listo | `Ya sirve` |
+| `W4-L1` | construir desde extremos con `append/prepend` | nivel nuevo de lista | faltante | `Crear` |
 | `W4-L2` | recorte de bordes | `campaign-04-list-trim-edges` | listo | `Ya sirve` |
-| `W4-L3` | reconstrucción simple con operaciones de extremos | nivel nuevo de lista | faltante | `Crear` |
-| `W5-L1` | comparar stack, queue y list en reto pequeño | `mixed-playground` como base de tablero, no como nivel final | base técnica útil | `Adaptar` |
-| `W5-L2` | resolver transformación mixta con estructura auxiliar | `campaign-03-queue-stack-reverse` o `campaign-06-custom-function-mixed` sin función obligatoria | base útil | `Adaptar` |
-| `W5-L3` | reto mixto con restricciones | `campaign-065-synthesis-challenge` simplificado | riesgo medio | `Adaptar` |
-| `W5-L4` | cierre de campaña con integración simple | nivel nuevo mixto corto | faltante | `Crear` |
+| `W4-L3` | reconstrucción de secuencia con extremos | nivel nuevo de lista | faltante | `Crear` |
+| `W5-L1` | comparar stack, queue y list | `mixed-playground` como base conceptual | base técnica útil | `Adaptar` |
+| `W5-L2` | transferencia mixta `queue + stack` | `campaign-03-queue-stack-reverse` como punto de partida | base útil | `Adaptar` |
+| `W5-L3` | usar `list` como apoyo de integración | nivel nuevo mixto | faltante | `Crear` |
+| `W5-L4` | cierre final con las tres estructuras | nivel nuevo mixto | faltante | `Crear` |
 
 ## Revisión de sentido lógico con el editor
 
@@ -93,55 +95,56 @@ Problema:
 - hoy existe un nivel mixto `queue + stack`, pero no un nivel de cola pura suficientemente claro para introducir FIFO sin apoyo inmediato de otra estructura.
 
 Corrección:
-- crear al menos `2` niveles nuevos de cola pura antes del nivel mixto.
+- crear `2` niveles nuevos de cola pura antes del nivel mixto `W3-L3`.
 
 ### 2. Falta mundo de lista realmente completo
 Problema:
 - hoy existe un buen nivel de recorte de bordes, pero no un nivel claro de construcción con `append/prepend`.
 
 Corrección:
-- crear al menos `2` niveles nuevos de lista, uno de construcción y otro de cierre.
+- crear exactamente `2` niveles nuevos de lista: uno de construcción y uno de cierre.
 
-### 3. El onboarding todavía depende demasiado de niveles de estructuras existentes
+### 3. El onboarding ya no debe depender de niveles heredados de estructuras
 Problema:
-- si se reutiliza sin cambios `campaign-01`, el primer contacto del usuario entra demasiado rápido al concepto de pila.
+- si onboarding reutiliza niveles de pila, el usuario aprende semántica de estructura antes de dominar el editor.
 
 Corrección:
-- usarlo solo como base de tablero o crear un nivel onboarding más neutro.
+- usar únicamente la serie `campaign-w0-*` como base del onboarding.
 
 ### 4. Integración actual está sesgada por funciones/tipos
 Problema:
 - los niveles mixtos existentes en la rama vieja empujan demasiado funciones o tipos.
 
 Corrección:
-- los niveles de integración de tesis deben reconstruirse como retos mixtos cortos con estructuras lineales y restricciones simples.
+- los niveles `W5-L1`, `W5-L3` y `W5-L4` deben reconstruirse como retos lineales puros.
 
 ## Backlog mínimo recomendado
 
-### Reutilizar casi directo
+### Reutilizar directo
+- `campaign-w0-l1-first-contact`
+- `campaign-w0-l2-step-and-reset`
+- `campaign-w0-l3-read-before-run`
 - `campaign-01-stack-top-transfer`
 - `campaign-02-stack-build-from-scratch`
 - `campaign-04-list-trim-edges`
+- `campaign-03-queue-stack-reverse`
 
 ### Adaptar
-- `intro-transfer`
-- `campaign-03-queue-stack-reverse`
 - `mixed-playground`
 
 ### Crear desde cero
-- `W1-L4`
-- `W2-L4`
-- `W2-L1`
-- `W2-L2`
 - `W2-L3`
+- `W2-L4`
 - `W3-L1`
-- `W3-L3`
-- `W4-L4`
-
-### Crear probablemente desde cero, aunque con referencia parcial
+- `W3-L2`
 - `W4-L1`
-- `W4-L2`
 - `W4-L3`
+- `W5-L3`
+- `W5-L4`
+
+### Crear con referencia parcial
+- `W5-L1`
+- `W5-L2`
 
 ## Conclusión operativa
 Si se busca una campaña de tesis coherente con el software real y con el scope acordado:
@@ -151,10 +154,15 @@ Si se busca una campaña de tesis coherente con el software real y con el scope 
 - sí conviene rescatar `3` o `4` niveles bien construidos ya existentes;
 - el resto debe diseñarse explícitamente para onboarding, cola, lista e integración acotada.
 
-La conclusión práctica es que la campaña final de tesis **no está mayormente implementada todavía**. Lo que existe hoy es una mezcla de:
+La conclusión práctica es que la campaña final de tesis está **parcialmente implementada**. Hoy ya existe una base sólida de:
 
-- unos pocos niveles realmente útiles;
-- una exploración previa de funciones/tipos;
-- y varios stubs de mundos antiguos.
+- onboarding básico;
+- introducción de pila;
+- un nivel mixto fuerte de `queue + stack`;
+- y un nivel fuerte de bordes de lista.
 
-Eso no es un problema si se documenta bien: sirve justamente para separar qué se conserva, qué se adapta y qué se construye de forma deliberada para la versión final de tesis.
+Lo faltante es cerrar deliberadamente:
+
+- el mundo de cola pura;
+- el mundo de lista completo;
+- y el bloque final de integración de las tres estructuras.

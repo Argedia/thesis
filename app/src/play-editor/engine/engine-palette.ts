@@ -152,6 +152,9 @@ export const createBlockFromPalette = async (options: {
 		);
 	}
 	if (block.kind === "value") {
+		if (block.literalValue !== null && block.literalValue !== undefined) {
+			return createValueBlock(block.literalValue);
+		}
 		const literalValue = await options.promptForValueText(block.literalValue ?? "item");
 		if (literalValue === null) {
 			options.emitStatus(t("messages.valueBlockCancelled"));

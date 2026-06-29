@@ -5,34 +5,22 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
+      "values": [1, 2],
       "properties": { "color": "#f6b457", "nodeAutoTaint": false }
-    },
-    {
-      "id": "B",
-      "kind": "stack",
-      "values": [],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
     }
   ],
   "goalState": [
     {
       "id": "A",
       "kind": "stack",
-      "values": [1],
+      "values": [],
       "properties": { "color": "#f6b457", "nodeAutoTaint": false }
-    },
-    {
-      "id": "B",
-      "kind": "stack",
-      "values": [3, 2],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
     }
   ],
   "constraints": {
     "operationPolicy": {
-      "POP": "required",
-      "PUSH": "required",
+      "POP": "permitted",
+      "PUSH": "forbidden",
       "DEQUEUE": "forbidden",
       "ENQUEUE": "forbidden",
       "APPEND": "forbidden",
@@ -41,7 +29,8 @@
       "REMOVE_LAST": "forbidden",
       "GET_HEAD": "forbidden",
       "GET_TAIL": "forbidden",
-      "SIZE": "forbidden"
+      "SIZE": "forbidden",
+      "PEEK": "forbidden"
     },
     "forbiddenBlocks": [],
     "blockLimits": {
@@ -61,8 +50,8 @@
       "var_reference": 0,
       "var_operation": 0
     },
-    "maxSteps": 6,
-    "maxBlocksGlobal": 6,
+    "maxSteps": 2,
+    "maxBlocksGlobal": 2,
     "allowAdditionalRoutines": false
   },
   "playLayout": {
@@ -70,7 +59,7 @@
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": ["A"],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
@@ -81,7 +70,7 @@
     "structuresUsed": ["stack"],
     "difficulty": 1.2,
     "author": "Core Team",
-    "description": "Use step-by-step execution to follow a two-transfer solution, then reset and try again if needed.",
+    "description": "Use Step to watch two pop actions one by one, and use Reset to return to the initial stack and try again.",
     "catalog": "campaign"
   },
   "tooling": {
@@ -89,50 +78,50 @@
     "advancedToolsEnabled": true
   },
   "teachingPlan": {
-    "introduces": ["step-by-step execution and reset for debugging a short solution"],
-    "reinforces": ["repeat a transfer pattern", "watch execution timeline"],
+    "introduces": ["ejecución paso a paso y reinicio mientras repites una acción de pila"],
+    "reinforces": ["observe intermediate states", "repeat the same operation twice", "watch execution timeline"],
     "messages": [
       {
         "trigger": "level_start",
-        "title": "This level is for stepping through the program",
-        "body": "The solution is still short, but now it has more than one transfer. Use Step to see each change happen, and use Reset if you want to restart the board from the beginning.",
-        "concepts": ["step", "reset", "timeline"]
+        "title": "Use Step and Reset with one stack",
+        "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+        "concepts": ["step", "reset", "intermediate state", "repeated action"]
       },
       {
         "trigger": "first_failure",
-        "title": "Watch the board after each step",
-        "body": "If the result is not right, inspect the board after each action. The goal is not only to finish, but also to understand which move changes the state.",
-        "concepts": ["debugging", "intermediate state"]
+        "title": "Check the stack after the first move",
+        "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+        "concepts": ["step", "intermediate state", "one remaining element"]
       },
       {
         "trigger": "repeated_failure",
-        "title": "Repeat the same transfer rule carefully",
-        "body": "This level works by repeating the same move twice. Step through it and check whether each transfer leaves the board closer to the goal.",
-        "concepts": ["repeatable move", "closer to goal"]
+        "title": "This level repeats the same move twice",
+        "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+        "concepts": ["repeatable move", "single structure", "reset"]
       }
     ]
   },
   "teaching": {
-    "introduces": ["step-by-step execution and reset for debugging a short solution"],
-    "reinforces": ["repeat a transfer pattern", "watch execution timeline"],
+    "introduces": ["ejecución paso a paso y reinicio mientras repites una acción de pila"],
+    "reinforces": ["observe intermediate states", "repeat the same operation twice", "watch execution timeline"],
     "messages": [
       {
         "trigger": "level_start",
-        "title": "This level is for stepping through the program",
-        "body": "The solution is still short, but now it has more than one transfer. Use Step to see each change happen, and use Reset if you want to restart the board from the beginning.",
-        "concepts": ["step", "reset", "timeline"]
+        "title": "Use Step and Reset with one stack",
+        "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+        "concepts": ["step", "reset", "intermediate state", "repeated action"]
       },
       {
         "trigger": "first_failure",
-        "title": "Watch the board after each step",
-        "body": "If the result is not right, inspect the board after each action. The goal is not only to finish, but also to understand which move changes the state.",
-        "concepts": ["debugging", "intermediate state"]
+        "title": "Check the stack after the first move",
+        "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+        "concepts": ["step", "intermediate state", "one remaining element"]
       },
       {
         "trigger": "repeated_failure",
-        "title": "Repeat the same transfer rule carefully",
-        "body": "This level works by repeating the same move twice. Step through it and check whether each transfer leaves the board closer to the goal.",
-        "concepts": ["repeatable move", "closer to goal"]
+        "title": "This level repeats the same move twice",
+        "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+        "concepts": ["repeatable move", "single structure", "reset"]
       }
     ]
   }

@@ -5,6 +5,7 @@ import { Tooltip, TooltipTrigger } from "react-aria-components";
 import { Panel, PuzzleBoard, Screen } from "@thesis/ui-editor";
 import { getPermittedOperationsFromPolicy } from "@thesis/game-system";
 import { APP_ROUTES } from "../types/routes";
+import { formatDifficultyScore, renderDifficultyStars } from "../difficulty-display";
 import { ScreenHeader } from "./ui/ScreenHeader";
 import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
@@ -15,9 +16,6 @@ import {
   type SortMode
 } from "../features/community-levels/catalog";
 import { useCommunityLevelsCatalog } from "../features/community-levels/useCommunityLevelsCatalog";
-
-const formatDifficultyScore = (difficulty: number): string =>
-  difficulty.toFixed(1);
 
 export function CommunityLevelsScreen() {
   const { t } = useTranslation();
@@ -355,7 +353,14 @@ export function CommunityLevelsScreen() {
                       onClick={() => setSelectedLevel(level)}
                     >
                       <div className="level-card-header">
-                        <span className="difficulty-pill">{formatDifficultyScore(level.metadata.difficulty)}</span>
+                        <span
+                          className="difficulty-pill"
+                          title={`${t("preview.difficulty")} ${formatDifficultyScore(level.metadata.difficulty)}`}
+                          aria-label={`${t("preview.difficulty")} ${formatDifficultyScore(level.metadata.difficulty)}`}
+                        >
+                          {t("preview.difficulty")}:&nbsp;
+                          {renderDifficultyStars(level.metadata.difficulty)}
+                        </span>
                         <span className="completion-pill">
                           {isCompleted ? t("preview.completionOption.completed") : t("preview.completionOption.pending")}
                         </span>
@@ -386,7 +391,14 @@ export function CommunityLevelsScreen() {
                   <div>
                     <h2>{selectedLevel.title}</h2>
                   </div>
-                  <span className="difficulty-pill">{formatDifficultyScore(selectedLevel.metadata.difficulty)}</span>
+                  <span
+                    className="difficulty-pill"
+                    title={`${t("preview.difficulty")} ${formatDifficultyScore(selectedLevel.metadata.difficulty)}`}
+                    aria-label={`${t("preview.difficulty")} ${formatDifficultyScore(selectedLevel.metadata.difficulty)}`}
+                  >
+                    {t("preview.difficulty")}:&nbsp;
+                    {renderDifficultyStars(selectedLevel.metadata.difficulty)}
+                  </span>
                 </div>
 
                 <p className="preview-description">

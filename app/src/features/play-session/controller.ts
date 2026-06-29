@@ -242,9 +242,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     try {
       while (!this.runAbort) {
-        this.assertRuntimeStepBudget();
         const currentPoint = getCurrentExecutionPoint(this.runtimeFrames, prepared);
         if (!currentPoint) break;
+        this.assertRuntimeStepBudget();
         this.updateExecutionFocus(prepared);
 
         if (

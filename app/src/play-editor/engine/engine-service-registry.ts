@@ -131,7 +131,7 @@ export interface EngineRegistryDeps {
 	clearExpressionSlot: (slotKey: string) => void;
 	assignLiteralExpressionIntoSlot: (slotKey: string, rawValue: string, expectedType: "value" | "boolean" | "any") => void;
 	getPaletteBlocks: () => PaletteBlock[];
-	getDefinitionDescriptor: (block: PaletteBlock) => { chip?: string; label: string };
+	getDefinitionDescriptor: (block: PaletteBlock) => { chip?: string; chipIcon?: string; label: string; metaText?: string; metaIcon?: string };
 	getPaletteBlockLimitState: (block: PaletteBlock) => {
 		limit: number;
 		remaining: number;

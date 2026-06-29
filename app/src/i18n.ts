@@ -177,7 +177,8 @@ const resources = {
 				playBoard: "Play Board",
 				executionFeed: "Execution Feed",
 				output: "Output",
-				blocksCount: "{{count}}/{{max}} blocks",
+				blocksCount: "{{count}}/{{max}}",
+				blocksCountTooltip: "Number of blocks",
 				runHint: "Feedback here.",
 				feedHint: "Run your program to watch the data move.",
 				expandOutput: "Expand output",
@@ -658,7 +659,7 @@ const resources = {
 				draft: "Borrador"
 			},
 			actions: {
-				play: "Ejecutar",
+				play: "Jugar",
 				step: "Paso",
 				pause: "Pausa",
 				stop: "Detener",
@@ -738,7 +739,8 @@ const resources = {
 				playBoard: "Tablero de Ejecución",
 				executionFeed: "Registro de Ejecución",
 				output: "Salida",
-				blocksCount: "{{count}}/{{max}} bloques",
+				blocksCount: "{{count}}/{{max}}",
+				blocksCountTooltip: "Numero de bloques",
 				runHint: "Feedback aquí.",
 				feedHint: "Ejecuta tu programa para ver cómo se mueven los datos.",
 				expandOutput: "Expandir salida",

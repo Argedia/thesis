@@ -53,12 +53,14 @@ export const buildWheelOptions = (
 }> => {
 		const allowedSet = new Set(allowedOperations);
 		return [
-			...getStructureCompatibleOperations(structureKind).map((operation) => ({
-			operation,
-			label: describeOperation(operation, structureId),
-			className: blockColorClass(operation),
-			disabled: !allowedSet.has(operation)
-		})),
+			...getStructureCompatibleOperations(structureKind)
+				.filter((operation) => allowedSet.has(operation))
+				.map((operation) => ({
+					operation,
+					label: describeOperation(operation, structureId),
+					className: blockColorClass(operation),
+					disabled: false
+				})),
 		{
 			operation: null,
 			label: t("editor.base"),

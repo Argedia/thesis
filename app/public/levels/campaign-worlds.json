@@ -5,14 +5,24 @@
     "theme": "onboarding",
     "mapStyle": "grid",
     "worldUnlockRule": "always",
-    "requiredCompletions": 4,
+    "requiredCompletions": 3,
     "startNodeId": "start",
     "hubGoal": {
       "title": "Base de uso",
       "objective": "Aprende a leer el tablero, ejecutar y corregir una solución simple.",
       "milestones": [
-        { "id": "m1", "minCompleted": 1, "title": "Onboarding completo", "description": "Puedes pasar al primer mundo de estructuras." },
-        { "id": "m2", "minCompleted": 2, "title": "Base reforzada", "description": "Ya dominas el flujo básico antes de profundizar en estructuras." }
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Primer contacto",
+          "description": "Ya sabes abrir un nivel, arrastrar un bloque y ejecutar."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 3,
+          "title": "Onboarding completo",
+          "description": "Ya dominas el flujo básico del editor antes de pasar a estructuras."
+        }
       ]
     },
     "nodes": [
@@ -37,45 +47,47 @@
         "gridCol": 2,
         "gridRow": 0,
         "titleOverride": "W1-L2 · Step y reset",
-        "descriptionOverride": "Aprende a seguir una solución paso a paso y a reiniciar el tablero cuando necesites reintentar."
+        "descriptionOverride": "Aprende a seguir dos acciones sobre una misma pila paso a paso y a reiniciar el tablero cuando necesites reintentar."
       },
       {
         "id": "n3",
         "levelId": "campaign-w0-l3-read-before-run",
         "gridCol": 3,
         "gridRow": 0,
-        "titleOverride": "W1-L3 · Leer antes de ejecutar",
-        "descriptionOverride": "Compara estado inicial y objetivo antes de programar para cambiar solo lo necesario."
-      },
-      {
-        "id": "n4",
-        "levelId": "campaign-w0-l4-onboarding-checkpoint",
-        "gridCol": 4,
-        "gridRow": 0,
-        "titleOverride": "W1-L4 · Cierre de onboarding",
-        "descriptionOverride": "Mini reto autónomo para usar el flujo completo del editor sin guía paso a paso."
+        "titleOverride": "W1-L3 · Descripción, bloques y salida",
+        "descriptionOverride": "Aprende a leer la descripción del nivel, usar la paleta izquierda y apoyarte en la salida para corregir lo que falta."
       }
     ],
     "edges": [
       { "from": "start", "to": "n1", "type": "normal" },
       { "from": "n1", "to": "n2", "type": "normal" },
-      { "from": "n2", "to": "n3", "type": "normal" },
-      { "from": "n3", "to": "n4", "type": "normal" }
+      { "from": "n2", "to": "n3", "type": "normal" }
     ],
-    "grid": { "columns": 5, "rows": 1, "marginX": 12, "marginY": 34 }
+    "grid": { "columns": 4, "rows": 1, "marginX": 16, "marginY": 34 }
   },
   {
-    "id": "world-thesis-stack-preview",
+    "id": "world-thesis-stack",
     "name": "W2 · Pila",
     "theme": "stack",
     "mapStyle": "grid",
-    "requiredCompletions": 1,
+    "requiredCompletions": 4,
     "startNodeId": "start",
     "hubGoal": {
       "title": "Semántica LIFO",
-      "objective": "Empieza a practicar pila con un reto pequeño de construcción paso a paso.",
+      "objective": "Practica cómo funciona una pila y cómo usar una pila auxiliar para resolver un reto corto.",
       "milestones": [
-        { "id": "m1", "minCompleted": 1, "title": "Primer nivel de pila", "description": "Ya visualizaste el arranque del mundo de pila." }
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Tope identificado",
+          "description": "Ya distingues el tope como punto natural de trabajo."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 4,
+          "title": "Mundo pila completo",
+          "description": "Ya puedes resolver retos básicos de pila con autonomía razonable."
+        }
       ]
     },
     "nodes": [
@@ -88,16 +100,247 @@
       },
       {
         "id": "n1",
-        "levelId": "campaign-03-queue-stack-reverse",
+        "levelId": "campaign-01-stack-top-transfer",
         "gridCol": 1,
         "gridRow": 0,
-        "titleOverride": "W2-L1 · Queue + Stack Reverse",
-        "descriptionOverride": "Preview del siguiente nivel visible del mundo de pila en la campaña nueva."
+        "titleOverride": "W2-L1 · Transferencia de tope",
+        "descriptionOverride": "Introduce la idea más básica de pila: solo el tope está disponible de forma natural."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-02-stack-build-from-scratch",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W2-L2 · Construir pila objetivo",
+        "descriptionOverride": "Practica cómo construir una pila final respetando el orden LIFO."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w2-1",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W2-L3 · Destapar y restaurar",
+        "descriptionOverride": "Nivel planificado para usar una pila auxiliar y acceder a elementos que no están en el tope."
+      },
+      {
+        "id": "n4",
+        "levelId": "campaign-w2-2",
+        "gridCol": 4,
+        "gridRow": 0,
+        "titleOverride": "W2-L4 · Cierre de pila",
+        "descriptionOverride": "Nivel planificado para cerrar el mundo con una restricción simple de estrategia o pasos."
       }
     ],
     "edges": [
-      { "from": "start", "to": "n1", "type": "normal" }
+      { "from": "start", "to": "n1", "type": "normal" },
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" },
+      { "from": "n3", "to": "n4", "type": "normal" }
     ],
-    "grid": { "columns": 2, "rows": 1, "marginX": 20, "marginY": 34 }
+    "grid": { "columns": 5, "rows": 1, "marginX": 12, "marginY": 34 }
+  },
+  {
+    "id": "world-thesis-queue",
+    "name": "W3 · Cola + un poco de pila",
+    "theme": "queue",
+    "mapStyle": "grid",
+    "requiredCompletions": 3,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Semántica FIFO",
+      "objective": "Comprende el frente, el final y cómo una pila auxiliar cambia lo que una cola puede lograr.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "FIFO básico",
+          "description": "Ya distingues qué sale primero y qué entra al final."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 3,
+          "title": "Mundo cola completo",
+          "description": "Ya puedes trabajar con cola pura y con un apoyo puntual de pila."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo de cola. Desde aquí entras al primer reto."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w3-1",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W3-L1 · Frente y final",
+        "descriptionOverride": "Introduce cola pura: sacar del frente y enviar al final de otra cola sin romper el orden."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-w3-2",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W3-L2 · Rotar sin invertir",
+        "descriptionOverride": "Practica una rotación simple de cola moviendo el frente al final sin invertir la secuencia."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-03-queue-stack-reverse",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W3-L3 · Invertir cola con pila auxiliar",
+        "descriptionOverride": "Usa una pila auxiliar para invertir una cola después de haber entendido FIFO puro."
+      }
+    ],
+    "edges": [
+      { "from": "start", "to": "n1", "type": "normal" },
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" }
+    ],
+    "grid": { "columns": 4, "rows": 1, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-thesis-list",
+    "name": "W4 · Lista",
+    "theme": "list",
+    "mapStyle": "grid",
+    "requiredCompletions": 3,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Extremos flexibles",
+      "objective": "Aprende cuándo una lista es mejor que una pila o una cola para trabajar en ambos extremos.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Primer contacto con lista",
+          "description": "Ya usaste la lista como estructura flexible en sus extremos."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 3,
+          "title": "Mundo lista completo",
+          "description": "Ya puedes construir y recortar secuencias usando operaciones de extremos."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo de lista. Desde aquí entras al primer reto."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w4-1",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W4-L1 · Construir desde extremos",
+        "descriptionOverride": "Nivel planificado para introducir APPEND y PREPEND como ventaja básica de la lista."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-04-list-trim-edges",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W4-L2 · Recorte de bordes",
+        "descriptionOverride": "Practica cómo quitar primer y último elemento sin alterar innecesariamente el interior."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w4-2",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W4-L3 · Reconstrucción con extremos",
+        "descriptionOverride": "Nivel planificado para combinar inserción y extracción en extremos según la meta."
+      }
+    ],
+    "edges": [
+      { "from": "start", "to": "n1", "type": "normal" },
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" }
+    ],
+    "grid": { "columns": 4, "rows": 1, "marginX": 16, "marginY": 34 }
+  },
+  {
+    "id": "world-thesis-integration",
+    "name": "W5 · Integración",
+    "theme": "integration",
+    "mapStyle": "grid",
+    "requiredCompletions": 4,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Estrategia con estructuras lineales",
+      "objective": "Compara stack, queue y list y elige la mejor estrategia para un reto mixto corto.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 2,
+          "title": "Comparación funcional",
+          "description": "Ya distingues mejor cuándo conviene cada estructura."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 4,
+          "title": "Campaña completa",
+          "description": "Ya puedes usar el software con autonomía moderada mientras aplicas estructuras lineales."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo final. Desde aquí entras a los retos de integración."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w5-1",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W5-L1 · Elegir la estructura correcta",
+        "descriptionOverride": "Nivel planificado para comparar stack, queue y list en un mismo tablero."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-w5-2",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W5-L2 · Transferencia mixta",
+        "descriptionOverride": "Nivel planificado para coordinar queue y stack en una transformación compuesta."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w5-3",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W5-L3 · Lista como apoyo de integración",
+        "descriptionOverride": "Nivel planificado para usar la lista como apoyo flexible dentro de un reto mixto."
+      },
+      {
+        "id": "n4",
+        "levelId": "campaign-w5-4",
+        "gridCol": 4,
+        "gridRow": 0,
+        "titleOverride": "W5-L4 · Cierre de campaña",
+        "descriptionOverride": "Nivel planificado para cerrar la campaña con stack, queue y list en un problema final corto."
+      }
+    ],
+    "edges": [
+      { "from": "start", "to": "n1", "type": "normal" },
+      { "from": "n1", "to": "n2", "type": "normal" },
+      { "from": "n2", "to": "n3", "type": "normal" },
+      { "from": "n3", "to": "n4", "type": "normal" }
+    ],
+    "grid": { "columns": 5, "rows": 1, "marginX": 12, "marginY": 34 }
   }
 ]

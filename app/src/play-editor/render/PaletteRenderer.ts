@@ -11,6 +11,14 @@ type PaletteBlockLimitState = {
   hide: boolean;
 };
 
+type PaletteChipDescriptor = {
+  chip?: string;
+  chipIcon?: string;
+  label: string;
+  metaText?: string;
+  metaIcon?: string;
+};
+
 export interface PaletteRendererContext {
   getPaletteBlocks(): PaletteBlock[];
   getIsActiveRoutineFunction(): boolean;
@@ -34,7 +42,7 @@ export interface PaletteRendererContext {
   getFunctionTypeExclusiveHintText(): string;
   getVariableSubgroupLabel(kind: "declared" | "tools"): string;
   getVariableScopeLabel(kind: "global" | "routine"): string;
-  getDefinitionDescriptor(block: PaletteBlock): { chip?: string; label: string };
+  getDefinitionDescriptor(block: PaletteBlock): PaletteChipDescriptor;
   getPaletteBlockLimitState(block: PaletteBlock): PaletteBlockLimitState | null;
   adjustBlockLimitForPaletteBlock(block: PaletteBlock, delta: number): void;
   getBlocksHeadingText(): string;
@@ -45,6 +53,146 @@ export interface PaletteRendererContext {
 
 export class PaletteRenderer {
   public constructor(private readonly ctx: PaletteRendererContext) {}
+
+  private createChipIcon(iconId: string): SVGSVGElement {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    svg.classList.add("block-chip-icon");
+
+    const makePath = (d: string): void => {
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", d);
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-width", "1.9");
+      path.setAttribute("stroke-linecap", "round");
+      path.setAttribute("stroke-linejoin", "round");
+      svg.appendChild(path);
+    };
+
+    switch (iconId) {
+      case "stack":
+        makePath("M8 7h8");
+        makePath("M7 12h10");
+        makePath("M6 17h12");
+        break;
+      case "queue":
+        makePath("M5 8h3v8H5z");
+        makePath("M10 8h3v8h-3z");
+        makePath("M15 8h3v8h-3z");
+        makePath("M18.5 12H21");
+        break;
+      case "list":
+        makePath("M4.5 9h4v6h-4z");
+        makePath("M9.5 12h4");
+        makePath("M14.5 9h4v6h-4z");
+        break;
+      case "items":
+        makePath("M6 6h5v5H6z");
+        makePath("M13 6h5v5h-5z");
+        makePath("M6 13h5v5H6z");
+        makePath("M13 13h5v5h-5z");
+        break;
+      case "doubly-linked-list":
+        makePath("M5 12h14");
+        makePath("M9 8l-4 4 4 4");
+        makePath("M15 8l4 4-4 4");
+        break;
+      case "circular-list":
+        makePath("M18 10a6 6 0 1 0 1 5");
+        makePath("M19 6v5h-5");
+        break;
+      case "literal":
+        makePath("M9 5l-3 14");
+        makePath("M15 5l-3 14");
+        makePath("M5 9h14");
+        makePath("M4 15h14");
+        break;
+      case "function":
+        makePath("M15 5a4 4 0 1 0 0 8H9a4 4 0 1 0 0 8");
+        break;
+      case "object":
+        makePath("M12 4l7 4v8l-7 4-7-4V8l7-4z");
+        break;
+      case "member":
+        makePath("M8 8h8");
+        makePath("M8 12h5");
+        makePath("M8 16h8");
+        makePath("M17 12h2");
+        break;
+      case "variable":
+        makePath("M6 6l6 12 6-12");
+        break;
+      case "operation":
+        makePath("M7 12h10");
+        makePath("M12 7v10");
+        break;
+      case "for-each":
+        makePath("M8 7h8");
+        makePath("M8 12h6");
+        makePath("M8 17h8");
+        makePath("M15 10l3 2-3 2");
+        break;
+      case "new":
+        makePath("M12 5v14");
+        makePath("M5 12h14");
+        break;
+      case "field-read":
+        makePath("M2 12s4-5 10-5 10 5 10 5-4 5-10 5S2 12 2 12z");
+        makePath("M12 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3");
+        break;
+      case "field-assign":
+        makePath("M4 17.5l3.5-.8L18 6.2 15.8 4 5.3 14.5 4 17.5z");
+        makePath("M14.8 5l2.2 2.2");
+        break;
+      case "type":
+        makePath("M12 4l7 4v8l-7 4-7-4V8l7-4z");
+        makePath("M12 8v8");
+        break;
+      case "conditional":
+        makePath("M12 4l8 8-8 8-8-8 8-8z");
+        break;
+      case "else":
+        makePath("M6 7h7");
+        makePath("M6 12h12");
+        makePath("M6 17h7");
+        break;
+      case "while":
+        makePath("M18 8a7 7 0 1 0 1 6");
+        makePath("M19 4v5h-5");
+        break;
+      case "break":
+        makePath("M7 7h10v10H7z");
+        break;
+      case "declaration":
+        makePath("M12 5v14");
+        makePath("M5 12h14");
+        makePath("M7 8h0");
+        break;
+      case "assign":
+        makePath("M6 9h12");
+        makePath("M6 15h12");
+        break;
+      case "reference":
+        makePath("M10 14l-2 2a3 3 0 1 1-4-4l2-2");
+        makePath("M14 10l2-2a3 3 0 1 1 4 4l-2 2");
+        makePath("M9 15l6-6");
+        break;
+      case "return":
+        makePath("M19 12H7");
+        makePath("M11 8l-4 4 4 4");
+        break;
+      default:
+        makePath("M12 7v5");
+        makePath("M12 17h.01");
+        break;
+    }
+
+    return svg;
+  }
 
   private hasVisibleBlocksInLane(...lanes: PaletteLaneId[]): boolean {
     return lanes.some((lane) =>
@@ -84,6 +232,9 @@ export class PaletteRenderer {
       toggle.textContent = isCollapsed ? "◂" : "▸";
     }
     toggle.addEventListener("click", onToggle);
+    if (side === "right") {
+      setTutorialAnchor(toggle, "editor-palette-side-toggle");
+    }
     header.appendChild(toggle);
 
     return header;
@@ -149,12 +300,36 @@ export class PaletteRenderer {
     if (descriptor.chip) {
       const chip = document.createElement("span");
       chip.className = "block-chip";
-      chip.textContent = descriptor.chip;
+      if (descriptor.chipIcon) {
+        chip.appendChild(this.createChipIcon(descriptor.chipIcon));
+      } else {
+        chip.textContent = descriptor.chip;
+      }
       button.appendChild(chip);
     }
     const title = document.createElement("strong");
     title.textContent = descriptor.label;
     button.appendChild(title);
+
+    if (descriptor.metaText) {
+      button.classList.add("palette-compact-metric");
+      const meta = document.createElement("span");
+      meta.className = "palette-block-meta";
+
+      const count = document.createElement("span");
+      count.className = "palette-block-meta-count";
+      count.textContent = descriptor.metaText;
+      meta.appendChild(count);
+
+      if (descriptor.metaIcon) {
+        const metaIcon = document.createElement("span");
+        metaIcon.className = "palette-block-meta-icon";
+        metaIcon.appendChild(this.createChipIcon(descriptor.metaIcon));
+        meta.appendChild(metaIcon);
+      }
+
+      button.appendChild(meta);
+    }
 
     if (limitState) {
       if (limitState.editable) {
@@ -214,6 +389,16 @@ export class PaletteRenderer {
     if (this.ctx.getIsLocked() || isLevelLocked) {
       button.disabled = true;
     }
+    if (
+      block.kind === "var" &&
+      block.variableSourceId?.startsWith("__level_structure__") &&
+      block.variableName
+    ) {
+      setTutorialAnchor(button, `editor-palette-side-structure-${block.variableName}`);
+    }
+    if (block.kind === "value") {
+      setTutorialAnchor(button, "editor-palette-base-literal");
+    }
     button.addEventListener("pointerdown", (event) => {
       if (this.ctx.getIsLocked() || isLevelLocked) {
         return;
@@ -252,6 +437,9 @@ export class PaletteRenderer {
       sectionHeading.type = "button";
       sectionHeading.className = "palette-group-heading";
       sectionHeading.textContent = this.ctx.getPaletteGroupLabel(groupId);
+      if (lane === "base" && groupId === "expressions") {
+        setTutorialAnchor(sectionHeading, "editor-palette-group-expressions");
+      }
       const isExpanded = this.ctx.isPaletteGroupExpanded(lane, groupId);
       sectionHeading.setAttribute("aria-expanded", isExpanded ? "true" : "false");
       sectionHeading.addEventListener("click", () => {
@@ -294,21 +482,8 @@ export class PaletteRenderer {
             routineScopeBlocks.forEach((block) => this.appendPaletteButton(list, block));
           }
         } else {
-          if (variableToolBlocks.length > 0) {
-            const toolHeading = document.createElement("div");
-            toolHeading.className = "palette-subgroup-heading";
-            toolHeading.textContent = this.ctx.getVariableSubgroupLabel("tools");
-            list.appendChild(toolHeading);
-            variableToolBlocks.forEach((block) => this.appendPaletteButton(list, block));
-          }
-
-          if (declaredVariableBlocks.length > 0) {
-            const declaredHeading = document.createElement("div");
-            declaredHeading.className = "palette-subgroup-heading";
-            declaredHeading.textContent = this.ctx.getVariableSubgroupLabel("declared");
-            list.appendChild(declaredHeading);
-            declaredVariableBlocks.forEach((block) => this.appendPaletteButton(list, block));
-          }
+          variableToolBlocks.forEach((block) => this.appendPaletteButton(list, block));
+          declaredVariableBlocks.forEach((block) => this.appendPaletteButton(list, block));
         }
       } else {
         groupBlocks.forEach((block) => this.appendPaletteButton(list, block));
@@ -353,6 +528,7 @@ export class PaletteRenderer {
     const body = document.createElement("div");
     body.className = "palette-panel-body";
     if (!isCollapsed && !isEmpty) {
+      setTutorialAnchor(body, "editor-palette-base-body");
       const heading = document.createElement("div");
       heading.className = "builder-heading";
       heading.innerHTML = `<strong>${this.ctx.getBlocksHeadingText()}</strong><span>${this.ctx.getDragHintText()}</span>`;
@@ -396,6 +572,7 @@ export class PaletteRenderer {
     const body = document.createElement("div");
       body.className = "palette-panel-body";
       if (!isCollapsed && !isEmpty) {
+        setTutorialAnchor(body, "editor-palette-side-body");
         const sideStack = document.createElement("div");
         sideStack.className = "palette-side-stack";
 

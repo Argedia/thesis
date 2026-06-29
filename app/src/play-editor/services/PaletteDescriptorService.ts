@@ -3,20 +3,30 @@ import type { PaletteGroupId } from "../BlockMetadata";
 import { getLabelI18nKey, getPaletteGroup, getStaticChip } from "../BlockMetadata";
 
 export class PaletteDescriptorService {
+  private getVariableChipIcon(block: Pick<PaletteBlock, "declaredTypeRef">): string {
+    if (block.declaredTypeRef?.kind === "structure") {
+      return this.getStructureChip(block.declaredTypeRef.structureKind);
+    }
+    if (block.declaredTypeRef?.kind === "user") {
+      return "type";
+    }
+    return "variable";
+  }
+
   private getStructureChip(structureKind: PaletteBlock["structureKind"]): string {
     switch (structureKind) {
       case "stack":
-        return "⊟";
+        return "stack";
       case "queue":
-        return "⇒";
+        return "queue";
       case "list":
-        return "☰";
+        return "list";
       case "doubly-linked-list":
-        return "⇄";
+        return "doubly-linked-list";
       case "circular-list":
-        return "↻";
+        return "circular-list";
       default:
-        return "◈";
+        return "structure";
     }
   }
 
@@ -43,10 +53,11 @@ export class PaletteDescriptorService {
   public getDefinitionDescriptor(
     block: PaletteBlock,
     translate: (key: string) => string
-  ): { chip?: string; label: string } {
+  ): { chip?: string; chipIcon?: string; label: string; metaText?: string; metaIcon?: string } {
     if (block.kind === "structure") {
       return {
-        chip: this.getStructureChip(block.structureKind),
+        chip: "structure",
+        chipIcon: this.getStructureChip(block.structureKind),
         label: this.getStructureName(block, translate)
       };
     }
@@ -54,6 +65,7 @@ export class PaletteDescriptorService {
     if (block.kind === "routine_call") {
       return {
         chip: "FN",
+        chipIcon: "function",
         label:
           block.routineCallMode === "reference"
             ? (block.routineName ?? translate("blocks.function"))
@@ -64,6 +76,7 @@ export class PaletteDescriptorService {
     if (block.kind === "routine_value") {
       return {
         chip: "OBJ",
+        chipIcon: "object",
         label: block.routineName ?? translate("blocks.function")
       };
     }
@@ -71,6 +84,7 @@ export class PaletteDescriptorService {
     if (block.kind === "routine_member") {
       return {
         chip: block.routineMemberKind === "function" ? "MF" : "M",
+        chipIcon: "member",
         label:
           block.routineMemberKind === "function" && block.routineCallMode !== "reference"
             ? `${block.routineName ?? "object"}.${block.routineMemberName ?? "member"}()`
@@ -81,6 +95,7 @@ export class PaletteDescriptorService {
     if (block.kind === "var_operation") {
       return {
         chip: block.variableName?.slice(0, 3).toUpperCase() ?? "VAR",
+        chipIcon: this.getVariableChipIcon(block),
         label: block.variableName ?? translate("blocks.variable")
       };
     }
@@ -88,6 +103,7 @@ export class PaletteDescriptorService {
     if (block.kind === "var") {
       return {
         chip: block.variableName?.slice(0, 3).toUpperCase() ?? "VAR",
+        chipIcon: this.getVariableChipIcon(block),
         label: block.variableName ?? translate("blocks.variable")
       };
     }
@@ -104,6 +120,7 @@ export class PaletteDescriptorService {
         mode === "less_or_equal";
       return {
         chip: "OP",
+        chipIcon: "operation",
         label: isLogical
           ? translate("blocks.logicalOperator")
           : isComparison
@@ -115,6 +132,7 @@ export class PaletteDescriptorService {
     if (block.kind === "for_each") {
       return {
         chip: "FE",
+        chipIcon: "for-each",
         label: `${translate("blocks.forEach")} (${block.forEachSourceStructureId ?? "?"})`
       };
     }
@@ -122,6 +140,7 @@ export class PaletteDescriptorService {
     if (block.kind === "type_instance_new") {
       return {
         chip: "NEW",
+        chipIcon: "new",
         label: `new ${block.typeName ?? block.routineName ?? translate("blocks.type")}`
       };
     }
@@ -129,6 +148,7 @@ export class PaletteDescriptorService {
     if (block.kind === "type_field_read") {
       return {
         chip: "FLD",
+        chipIcon: "field-read",
         label: `${block.variableName ?? "obj"}.${block.typeFieldName ?? "field"}`
       };
     }
@@ -136,13 +156,28 @@ export class PaletteDescriptorService {
     if (block.kind === "type_field_assign") {
       return {
         chip: "SET",
+        chipIcon: "field-assign",
         label: `${block.variableName ?? "obj"}.${block.typeFieldName ?? "field"} =`
       };
     }
 
     const staticChip = getStaticChip(block.kind);
+    const staticIconMap: Partial<Record<PaletteBlock["kind"], string>> = {
+      value: "literal",
+      function_definition: "function",
+      type_definition: "type",
+      conditional: "conditional",
+      else: "else",
+      while: "while",
+      break: "break",
+      var_declaration: "declaration",
+      var_assign: "assign",
+      var_reference: "reference",
+      return: "return"
+    };
     return {
       chip: staticChip,
+      chipIcon: staticIconMap[block.kind],
       label: translate(getLabelI18nKey(block.kind))
     };
   }

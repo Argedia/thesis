@@ -5,7 +5,7 @@ import {
   serializeProgramDocument
 } from "../program-editor-core";
 import { createDefaultBlockLimits } from "../../play-editor/block-limits";
-import { CAMPAIGN_PLAN_TEMPLATES } from "./campaign-plan";
+import { getCampaignPlanTemplates } from "./campaign-plan";
 import type {
   LevelEditorDraftRecord,
   LevelEditorDraftSnapshot
@@ -110,12 +110,13 @@ export const seedCampaignPlanDraftRecords = (): {
   totalTemplates: number;
   createdIds: string[];
 } => {
+  const campaignPlanTemplates = getCampaignPlanTemplates();
   const now = nowIso();
   const existing = safeParseRecords(window.localStorage.getItem(STORAGE_KEY));
   const taken = new Set(existing.map((record) => record.id));
   const created: LevelEditorDraftRecord[] = [];
 
-  CAMPAIGN_PLAN_TEMPLATES.forEach((template) => {
+  campaignPlanTemplates.forEach((template) => {
     const id = `plan-${template.id}`;
     if (taken.has(id)) return;
 
@@ -143,7 +144,7 @@ export const seedCampaignPlanDraftRecords = (): {
 
   return {
     createdCount: created.length,
-    totalTemplates: CAMPAIGN_PLAN_TEMPLATES.length,
+    totalTemplates: campaignPlanTemplates.length,
     createdIds: created.map((record) => record.id)
   };
 };

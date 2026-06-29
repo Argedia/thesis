@@ -69,6 +69,85 @@ export interface BoardVariableSnapshot {
 const t = (key: string, options?: Record<string, unknown>) =>
 	i18next.t(key, options) as string;
 
+const getStructureKindBadge = (kind: StructureKind): { icon: "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list"; tooltip: string } => {
+	switch (kind) {
+		case "stack":
+			return { icon: "stack", tooltip: t("structures.stack") };
+		case "queue":
+			return { icon: "queue", tooltip: t("structures.queue") };
+		case "doubly-linked-list":
+			return { icon: "doubly-linked-list", tooltip: t("structures.doubly-linked-list") };
+		case "circular-list":
+			return { icon: "circular-list", tooltip: t("structures.circular-list") };
+		case "list":
+		default:
+			return { icon: "list", tooltip: t("structures.list") };
+	}
+};
+
+const drawStructureKindIcon = (
+	ctx: CanvasRenderingContext2D,
+	icon: "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list",
+	x: number,
+	y: number,
+	size: number,
+	color: string
+) => {
+	const left = x;
+	const top = y;
+	const s = size;
+	ctx.save();
+	ctx.strokeStyle = color;
+	ctx.lineWidth = Math.max(1.4, s * 0.1);
+	ctx.lineCap = "round";
+	ctx.lineJoin = "round";
+
+	const strokeRect = (rx: number, ry: number, rw: number, rh: number) => {
+		ctx.strokeRect(left + rx, top + ry, rw, rh);
+	};
+
+	const strokeLine = (x1: number, y1: number, x2: number, y2: number) => {
+		ctx.beginPath();
+		ctx.moveTo(left + x1, top + y1);
+		ctx.lineTo(left + x2, top + y2);
+		ctx.stroke();
+	};
+
+	switch (icon) {
+		case "stack":
+			strokeLine(s * 0.22, s * 0.28, s * 0.78, s * 0.28);
+			strokeLine(s * 0.22, s * 0.5, s * 0.78, s * 0.5);
+			strokeLine(s * 0.22, s * 0.72, s * 0.78, s * 0.72);
+			break;
+		case "queue":
+			strokeRect(s * 0.12, s * 0.24, s * 0.18, s * 0.52);
+			strokeRect(s * 0.39, s * 0.24, s * 0.18, s * 0.52);
+			strokeRect(s * 0.66, s * 0.24, s * 0.18, s * 0.52);
+			strokeLine(s * 0.84, s * 0.5, s * 0.98, s * 0.5);
+			break;
+		case "list":
+			strokeRect(s * 0.08, s * 0.28, s * 0.26, s * 0.44);
+			strokeLine(s * 0.4, s * 0.5, s * 0.6, s * 0.5);
+			strokeRect(s * 0.66, s * 0.28, s * 0.26, s * 0.44);
+			break;
+		case "doubly-linked-list":
+			strokeRect(s * 0.08, s * 0.28, s * 0.26, s * 0.44);
+			strokeLine(s * 0.4, s * 0.42, s * 0.6, s * 0.42);
+			strokeLine(s * 0.4, s * 0.58, s * 0.6, s * 0.58);
+			strokeRect(s * 0.66, s * 0.28, s * 0.26, s * 0.44);
+			break;
+		case "circular-list":
+			ctx.beginPath();
+			ctx.arc(left + s * 0.5, top + s * 0.5, s * 0.28, Math.PI * 0.2, Math.PI * 1.75);
+			ctx.stroke();
+			strokeLine(s * 0.63, s * 0.15, s * 0.86, s * 0.15);
+			strokeLine(s * 0.86, s * 0.15, s * 0.86, s * 0.38);
+			break;
+	}
+
+	ctx.restore();
+};
+
 const boardWrapperStyle: CSSProperties = {
 	display: "flex",
 	flexDirection: "column",
@@ -218,7 +297,7 @@ export function StructuresBoard({
 	// card resize state
 	const cardResizeRef = useRef<{ id: string; startCx: number; startCy: number; startW: number; startH: number; minW: number; minH: number } | null>(null);
 	// all card hitboxes in content space (rebuilt each draw)
-	const cardHitboxesRef = useRef<Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number }>>([]);
+	const cardHitboxesRef = useRef<Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number; tooltip?: string }>>([]);
 	// content bounds for fit-to-view
 	const contentBoundsRef = useRef<{ w: number; h: number }>({ w: 600, h: 400 });
 	// trigger redraw
@@ -578,7 +657,7 @@ export function StructuresBoard({
 			const newHitboxes: Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number }> = [];
 
 			// Compute ideal sizes for all structures (used for bin-pack and getCardSize defaults)
-			const HEADER_H = 70;
+			const HEADER_H = 56;
 			const MARGIN = 2;
 			const idealSizes = normalizedStructures.map((structure) => {
 				const n = structure.values.length;
@@ -627,7 +706,17 @@ export function StructuresBoard({
 				const frameY = pos.y;
 				const frameWidth = sz.w;
 				const frameHeight = sz.h;
-				newHitboxes.push({ id: `structure:${structure.id}`, x: frameX, y: frameY, w: frameWidth, h: frameHeight, minW: 200, minH: 210 });
+				const kindBadge = getStructureKindBadge(structure.kind);
+				newHitboxes.push({
+					id: `structure:${structure.id}`,
+					x: frameX,
+					y: frameY,
+					w: frameWidth,
+					h: frameHeight,
+					minW: 200,
+					minH: 210,
+					tooltip: kindBadge.tooltip
+				});
 				const structureColor =
 					structure.properties?.color ??
 					(structure.kind === "stack"
@@ -643,11 +732,10 @@ export function StructuresBoard({
 							: "#7c52ba";
 
 				const radius = Math.round(26 * layoutScale);
-				const labelFont = Math.max(10, Math.round(13 * layoutScale));
-				const titleFont = Math.max(22, Math.round(30 * layoutScale));
+				const titleFont = Math.max(18, Math.round(24 * layoutScale));
 				const metaFont = Math.max(11, Math.round(14 * layoutScale));
 				const labelPad = Math.round(18 * layoutScale);
-				const headerH = Math.round(70 * layoutScale);
+				const headerH = Math.round(56 * layoutScale);
 				const graphicTop = frameY + headerH;
 
 				// Card background
@@ -680,34 +768,21 @@ export function StructuresBoard({
 				ctx.lineTo(frameX + frameWidth - Math.round(12 * layoutScale), graphicTop);
 				ctx.stroke();
 
-				// Kind label (row 1, left)
-				ctx.font = `800 ${labelFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
-				ctx.fillStyle = labelColor;
-				const countText = `${structure.values.length} ${t("common.items")}`;
-				ctx.font = `700 ${metaFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
-				const countWidth = ctx.measureText(countText).width;
-				ctx.font = `800 ${labelFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
-				const kindLabel = t(`structures.${structure.kind}`).toUpperCase();
-				const maxLabelWidth = frameWidth - labelPad * 2 - countWidth - Math.round(10 * layoutScale);
-				const row1Y = frameY + Math.round(22 * layoutScale);
-				ctx.fillStyle = labelColor;
-				ctx.fillText(kindLabel, frameX + labelPad, row1Y, maxLabelWidth);
-
-				// Count (row 1, right)
-				ctx.font = `700 ${metaFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
-				ctx.fillStyle = "#6d8297";
-				ctx.textAlign = "right";
-				ctx.fillText(countText, frameX + frameWidth - labelPad, row1Y);
-				ctx.textAlign = "start";
+				const iconSize = Math.round(15 * layoutScale);
+				const row1Y = frameY + Math.round(34 * layoutScale);
+				drawStructureKindIcon(
+					ctx,
+					kindBadge.icon,
+					frameX + labelPad,
+					row1Y - iconSize + Math.round(1 * layoutScale),
+					iconSize,
+					labelColor
+				);
 
 				// Structure ID (row 2, left — always within header band)
 				ctx.font = `900 ${titleFont}px Trebuchet MS, Arial Rounded MT Bold, sans-serif`;
 				ctx.fillStyle = "#355070";
-				ctx.fillText(
-					structure.id,
-					frameX + Math.round(16 * layoutScale),
-					frameY + Math.round(56 * layoutScale)
-				);
+				ctx.fillText(structure.id, frameX + labelPad + iconSize + Math.round(10 * layoutScale), row1Y);
 
 				// Clip all subsequent drawing to the body region (below header)
 				ctx.save();
@@ -2141,12 +2216,13 @@ export function StructuresBoard({
 
 			// cursor hint
 			const { cx, cy } = toContent(event.clientX, event.clientY);
+			const hoveredCard = hitTestCards(cx, cy);
+			canvas.title = hoveredCard?.tooltip ?? "";
 			const overHandle = hitTestResizeHandle(cx, cy);
 			if (overHandle) {
 				canvas.style.cursor = "se-resize";
 			} else {
-				const overCard = hitTestCards(cx, cy);
-				if (overCard) {
+				if (hoveredCard) {
 					canvas.style.cursor = "grab";
 				} else if (showStructureConfigActions) {
 					const hit = structureConfigHitboxesRef.current.some(
@@ -2181,6 +2257,10 @@ export function StructuresBoard({
 			}
 		};
 
+		const handlePointerLeave = () => {
+			canvas.title = "";
+		};
+
 		// --- wheel: zoom centered on cursor ---
 		const handleWheel = (event: WheelEvent) => {
 			event.preventDefault();
@@ -2203,6 +2283,7 @@ export function StructuresBoard({
 		canvas.addEventListener("pointerdown", handlePointerDown);
 		canvas.addEventListener("pointermove", handlePointerMove);
 		canvas.addEventListener("pointerup", handlePointerUp);
+		canvas.addEventListener("pointerleave", handlePointerLeave);
 		canvas.addEventListener("wheel", handleWheel, { passive: false });
 		canvas.style.cursor = "grab";
 
@@ -2227,6 +2308,7 @@ export function StructuresBoard({
 			canvas.removeEventListener("pointerdown", handlePointerDown);
 			canvas.removeEventListener("pointermove", handlePointerMove);
 			canvas.removeEventListener("pointerup", handlePointerUp);
+			canvas.removeEventListener("pointerleave", handlePointerLeave);
 			canvas.removeEventListener("wheel", handleWheel);
 			canvas.style.cursor = "default";
 			window.cancelAnimationFrame(animationFrame);

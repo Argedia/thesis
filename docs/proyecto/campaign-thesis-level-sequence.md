@@ -1,266 +1,343 @@
-# Secuencia final de campaña para tesis
+# Campaña de tesis: definición canónica de niveles
 
 ## Propósito
-Este documento define la campaña de tesis en su versión pedagógica final, nivel por nivel.
+Este documento fija la versión pedagógica final de la campaña.
 
-La meta no es cubrir todo el curso ni todas las capacidades del software. La meta es demostrar que:
+Su objetivo no es describir una idea general, sino dejar definido exactamente:
 
-- el estudiante puede aprender a usar moderadamente el editor mientras juega;
-- el software puede enseñar semántica y aplicación básica de `stack`, `queue` y `list`;
-- la campaña puede mapear cada nivel a un objetivo pedagógico concreto mediante `LevelTeachingPlan.introduces`.
+- qué mundos existen;
+- qué enseña cada nivel;
+- qué operaciones del editor justifican ese nivel;
+- y qué artefactos actuales del repo sirven como base.
 
-## Qué es capaz de enseñar el software hoy
-El software ya permite enseñar, de manera razonable, estas habilidades de uso:
+Esta es la referencia que debe guiar implementación, documentación de tesis y refinamiento de `LevelTeachingPlan.introduces`.
 
-- leer estado inicial y estado objetivo;
-- identificar qué estructura se está manipulando;
-- armar una solución con bloques y operaciones;
-- ejecutar con `run`, `step` y `reset`, y usar `pause` cuando el nivel realmente lo requiera;
-- corregir una solución cuando el resultado no coincide con el objetivo;
-- trabajar con restricciones de pasos y operaciones;
-- organizar una solución en más de una rutina cuando eso ayude a expresar mejor la estrategia.
+## Estructura final de mundos
+La campaña queda organizada en `5` mundos y `18` niveles:
 
-Dentro del alcance de tesis, `funciones` y `múltiples scripts/routines` se tratan como conocimiento transversal del editor, no como bloque temático propio.
+1. `W1` Onboarding básico del editor: `4` niveles.
+2. `W2` Pila: `4` niveles.
+3. `W3` Cola + apoyo puntual de pila: `3` niveles.
+4. `W4` Lista: `3` niveles.
+5. `W5` Integración de stack, queue y list: `4` niveles.
 
-## Estructura final propuesta
-La campaña queda en `18` niveles, repartidos en `5` bloques:
+## Convención de nombres
+En esta documentación el primer mundo se llama `W1`.
 
-1. `W1` Familiarización con el editor: `4` niveles.
-2. `W2` Mundo de pila: `4` niveles.
-3. `W3` Mundo de cola: `3` niveles.
-4. `W4` Mundo de lista: `3` niveles.
-5. `W5` Integración: `4` niveles.
+Sin embargo, varios archivos ya creados en el repo todavía usan IDs técnicos con prefijo `campaign-w0-*`.
 
-Esto mantiene la campaña dentro del rango acordado de `16` a `20` niveles.
+Eso no cambia su rol pedagógico:
 
-## Regla pedagógica
-Cada nivel debe declarar en `LevelTeachingPlan.introduces` el concepto principal que introduce.
+- `campaign-w0-l1-first-contact` corresponde a `W1-L1`
+- `campaign-w0-l2-step-and-reset` corresponde a `W1-L2`
+- `campaign-w0-l3-read-before-run` corresponde a `W1-L3`
 
-Se recomienda que ese campo tenga exactamente un concepto principal y, si hace falta, uno o dos apoyos secundarios.
+El archivo técnico `campaign-w0-l4-onboarding-checkpoint` puede mantenerse como referencia histórica, pero ya no forma parte del mundo de onboarding activo.
 
-## Revisión de incongruencias
-Antes de fijar la secuencia se corrigieron estas incongruencias:
+La recomendación es conservar esa equivalencia por ahora y renombrar IDs solo cuando el mapa y el índice de niveles queden estabilizados.
 
-- El onboarding no debe introducir demasiada carga conceptual de estructuras. Por eso se mantuvo centrado en uso del editor y transformaciones muy simples.
-- `Funciones` y `múltiples routines` no deben aparecer como concepto principal de campaña. Si se usan, deben quedar como apoyo transversal del editor.
-- En niveles mixtos no siempre corresponde decir que el usuario "elige cualquier estructura", porque muchas veces el tablero ya entrega estructuras fijas. La formulación correcta es que el usuario elige la estrategia adecuada según la estructura disponible.
-- La dificultad debe crecer por complejidad de transformación y restricciones, no por meter features fuera de scope.
+## Criterio pedagógico
+Cada nivel debe introducir una sola idea principal.
 
-## Revisión de factibilidad lógica con el editor actual
-La secuencia también fue revisada contra lo que el editor realmente soporta hoy.
+Por eso `LevelTeachingPlan.introduces` debe contener exactamente un concepto central y, solo si hace falta, uno o dos conceptos de refuerzo en `reinforces`.
 
-Criterios de factibilidad usados:
+## Criterio técnico
+La secuencia se limita a lo que el software soporta hoy con claridad visual:
 
-- los retos deben poder resolverse con operaciones reales sobre `stack`, `queue` y `list`;
-- no se debe asumir acceso arbitrario a cualquier posición si el nivel está pensado solo con operaciones básicas;
-- no se debe depender de funciones, tipos o múltiples routines para que un nivel tenga sentido;
-- las transformaciones deben ser de tamaño fijo y observables en tablero, no ejercicios que exijan abstracción algorítmica más cercana a implementación general;
-- las restricciones deben usarse como ajuste de dificultad, no como sustituto de una mecánica que el editor no ofrece.
+- `stack`: `PUSH`, `POP`, `PEEK`, `IS_EMPTY`, `SIZE`, `CLEAR`
+- `queue`: `ENQUEUE`, `DEQUEUE`, `PEEK`, `IS_EMPTY`, `SIZE`, `CLEAR`
+- `list`: `APPEND`, `PREPEND`, `REMOVE_FIRST`, `REMOVE_LAST`, `GET_HEAD`, `GET_TAIL`, `IS_EMPTY`, `SIZE`, `CLEAR`
 
-Consecuencias de esta revisión:
+Aunque existen operaciones más generales como `GET_AT`, `INSERT_AT`, `REMOVE_AT`, `FIND`, `CONTAINS` y `REVERSE`, no conviene usarlas como base de campaña de tesis porque:
 
-- los niveles de lista se formulan solo alrededor de extremos y secuencias pequeñas;
-- los niveles mixtos se describen como comparación y coordinación de estructuras dadas, no como diseño libre de estructuras;
-- el uso de rutinas queda siempre como opcional y secundario;
-- los niveles finales se mantienen simples en tamaño, aunque integradores en conceptos.
+- suben complejidad demasiado pronto;
+- vuelven menos transparente la semántica elemental;
+- y desvían el foco desde estructuras lineales básicas hacia manipulación más avanzada.
 
-## Secuencia nivel por nivel
+## Regla sobre funciones y múltiples scripts
+`Funciones` y `múltiples scripts/routines` no son un mundo ni un tema principal de campaña.
 
-### W1 · Familiarización con el editor
+Se tratan como conocimiento transversal del editor:
 
-#### `W1-L1` Primer contacto: arrastrar, ejecutar y observar
-- `introduces`: `Uso básico del editor para ejecutar una transformación simple`
-- Habilidad de software:
-  colocar bloques, elegir una operación disponible y ejecutar.
-- Contenido de estructuras:
-  reconocer que una estructura cambia de estado tras una operación.
-- Resultado esperado:
-  el estudiante entiende que el objetivo del juego es transformar un estado inicial en uno objetivo.
+- pueden aparecer como apoyo en niveles tardíos;
+- pueden ayudar a ordenar soluciones;
+- pero no deben ser el concepto principal introducido por ningún nivel de esta campaña.
 
-#### `W1-L2` Step, pause y reset
-- `introduces`: `Depuración básica de soluciones mediante ejecución paso a paso`
-- Habilidad de software:
-  usar `step` y `reset` para inspeccionar y reiniciar una solución.
-- Contenido de estructuras:
-  observar cómo una operación modifica una estructura en cada paso.
-- Resultado esperado:
-  el estudiante deja de usar el editor como caja negra y empieza a inspeccionar el proceso.
+## Secuencia definitiva de niveles
 
-#### `W1-L3` Leer tablero y planificar antes de ejecutar
-- `introduces`: `Lectura de estado inicial y estado objetivo como base de planificación`
-- Habilidad de software:
-  comparar tablero inicial con tablero meta antes de programar.
-- Contenido de estructuras:
-  identificar qué cambios concretos necesita cada estructura.
-- Resultado esperado:
-  el estudiante aprende a planear una secuencia mínima en vez de probar al azar.
+### W1 · Onboarding básico del editor
 
-#### `W1-L4` Mini reto de cierre de onboarding
-- `introduces`: `Resolución autónoma de un reto simple usando el flujo completo del editor`
-- Habilidad de software:
-  combinar lectura, construcción, ejecución y corrección.
-- Contenido de estructuras:
-  aplicar operaciones básicas en un caso corto con una estructura principal y una meta clara.
-- Resultado esperado:
-  el estudiante sale del onboarding sabiendo usar moderadamente el entorno.
+#### `W1-L1` Primer contacto
+- `introduces`: `Flujo básico del editor: arrastrar estructura, elegir operación y ejecutar`
+- Estructuras:
+  `stack`
+- Operaciones foco:
+  `POP`, `PEEK`
+- Qué aprende el estudiante:
+  que el tablero tiene un estado inicial, un estado objetivo y que el programa transforma uno en otro.
+- Justificación técnica:
+  es el nivel ideal para el driver paso a paso porque solo necesita una estructura y una decisión simple.
+- Base sugerida:
+  `campaign-w0-l1-first-contact`
 
-### W2 · Mundo de pila
+#### `W1-L2` Step y reset
+- `introduces`: `Depuración básica con ejecución paso a paso y reinicio`
+- Estructuras:
+  `stack`
+- Operaciones foco:
+  `POP`
+- Qué aprende el estudiante:
+  que no solo importa correr, sino observar el proceso y reintentar con control.
+- Justificación técnica:
+  el editor ya soporta `step`, `run` y `reset`, así que el nivel puede concentrarse en ese flujo.
+- Base sugerida:
+  `campaign-w0-l2-step-and-reset`
+
+#### `W1-L3` Descripción, bloques y salida
+- `introduces`: `Uso de la descripción del nivel, la paleta izquierda y la salida para completar un nivel`
+- Estructuras:
+  `queue`
+- Operaciones foco:
+  `ENQUEUE`
+- Qué aprende el estudiante:
+  a leer la consigna, usar un literal desde la paleta izquierda y apoyarse en la salida cuando falta algo para ejecutar.
+- Justificación técnica:
+  el software ya soporta operaciones con valor, bloques literales y feedback diagnóstico en salida.
+- Base sugerida:
+  `campaign-w0-l3-read-before-run`
+
+### W2 · Pila
 
 #### `W2-L1` Transferencia de tope
-- `introduces`: `Comportamiento LIFO y transferencia de tope con POP y PUSH`
-- Habilidad de software:
-  seleccionar operaciones correctas sobre `stack`.
-- Contenido de estructuras:
-  entender que solo el tope está disponible de manera natural.
-- Resultado esperado:
-  el estudiante comprende la semántica elemental de pila.
+- `introduces`: `Semántica LIFO en pila mediante POP y PUSH`
+- Estructuras:
+  `stack`, `stack`
+- Operaciones foco:
+  `POP`, `PUSH`
+- Qué aprende el estudiante:
+  que la pila expone naturalmente el tope y que mover un elemento depende de esa restricción.
+- Justificación técnica:
+  es el nivel más directo para enseñar comportamiento de pila.
+- Base sugerida:
+  `campaign-01-stack-top-transfer`
 
-#### `W2-L2` Construir una pila objetivo
-- `introduces`: `Construcción paso a paso de una pila respetando el orden LIFO`
-- Habilidad de software:
-  encadenar varias operaciones para construir una meta completa.
-- Contenido de estructuras:
-  anticipar cómo cambia el orden al apilar múltiples elementos.
-- Resultado esperado:
-  el estudiante puede producir un estado objetivo simple de pila sin ayuda.
+#### `W2-L2` Construir pila objetivo
+- `introduces`: `Construcción de una pila respetando orden LIFO`
+- Estructuras:
+  `stack`, `stack`
+- Operaciones foco:
+  `POP`, `PUSH`
+- Qué aprende el estudiante:
+  a anticipar el orden final de la pila cuando hay varias inserciones consecutivas.
+- Justificación técnica:
+  el editor permite una meta pequeña pero suficiente para que el alumno piense en orden, no solo en un movimiento.
+- Base sugerida:
+  `campaign-02-stack-build-from-scratch`
 
-#### `W2-L3` Deshacer y rehacer con pila auxiliar
-- `introduces`: `Uso de una pila auxiliar para reorganizar elementos`
-- Habilidad de software:
-  manejar dos estructuras a la vez sin perder trazabilidad.
-- Contenido de estructuras:
-  usar una segunda pila para invertir o reacomodar orden.
-- Resultado esperado:
-  el estudiante entiende que una estructura auxiliar cambia la estrategia disponible.
+#### `W2-L3` Destapar y restaurar
+- `introduces`: `Uso de pila auxiliar para acceder a elementos que no están en el tope`
+- Estructuras:
+  `stack`, `stack`
+- Operaciones foco:
+  `POP`, `PUSH`, `PEEK`
+- Qué aprende el estudiante:
+  que una segunda pila no es “más memoria” arbitraria, sino una herramienta para respetar LIFO mientras reorganiza.
+- Justificación técnica:
+  sigue siendo un reto puramente de pila, pero introduce estrategia en vez de movimiento directo.
+- Base sugerida:
+  adaptar un nivel nuevo a partir de `campaign-02-stack-build-from-scratch`
 
-#### `W2-L4` Cierre de mundo pila
-- `introduces`: `Elección de estrategia de pila bajo restricciones simples`
-- Habilidad de software:
-  resolver con límite de pasos o con menos ensayo y error en un tablero pequeño.
-- Contenido de estructuras:
-  aplicar LIFO en un problema un poco menos directo.
-- Resultado esperado:
-  el estudiante ya usa pila en ejercicios simples con autonomía razonable.
+#### `W2-L4` Cierre de pila
+- `introduces`: `Selección de estrategia de pila bajo restricción simple`
+- Estructuras:
+  `stack`, `stack`
+- Operaciones foco:
+  `POP`, `PUSH`, `PEEK`
+- Qué aprende el estudiante:
+  a resolver una transformación pequeña con menos margen de ensayo y error.
+- Justificación técnica:
+  debe aumentar dificultad por restricción de pasos o por una meta menos obvia, no por agregar nuevas features.
+- Base sugerida:
+  crear variante nueva de pila
 
-### W3 · Mundo de cola
+### W3 · Cola + apoyo puntual de pila
 
 #### `W3-L1` Frente y final
-- `introduces`: `Comportamiento FIFO en cola mediante DEQUEUE y ENQUEUE`
-- Habilidad de software:
-  distinguir visualmente frente, final y efecto de cada operación.
-- Contenido de estructuras:
-  entender que la cola preserva orden de llegada.
-- Resultado esperado:
-  el estudiante internaliza la diferencia esencial entre pila y cola.
+- `introduces`: `Semántica FIFO en cola mediante DEQUEUE y ENQUEUE`
+- Estructuras:
+  `queue`, `queue`
+- Operaciones foco:
+  `DEQUEUE`, `ENQUEUE`, `PEEK`
+- Qué aprende el estudiante:
+  la diferencia esencial entre sacar del frente y agregar al final.
+- Justificación técnica:
+  debe ser cola pura para que FIFO se vea limpio antes de mezclar con otras estructuras.
+- Base sugerida:
+  crear nivel nuevo de cola pura
 
-#### `W3-L2` Rotación y preservación de orden
-- `introduces`: `Rotación controlada de cola sin romper el criterio FIFO`
-- Habilidad de software:
-  ejecutar secuencias largas sin perder el objetivo.
-- Contenido de estructuras:
-  mover elementos del frente al final para reposicionar la cola sin invertirla.
-- Resultado esperado:
-  el estudiante puede manipular una cola sin confundir reordenamiento con inversión.
+#### `W3-L2` Rotar sin invertir
+- `introduces`: `Reordenamiento controlado de una cola preservando FIFO`
+- Estructuras:
+  `queue`
+- Operaciones foco:
+  `DEQUEUE`, `ENQUEUE`, `PEEK`
+- Qué aprende el estudiante:
+  que una cola puede rotarse moviendo frente al final sin convertirse en una pila.
+- Justificación técnica:
+  este nivel es clave para que la campaña no salte de cola básica a mixto demasiado rápido.
+- Base sugerida:
+  crear nivel nuevo de cola pura
 
-#### `W3-L3` Cierre de mundo cola
-- `introduces`: `Aplicación de FIFO para resolver una transformación simple de cola`
-- Habilidad de software:
-  resolver un reto con menos guía explícita.
-- Contenido de estructuras:
-  planear movimientos preservando orden cuando corresponde.
-- Resultado esperado:
-  el estudiante sabe aplicar cola en ejercicios básicos con criterio.
+#### `W3-L3` Invertir cola con pila auxiliar
+- `introduces`: `Uso de pila auxiliar para invertir una cola`
+- Estructuras:
+  `queue`, `stack`
+- Operaciones foco:
+  `DEQUEUE`, `ENQUEUE`, `POP`, `PUSH`
+- Qué aprende el estudiante:
+  cómo se combinan FIFO y LIFO para producir una transformación que una cola sola no resuelve fácilmente.
+- Justificación técnica:
+  aquí sí conviene mezclar estructuras, pero solo después de haber fijado cola pura.
+- Base sugerida:
+  `campaign-03-queue-stack-reverse`
 
-### W4 · Mundo de lista
+### W4 · Lista
 
-#### `W4-L1` Extremos de lista
-- `introduces`: `Operaciones en extremos de lista con inserción y extracción`
-- Habilidad de software:
-  elegir entre operaciones de inicio y fin según el objetivo del tablero.
-- Contenido de estructuras:
-  entender que la lista es más flexible que pila y cola en sus extremos, sin asumir acceso arbitrario al medio.
-- Resultado esperado:
-  el estudiante reconoce la ventaja operativa de una lista frente a stack/queue.
+#### `W4-L1` Construir desde extremos
+- `introduces`: `Flexibilidad de lista en sus extremos con APPEND y PREPEND`
+- Estructuras:
+  `list`
+- Operaciones foco:
+  `APPEND`, `PREPEND`
+- Qué aprende el estudiante:
+  que la lista permite trabajar por ambos extremos, a diferencia de stack y queue.
+- Justificación técnica:
+  es el nivel que realmente presenta la ventaja operativa básica de `list`.
+- Base sugerida:
+  crear nivel nuevo de lista
 
 #### `W4-L2` Recorte de bordes
-- `introduces`: `Manipulación de primer y último elemento como casos borde de lista`
-- Habilidad de software:
-  validar cambios parciales antes de cerrar la solución.
-- Contenido de estructuras:
-  remover en bordes sin alterar innecesariamente el interior.
-- Resultado esperado:
-  el estudiante ya piensa en casos borde como parte del problema.
+- `introduces`: `Eliminación de primer y último elemento como operación de bordes`
+- Estructuras:
+  `list`
+- Operaciones foco:
+  `REMOVE_FIRST`, `REMOVE_LAST`
+- Qué aprende el estudiante:
+  a pensar en casos borde y en cómo conservar el interior de la secuencia.
+- Justificación técnica:
+  este ya es uno de los niveles más alineados con lo que el editor soporta claramente.
+- Base sugerida:
+  `campaign-04-list-trim-edges`
 
-#### `W4-L3` Cierre de mundo lista
-- `introduces`: `Selección de operaciones de lista para reconstruir una secuencia objetivo`
-- Habilidad de software:
-  combinar operaciones de lista con lectura cuidadosa del tablero.
-- Contenido de estructuras:
-  usar `append`, `prepend`, `remove_first` y `remove_last` para llegar a un estado final específico.
-- Resultado esperado:
-  el estudiante puede resolver retos simples de lista de forma intencional.
+#### `W4-L3` Reconstrucción con extremos
+- `introduces`: `Elección entre insertar y quitar en extremos para reconstruir una secuencia objetivo`
+- Estructuras:
+  `list`
+- Operaciones foco:
+  `APPEND`, `PREPEND`, `REMOVE_FIRST`, `REMOVE_LAST`
+- Qué aprende el estudiante:
+  a combinar operaciones de extremos según el objetivo, no por hábito.
+- Justificación técnica:
+  cierra el mundo lista sin exigir acceso arbitrario al medio.
+- Base sugerida:
+  crear nivel nuevo de lista
 
-### W5 · Integración de estructuras lineales
+### W5 · Integración de stack, queue y list
 
-#### `W5-L1` Comparar comportamientos en reto mixto
-- `introduces`: `Comparación funcional entre stack, queue y list en un mismo reto`
-- Habilidad de software:
-  reconocer qué estrategia conviene según la estructura disponible en el tablero.
-- Contenido de estructuras:
-  contrastar LIFO, FIFO y operaciones de extremos en un caso pequeño y concreto.
-- Resultado esperado:
-  el estudiante deja de ver las estructuras como equivalentes.
+#### `W5-L1` Elegir la estructura correcta
+- `introduces`: `Comparación funcional entre stack, queue y list en un reto pequeño`
+- Estructuras:
+  `stack`, `queue`, `list`
+- Operaciones foco:
+  básicas de cada estructura
+- Qué aprende el estudiante:
+  que las tres estructuras no son intercambiables y que la estrategia depende de la semántica.
+- Justificación técnica:
+  el reto debe ser corto; la dificultad es de elección conceptual, no de tamaño.
+- Base sugerida:
+  adaptar `mixed-playground`
 
-#### `W5-L2` Transferencia mixta con estructura auxiliar
-- `introduces`: `Uso de una estructura auxiliar para resolver una transformación mixta`
-- Habilidad de software:
-  si el nivel lo habilita, separar una solución en rutina principal y rutina auxiliar para ordenarla mejor.
-- Contenido de estructuras:
-  resolver un reto que requiere más de una estructura lineal.
-- Resultado esperado:
-  el estudiante entiende la estrategia mixta del reto, mientras las rutinas quedan como apoyo secundario.
+#### `W5-L2` Transferencia mixta
+- `introduces`: `Coordinación de dos estructuras lineales para una transformación compuesta`
+- Estructuras:
+  `queue`, `stack`
+- Operaciones foco:
+  `DEQUEUE`, `ENQUEUE`, `POP`, `PUSH`
+- Qué aprende el estudiante:
+  a encadenar comportamientos de estructuras distintas para resolver un subproblema.
+- Justificación técnica:
+  profundiza el patrón ya visto en `W3-L3`, pero con menos guía.
+- Base sugerida:
+  adaptar `campaign-03-queue-stack-reverse`
 
-#### `W5-L3` Reto mixto con restricciones
-- `introduces`: `Integración de estructuras lineales bajo restricciones de pasos u operaciones`
-- Habilidad de software:
-  optimizar una solución cuando hay límites explícitos.
-- Contenido de estructuras:
-  combinar `stack`, `queue` y `list` según el subproblema en una transformación de tamaño fijo.
-- Resultado esperado:
-  el estudiante ya puede adaptar su estrategia, no solo repetir recetas.
+#### `W5-L3` Lista como apoyo de integración
+- `introduces`: `Uso de lista como estructura flexible de apoyo en un problema mixto`
+- Estructuras:
+  `stack`, `queue`, `list`
+- Operaciones foco:
+  básicas de `list` más operaciones simples de `stack` o `queue`
+- Qué aprende el estudiante:
+  cuándo la flexibilidad en extremos hace que una lista sea mejor apoyo que una pila o cola.
+- Justificación técnica:
+  evita que el mundo final quede sesgado solo a `queue + stack`.
+- Base sugerida:
+  crear nivel nuevo de integración
 
 #### `W5-L4` Cierre de campaña
-- `introduces`: `Aplicación compuesta de stack, queue y list en un problema final simple`
-- Habilidad de software:
-  usar el editor con autonomía moderada de principio a fin.
-- Contenido de estructuras:
-  resolver un problema corto donde la estructura dada y el orden de operaciones importan.
-- Resultado esperado:
-  al terminar la campaña, el estudiante sabe usar moderadamente el software mientras aplica conceptos básicos de pilas, colas y listas en ejercicios simples.
+- `introduces`: `Aplicación integrada de stack, queue y list en un problema final corto`
+- Estructuras:
+  `stack`, `queue`, `list`
+- Operaciones foco:
+  selección estratégica de operaciones ya conocidas
+- Qué aprende el estudiante:
+  a usar moderadamente el software de principio a fin mientras aplica semántica básica de estructuras lineales.
+- Justificación técnica:
+  debe sentirse integrador, pero seguir siendo defendible como evidencia de tesis, no como capstone de alta complejidad.
+- Base sugerida:
+  crear nivel nuevo de integración
 
-## Qué no entra en esta secuencia
-Quedan fuera de esta campaña final:
+## Resumen operativo por mundo
 
-- un mundo propio de funciones;
-- un mundo propio de tipos personalizados;
-- capstones de complejidad alta;
-- implementación en `C++`;
-- estructuras no lineales.
+### W1 Onboarding
+- `W1-L1` Primer contacto
+- `W1-L2` Step y reset
+- `W1-L3` Descripción, bloques y salida
 
-Si alguna de esas capacidades aparece en el software, se documenta como extensión de plataforma o trabajo futuro, no como núcleo de la campaña de tesis.
+### W2 Pila
+- `W2-L1` Transferencia de tope
+- `W2-L2` Construir pila objetivo
+- `W2-L3` Destapar y restaurar
+- `W2-L4` Cierre de pila
 
-## Relación con niveles existentes del repo
-La secuencia de arriba es la referencia pedagógica final.
+### W3 Cola + un poco de pila
+- `W3-L1` Frente y final
+- `W3-L2` Rotar sin invertir
+- `W3-L3` Invertir cola con pila auxiliar
 
-Los niveles ya implementados en `app/public/levels` pueden reutilizarse, adaptarse o fragmentarse si ayudan a cubrir estos objetivos, pero la campaña no debe quedar definida por los artefactos heredados de funciones/tipos ni por el plan antiguo de 6 mundos.
+### W4 Lista
+- `W4-L1` Construir desde extremos
+- `W4-L2` Recorte de bordes
+- `W4-L3` Reconstrucción con extremos
 
-## Criterio de aceptación de la campaña
-La campaña está bien definida si al terminarla se puede defender que el usuario:
+### W5 Los tres
+- `W5-L1` Elegir la estructura correcta
+- `W5-L2` Transferencia mixta
+- `W5-L3` Lista como apoyo de integración
+- `W5-L4` Cierre de campaña
 
-- sabe desplazarse por la campaña y abrir niveles;
-- interpreta tablero inicial y objetivo;
-- ejecuta, depura y reinicia soluciones;
-- resuelve transformaciones simples con `stack`;
-- resuelve transformaciones simples con `queue`;
-- resuelve transformaciones simples con `list`;
-- distingue cuándo conviene cada estructura en un reto mixto corto.
+## Qué queda fuera de esta definición
+No forman parte de esta campaña:
+
+- mundos de funciones;
+- mundos de tipos personalizados;
+- retos centrados en `doubly-linked-list` o `circular-list`;
+- ejercicios cuya dificultad dependa de `GET_AT`, `INSERT_AT` o `REMOVE_AT`;
+- retos de implementación en `C++`.
+
+## Criterio de aceptación
+La campaña queda bien definida si al terminarla se puede sostener que el estudiante:
+
+- sabe usar moderadamente el editor;
+- entiende la diferencia entre `stack`, `queue` y `list`;
+- resuelve ejercicios simples de cada estructura;
+- y puede enfrentar un reto corto donde importa elegir y coordinar estructuras lineales.

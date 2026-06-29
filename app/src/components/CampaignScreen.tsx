@@ -10,12 +10,14 @@ import {
 } from "@thesis/storage";
 import { Screen } from "@thesis/ui-editor";
 import { APP_ROUTES } from "../types/routes";
+import { formatDifficultyScore, renderDifficultyStars } from "../difficulty-display";
 import { ScreenHeader } from "./ui/ScreenHeader";
 import { tutorialAnchorProps } from "../features/tutorial/anchors";
+import { getCampaignScreenCopy } from "../features/campaign/campaign-content";
 import { useTutorial } from "../features/tutorial/TutorialProvider";
 import {
-  hasSeenCampaignWorldTutorial,
-  markCampaignWorldTutorialSeen
+  hasSeenTutorial,
+  markTutorialSeen
 } from "../features/tutorial/storage";
 
 const levelRepository = new JsonLevelRepository();
@@ -42,7 +44,7 @@ type PositionedNode = CampaignWorldDefinition["nodes"][number] & {
 const CAMPAIGN_FIRST_VISIT_KEY = "visual-data-structures-campaign-first-visit-v1";
 const CAMPAIGN_POSITION_KEY = "visual-data-structures-campaign-position-v2";
 
-const formatDifficultyScore = (difficulty: number): string => difficulty.toFixed(1);
+const formatWorldName = (name: string): string => name.replace(/^W\d+\s*·\s*/i, "");
 const easeInOut = (t: number): number => 0.5 - Math.cos(Math.PI * t) / 2;
 const nextFrame = (): Promise<void> =>
   new Promise((resolve) => {
@@ -167,6 +169,23 @@ const resolveWorldEntryNodeId = (world: CampaignWorldDefinition): string | null 
 const resolveWorldExitNodeId = (world: CampaignWorldDefinition): string | null =>
   world.nodes[world.nodes.length - 1]?.id ?? resolveWorldEntryNodeId(world);
 
+const resolveWorldRightmostAvailablePlayableNodeId = (
+  world: CampaignWorldDefinition,
+  completedLevelIds: string[]
+): string | null => {
+  const playableNodes = world.nodes.filter(isPlayableNode);
+  if (playableNodes.length === 0) {
+    return null;
+  }
+
+  const completedLevelSet = new Set(completedLevelIds);
+  const completedCount = playableNodes.filter(
+    (node) => node.levelId && completedLevelSet.has(node.levelId)
+  ).length;
+  const availableCount = Math.min(playableNodes.length, Math.max(1, completedCount + 1));
+  return playableNodes[availableCount - 1]?.id ?? playableNodes[0]?.id ?? null;
+};
+
 const isPlayableNode = (node: CampaignWorldDefinition["nodes"][number]): boolean =>
   typeof node.levelId === "string" && node.levelId.length > 0;
 
@@ -178,11 +197,11 @@ const getWorldProgress = (
 
   return worlds.map((world, index) => {
     const playableNodes = world.nodes.filter(isPlayableNode);
-    const completed = playableNodes.filter((node) => completedLevelSet.has(node.levelId)).length;
+    const completed = playableNodes.filter((node) => node.levelId && completedLevelSet.has(node.levelId)).length;
     const total = playableNodes.length;
     const previousWorld = worlds[index - 1];
     const previousCompleted = previousWorld
-      ? previousWorld.nodes.filter((node) => isPlayableNode(node) && completedLevelSet.has(node.levelId)).length
+      ? previousWorld.nodes.filter((node) => isPlayableNode(node) && node.levelId && completedLevelSet.has(node.levelId)).length
       : 0;
     const previousTotal = previousWorld?.nodes.filter(isPlayableNode).length ?? 0;
 
@@ -197,6 +216,7 @@ const getWorldProgress = (
 
 export function CampaignScreen() {
   const { t } = useTranslation();
+  const campaignCopy = getCampaignScreenCopy();
   const navigate = useNavigate();
   const { startTutorial } = useTutorial();
   const [levelsById, setLevelsById] = useState<Record<string, LevelDefinition>>({});
@@ -211,7 +231,7 @@ export function CampaignScreen() {
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const hasHandledFirstVisitRef = useRef(false);
   const worldTransitionRef = useRef<{ targetWorldId: string } | null>(null);
-  const autoTutorialWorldIdRef = useRef<string | null>(null);
+  const hasAttemptedAutoTutorialRef = useRef(false);
 
   useEffect(() => {
     const load = async () => {
@@ -287,7 +307,7 @@ export function CampaignScreen() {
     const completedLevels = new Set(completedLevelIds);
     return new Set(
       activeWorld.nodes
-        .filter((node) => isPlayableNode(node) && completedLevels.has(node.levelId))
+        .filter((node) => isPlayableNode(node) && node.levelId && completedLevels.has(node.levelId))
         .map((node) => node.id)
     );
   }, [activeWorld, completedLevelIds]);
@@ -428,27 +448,30 @@ export function CampaignScreen() {
       return;
     }
 
-    const entryNodeId = resolveWorldEntryNodeId(targetWorld);
-    if (!entryNodeId) {
+    const isMovingBackward =
+      currentWorldIndex >= 0 &&
+      targetWorldIndex >= 0 &&
+      targetWorldIndex < currentWorldIndex;
+
+    const arrivalNodeId = isMovingBackward
+      ? resolveWorldRightmostAvailablePlayableNodeId(targetWorld, completedLevelIds) ?? resolveWorldEntryNodeId(targetWorld)
+      : resolveWorldEntryNodeId(targetWorld);
+
+    if (!arrivalNodeId) {
       setActiveWorldId(targetWorldId);
       return;
     }
 
     const targetPositionedNodes = getPositionedNodes(targetWorld);
     const targetNodesById = new Map(targetPositionedNodes.map((node) => [node.id, node] as const));
-    const entryNode = targetNodesById.get(entryNodeId);
-    if (!entryNode) {
+    const arrivalNode = targetNodesById.get(arrivalNodeId);
+    if (!arrivalNode) {
       setActiveWorldId(targetWorldId);
       return;
     }
 
     setIsAnimating(true);
     try {
-      const isMovingBackward =
-        currentWorldIndex >= 0 &&
-        targetWorldIndex >= 0 &&
-        targetWorldIndex < currentWorldIndex;
-
       const exitNodeId = isMovingBackward
         ? resolveWorldEntryNodeId(activeWorld) ?? currentNodeId
         : resolveWorldExitNodeId(activeWorld) ?? currentNodeId;
@@ -471,17 +494,17 @@ export function CampaignScreen() {
 
       worldTransitionRef.current = { targetWorldId };
       setActiveWorldId(targetWorldId);
-      setCurrentNodeId(entryNode.id);
-      setSelectedNodeId(entryNode.id);
+      setCurrentNodeId(arrivalNode.id);
+      setSelectedNodeId(arrivalNode.id);
       setIsMobilePanelOpen(false);
-      setAvatarPosition({ x: -8, y: entryNode.y });
+      setAvatarPosition({ x: isMovingBackward ? 108 : -8, y: arrivalNode.y });
       await nextFrame();
       await animateAvatarBetweenPoints(
-        { x: -8, y: entryNode.y },
-        { x: entryNode.x, y: entryNode.y },
+        { x: isMovingBackward ? 108 : -8, y: arrivalNode.y },
+        { x: arrivalNode.x, y: arrivalNode.y },
         460
       );
-      saveCampaignPosition(targetWorldId, entryNode.id);
+      saveCampaignPosition(targetWorldId, arrivalNode.id);
     } finally {
       worldTransitionRef.current = null;
       setIsAnimating(false);
@@ -509,20 +532,20 @@ export function CampaignScreen() {
       return;
     }
 
-    if (autoTutorialWorldIdRef.current === activeWorld.id) {
+    if (hasAttemptedAutoTutorialRef.current) {
       return;
     }
 
-    if (hasSeenCampaignWorldTutorial(activeWorld.id)) {
-      autoTutorialWorldIdRef.current = activeWorld.id;
+    hasAttemptedAutoTutorialRef.current = true;
+
+    if (hasSeenTutorial("campaign-world-basics")) {
       return;
     }
 
-    autoTutorialWorldIdRef.current = activeWorld.id;
     window.setTimeout(() => {
       void startTutorial("campaign-world-basics").then((didStart) => {
         if (didStart) {
-          markCampaignWorldTutorialSeen(activeWorld.id);
+          markTutorialSeen("campaign-world-basics");
         }
       });
     }, 160);
@@ -535,8 +558,8 @@ export function CampaignScreen() {
           <ScreenHeader
             backLabel={t("menu.menuLabel")}
             backTo={APP_ROUTES.home}
-            eyebrow="Campaña INF261"
-            title="Estructuras de datos lineales"
+            eyebrow={campaignCopy.eyebrow}
+            title={campaignCopy.title}
             className="campaign-topbar"
           />
           <p className="error-banner">{error}</p>
@@ -551,15 +574,15 @@ export function CampaignScreen() {
         <ScreenHeader
           backLabel={t("menu.menuLabel")}
           backTo={APP_ROUTES.home}
-          eyebrow="Campaña INF261"
-          title="Estructuras de datos lineales"
-          description={`Avanza por mundos secuenciales para practicar editor, pila, cola, lista e integración. Progreso total ${totalCompleted}/${totalLevels} niveles completados.`}
+          eyebrow={campaignCopy.eyebrow}
+          title={campaignCopy.title}
+          description={campaignCopy.description({ completed: totalCompleted, total: totalLevels })}
           className="campaign-topbar"
         />
 
         <section
           className="campaign-world-strip"
-          aria-label="World progression"
+          aria-label={campaignCopy.worldStripAriaLabel}
           {...tutorialAnchorProps("campaign-world-strip")}
         >
           {progressByWorld.map((worldProgress, index) => {
@@ -571,7 +594,7 @@ export function CampaignScreen() {
                   className={`campaign-world-strip-node${worldProgress.unlocked ? " unlocked" : " locked"}${isSelected ? " current" : ""}`}
                   onClick={() => void handleWorldSelect(worldProgress.world.id)}
                 >
-                  <b>World {index + 1}</b>
+                  <b>{campaignCopy.worldLabel(index + 1)}</b>
                   <span>{worldProgress.completed}/{worldProgress.total}</span>
                 </button>
                 {index < progressByWorld.length - 1 ? (
@@ -589,14 +612,14 @@ export function CampaignScreen() {
           >
             {activeWorldProgress ? (
               <div className="campaign-world-materials">
-                {activeWorldProgress.world.name} · {activeWorldProgress.completed}/{activeWorldProgress.total}
+                {formatWorldName(activeWorldProgress.world.name)} · {activeWorldProgress.completed}/{activeWorldProgress.total}
               </div>
             ) : null}
 
             {activeWorldProgress && !activeWorldProgress.unlocked ? (
               <div className="campaign-world-empty">
-                <h3>Mundo bloqueado</h3>
-                <p>Completa el mundo anterior para desbloquear este bloque.</p>
+                <h3>{campaignCopy.blockedWorldTitle}</h3>
+                <p>{campaignCopy.blockedWorldBody}</p>
               </div>
             ) : positionedNodes.length > 0 ? (
               <>
@@ -623,20 +646,28 @@ export function CampaignScreen() {
                 {positionedNodes.map((node) => {
                   const completed = completedNodeIds.has(node.id);
                   const isCurrent = currentNodeId === node.id;
-                  const isInvalid = Boolean(node.levelId) && !levelsById[node.levelId];
+                  const isInvalid = typeof node.levelId === "string" && !levelsById[node.levelId];
                   const isStartNode = activeWorld?.startNodeId === node.id;
+                  const isEntryNode = isStartNode && !isPlayableNode(node);
                   const playableIndex = activeWorld?.nodes.filter(isPlayableNode).findIndex((candidate) => candidate.id === node.id) ?? -1;
                   return (
                     <button
                       key={node.id}
                       type="button"
-                      className={`campaign-map-node unlocked${completed ? " completed" : ""}${isCurrent ? " current" : ""}${isInvalid ? " invalid" : ""}${isStartNode ? " start" : ""}`}
+                      className={`campaign-map-node unlocked${completed ? " completed" : ""}${isCurrent ? " current" : ""}${isInvalid ? " invalid" : ""}${isStartNode ? " start" : ""}${isEntryNode ? " entry" : ""}`}
                       style={{ left: `${node.x}%`, top: `${node.y}%` }}
                       onClick={() => handleNodeClick(node.id)}
                       disabled={isAnimating}
                     >
-                      {isStartNode ? <span className="campaign-map-node-badge">INICIO</span> : null}
-                      <span>{isPlayableNode(node) ? playableIndex + 1 : "→"}</span>
+                      {isStartNode ? <span className="campaign-map-node-badge">{campaignCopy.startBadge}</span> : null}
+                      {isPlayableNode(node) ? (
+                        <span>{playableIndex + 1}</span>
+                      ) : (
+                        <span className="campaign-map-node-portal" aria-hidden>
+                          <span className="campaign-map-node-portal-door" />
+                          <span className="campaign-map-node-portal-glow" />
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -644,17 +675,17 @@ export function CampaignScreen() {
                 <div
                   className="campaign-map-avatar"
                   style={{ left: `${avatarPosition.x}%`, top: `${avatarPosition.y}%` }}
-                  aria-label="Player position"
+                  aria-label={campaignCopy.playerPositionAriaLabel}
                 >
-                  <span className="campaign-map-avatar-tag">YOU</span>
+                  <span className="campaign-map-avatar-tag">{campaignCopy.playerTag}</span>
                   <span className="campaign-map-avatar-arrow">↓</span>
                   <span className="campaign-map-avatar-figure" aria-hidden>🧠</span>
                 </div>
               </>
             ) : (
               <div className="campaign-world-empty">
-                <h3>Mundo sin niveles</h3>
-                <p>No hay nodos configurados para este mundo.</p>
+                <h3>{campaignCopy.emptyWorldTitle}</h3>
+                <p>{campaignCopy.emptyWorldBody}</p>
               </div>
             )}
           </article>
@@ -668,26 +699,38 @@ export function CampaignScreen() {
               className="campaign-sidepanel-toggle"
               onClick={() => setIsMobilePanelOpen((current) => !current)}
             >
-              {selectedNode?.titleOverride ?? selectedLevel?.title ?? activeWorld?.name ?? "Campaña"}
+              {selectedNode?.titleOverride ?? selectedLevel?.title ?? (activeWorld ? formatWorldName(activeWorld.name) : null) ?? campaignCopy.panelFallbackTitle}
             </button>
             <div className="campaign-sidepanel-content">
               <section className="campaign-level-panel">
                 {selectedNode && selectedLevel ? (
                   <>
-                    <p className="eyebrow">Nodo seleccionado</p>
+                    <p className="eyebrow">{campaignCopy.selectedLevelEyebrow}</p>
                     <h2>{selectedNode.titleOverride ?? selectedLevel.title}</h2>
-                    <p>
+                    <p className="campaign-level-description">
                       {selectedNode.descriptionOverride ??
                         selectedLevel.metadata.description ??
-                        "Sin descripción."}
+                        campaignCopy.noDescription}
                     </p>
-                    <p className="campaign-next-milestone">
-                      Introduce: {selectedLevel.teachingPlan?.introduces.join(", ") ?? "Concepto no declarado."}
-                    </p>
-                    <p className="campaign-level-meta">
-                      Dificultad {formatDifficultyScore(selectedLevel.metadata.difficulty)} · {" "}
-                      {completedNodeIds.has(selectedNode.id) ? "Completado" : "Pendiente"}
-                    </p>
+                    <div className="campaign-level-meta-row">
+                      <span
+                        className="campaign-level-meta-pill campaign-level-meta-pill--difficulty"
+                        title={`${campaignCopy.metaDifficultyLabel} ${formatDifficultyScore(selectedLevel.metadata.difficulty)}`}
+                        aria-label={`${campaignCopy.metaDifficultyLabel} ${formatDifficultyScore(selectedLevel.metadata.difficulty)}`}
+                      >
+                        <span>{campaignCopy.metaDifficultyLabel}:</span>
+                        <span>{renderDifficultyStars(selectedLevel.metadata.difficulty)}</span>
+                      </span>
+                      {completedNodeIds.has(selectedNode.id) ? (
+                        <span className="campaign-level-meta-pill">
+                          {campaignCopy.completedLabel}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="campaign-next-milestone">
+                      <span className="campaign-next-milestone-label">{campaignCopy.introducesLabel}</span>
+                      <p>{selectedLevel.teachingPlan?.introduces.join(", ") ?? campaignCopy.introducesFallback}</p>
+                    </div>
                     <div className="campaign-node-tags">
                       {selectedLevel.metadata.structuresUsed.map((structure) => (
                         <span key={`${selectedNode.id}-${structure}`} className="mini-tag">
@@ -696,27 +739,23 @@ export function CampaignScreen() {
                       ))}
                     </div>
                     <Link className="menu-link campaign-play-link" to={`${APP_ROUTES.play}/${selectedLevel.id}`}>
-                      {completedNodeIds.has(selectedNode.id) ? "Repetir nivel" : t("actions.play")}
+                      {completedNodeIds.has(selectedNode.id) ? campaignCopy.replayLabel : t("actions.play")}
                     </Link>
                   </>
                 ) : selectedNode && isFirstWorldStartNode ? (
                   <>
-                    <p className="eyebrow">Bienvenida</p>
-                    <h2>Welcome to the campaign</h2>
-                    <p>
-                      Hey! Welcome to this campaign. You'll learn here the basics of this software and how to use it.
-                    </p>
-                    <p className="campaign-level-meta">
-                      Click level 1 to get started. Then click "Play", or click the same level again, to start playing.
-                    </p>
+                    <p className="eyebrow">{campaignCopy.welcomeEyebrow}</p>
+                    <h2>{campaignCopy.welcomeTitle}</h2>
+                    <p className="campaign-level-description">{campaignCopy.welcomeBody}</p>
+                    <p className="campaign-level-meta">{campaignCopy.welcomeMeta}</p>
                   </>
                 ) : selectedNode ? (
                   <>
-                    <p className="eyebrow">Nodo seleccionado</p>
-                    <h2>{selectedNode.titleOverride ?? "Punto de inicio"}</h2>
-                    <p>
+                    <p className="eyebrow">{campaignCopy.selectedNodeEyebrow}</p>
+                    <h2>{selectedNode.titleOverride ?? campaignCopy.startNodeTitle}</h2>
+                    <p className="campaign-level-description">
                       {selectedNode.descriptionOverride ??
-                        "Este nodo marca la entrada al mundo. Muévete al siguiente nivel para continuar."}
+                        campaignCopy.startNodeBody}
                     </p>
                   </>
                 ) : (

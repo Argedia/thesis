@@ -215,6 +215,10 @@
 	color: #355070;
 }
 
+.difficulty-pill {
+	letter-spacing: 0.06em;
+}
+
 .completion-pill,
 .mini-tag,
 .author-label,

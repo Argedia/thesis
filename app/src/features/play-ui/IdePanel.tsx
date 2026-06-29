@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
-import { Play, SkipForward, Square, Trash2, type LucideIcon } from "lucide-react";
+import { Play, Square, Trash2, type LucideIcon, type LucideProps } from "lucide-react";
 import type { StructureSnapshot } from "@thesis/core-engine";
 import type { EditorDocument, CompiledRoutine } from "../program-editor-core/types";
 import { PlayEditorSurface } from "../../play-editor/PlayEditorSurface";
@@ -78,6 +78,28 @@ function RunIconButton({
   );
 }
 
+function StepDebugIcon({ size = 16, strokeWidth = 2, ...props }: LucideProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M5 6v12" />
+      <path d="M8 12h7" />
+      <path d="M12 8l4 4-4 4" />
+      <circle cx="7" cy="18" r="1.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function IdePanel({
   document,
   activeRoutineCompiled,
@@ -133,6 +155,14 @@ export function IdePanel({
   const outputToggleLabel = isOutputCollapsed ? t("board.expandOutput") : t("board.collapseOutput");
   const maxBlocksForSurface = Math.max(0, Math.floor(maxBlocksForActiveRoutine ?? maxSteps));
   const maxBlocksForCounter = Math.max(0, Math.floor(maxBlocksForDisplay ?? maxSteps));
+  const blocksCounterTone =
+    maxBlocksForCounter <= 0
+      ? "green"
+      : visibleRoutineOperations / maxBlocksForCounter > 0.8
+        ? "red"
+        : visibleRoutineOperations / maxBlocksForCounter > 0.5
+          ? "yellow"
+          : "green";
 
   return (
     <aside
@@ -191,7 +221,13 @@ export function IdePanel({
                   disabled={disabledRunButtons}
                   tutorialAnchorId="play-run-button"
                 />
-                <RunIconButton Icon={SkipForward} label={t("actions.step")} onClick={onStep} disabled={disabledRunButtons} />
+                <RunIconButton
+                  Icon={StepDebugIcon}
+                  label={t("actions.step")}
+                  onClick={onStep}
+                  disabled={disabledRunButtons}
+                  tutorialAnchorId="play-step-button"
+                />
                 <RunIconButton Icon={Square} label={t("actions.stop")} onClick={onPause} disabled={disabledRunButtons} />
                 <RunIconButton Icon={Trash2} label={t("actions.clear")} onClick={onClear} disabled={disabledRunButtons} />
               </div>
@@ -220,10 +256,24 @@ export function IdePanel({
             onRequestDeclarationInput={dialog.requestDeclarationInput}
             onShowAlert={dialog.showAlert}
           />
+          {!hideOutputBlocksCounter ? (
+            <TooltipTrigger delay={200} closeDelay={80}>
+              <div
+                className={`ide-editor-block-counter ide-output-meta ide-output-meta--${blocksCounterTone}`}
+                aria-label={t("board.blocksCountTooltip")}
+              >
+                {t("board.blocksCount", { count: visibleRoutineOperations, max: maxBlocksForCounter })}
+              </div>
+              <Tooltip className="app-tooltip">{t("board.blocksCountTooltip")}</Tooltip>
+            </TooltipTrigger>
+          ) : null}
         </div>
 
         {isOutputVisible ? (
-          <div className={`ide-output-panel${isOutputCollapsed ? " collapsed" : ""}`}>
+          <div
+            className={`ide-output-panel${isOutputCollapsed ? " collapsed" : ""}`}
+            {...tutorialAnchorProps("play-output-panel")}
+          >
             <div className="ide-output-tabs">
               <span className="ide-output-tab active">{t("board.output").toUpperCase()}</span>
               <TooltipTrigger delay={200} closeDelay={80}>
@@ -237,16 +287,13 @@ export function IdePanel({
                 <Tooltip className="app-tooltip">{outputToggleLabel}</Tooltip>
               </TooltipTrigger>
               {outputMetaControl}
-              {!hideOutputBlocksCounter ? (
-                <span className={`ide-output-meta ide-output-meta--${maxBlocksForCounter <= 0 ? "green" : visibleRoutineOperations / maxBlocksForCounter > 0.8 ? "red" : visibleRoutineOperations / maxBlocksForCounter > 0.5 ? "yellow" : "green"}`}>
-                  {t("board.blocksCount", { count: visibleRoutineOperations, max: maxBlocksForCounter })}
-                </span>
-              ) : null}
             </div>
             <div ref={outputBodyRef} className="ide-output-body" hidden={isOutputCollapsed}>
               {outputMode === "diagnostics" ? (
                 <>
-                  <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
+                  <div className="ide-output-line console-status" {...tutorialAnchorProps("play-output-status")}>
+                    {translateDiagnostic(status)}
+                  </div>
                   {activeRoutineCompiled.diagnostics.length > 0 ? (
                     activeRoutineCompiled.diagnostics.map((d, i) => (
                       <div key={`${d}-${i}`} className="ide-output-line console-error">
@@ -260,7 +307,9 @@ export function IdePanel({
                 </>
               ) : (
                 <>
-                  <div className="ide-output-line console-status">{translateDiagnostic(status)}</div>
+                  <div className="ide-output-line console-status" {...tutorialAnchorProps("play-output-status")}>
+                    {translateDiagnostic(status)}
+                  </div>
                   {events.length === 0 ? (
                     <div className="ide-output-line console-muted">{t("board.runHint")}</div>
                   ) : null}
