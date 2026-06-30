@@ -66,6 +66,17 @@ export interface BoardVariableSnapshot {
 	heapRefId?: string;
 }
 
+type CardHitbox = {
+	id: string;
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+	minW: number;
+	minH: number;
+	tooltip?: string;
+};
+
 const t = (key: string, options?: Record<string, unknown>) =>
 	i18next.t(key, options) as string;
 
@@ -299,7 +310,7 @@ export function StructuresBoard({
 	// card resize state
 	const cardResizeRef = useRef<{ id: string; startCx: number; startCy: number; startW: number; startH: number; minW: number; minH: number } | null>(null);
 	// all card hitboxes in content space (rebuilt each draw)
-	const cardHitboxesRef = useRef<Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number; tooltip?: string }>>([]);
+	const cardHitboxesRef = useRef<CardHitbox[]>([]);
 	// content bounds for fit-to-view
 	const contentBoundsRef = useRef<{ w: number; h: number }>({ w: 600, h: 400 });
 	// trigger redraw
@@ -656,7 +667,7 @@ export function StructuresBoard({
 				ctx.stroke();
 			};
 
-			const newHitboxes: Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number; tooltip?: string }> = [];
+			const newHitboxes: CardHitbox[] = [];
 
 			// Compute ideal sizes for all structures (used for bin-pack and getCardSize defaults)
 			const HEADER_H = 56;

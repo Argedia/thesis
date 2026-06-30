@@ -1,7 +1,7 @@
-import { useRef, useState, useEffect, type ReactNode } from "react";
+import { useRef, useState, useEffect, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
-import { Play, Square, Trash2, type LucideIcon, type LucideProps } from "lucide-react";
+import { Play, Square, Trash2, type LucideProps } from "lucide-react";
 import type { StructureSnapshot } from "@thesis/core-engine";
 import type { EditorDocument, CompiledRoutine } from "../program-editor-core/types";
 import { PlayEditorSurface } from "../../play-editor/PlayEditorSurface";
@@ -56,7 +56,7 @@ function RunIconButton({
   disabled,
   tutorialAnchorId
 }: {
-  Icon: LucideIcon;
+  Icon: ComponentType<LucideProps>;
   label: string;
   onClick: () => void;
   disabled?: boolean;
