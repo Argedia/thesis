@@ -1,5 +1,6 @@
 import { APP_ROUTES } from "../../types/routes";
 import { t as translate } from "../../i18n-helpers";
+import { getTutorialText } from "./tutorial-content";
 import { tutorialSelector } from "./anchors";
 import type { TutorialDefinition } from "./types";
 
@@ -11,13 +12,30 @@ export type TutorialId =
   | "editor-basics"
   | "campaign-level-basics"
   | "campaign-w1-l1-guided"
+  | "campaign-w1-l2-guided"
+  | "campaign-w1-l3-guided"
+  | "campaign-w2-l4-guided"
+  | "campaign-w3-l3-guided"
+  | "campaign-w4-l3-guided"
   | "campaign-world-basics";
 
 export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null => {
+  const appHomeBasics = getTutorialText("app-home-basics");
+  const communityBasics = getTutorialText("community-basics");
+  const editorDraftsBasics = getTutorialText("editor-drafts-basics");
+  const settingsBasics = getTutorialText("settings-basics");
+  const campaignW1L1Guided = getTutorialText("campaign-w1-l1-guided");
+  const campaignW1L2Guided = getTutorialText("campaign-w1-l2-guided");
+  const campaignW1L3Guided = getTutorialText("campaign-w1-l3-guided");
+  const campaignW2L4Guided = getTutorialText("campaign-w2-l4-guided");
+  const campaignW3L3Guided = getTutorialText("campaign-w3-l3-guided");
+  const campaignW4L3Guided = getTutorialText("campaign-w4-l3-guided");
+  const campaignWorldBasics = getTutorialText("campaign-world-basics");
+
   const tutorials: Record<TutorialId, TutorialDefinition> = {
     "app-home-basics": {
       id: "app-home-basics",
-      label: "App home basics",
+      label: appHomeBasics.label,
       route: APP_ROUTES.home,
       overlayOpacity: 0.68,
       stagePadding: 12,
@@ -28,40 +46,40 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
       steps: [
         {
           id: "home-menu-card",
-          title: "Main entry point",
-          description: "This is the main menu. From here you choose how you want to use the software.",
+          title: appHomeBasics.steps["home-menu-card"].title,
+          description: appHomeBasics.steps["home-menu-card"].description,
           target: tutorialSelector("home-menu-card"),
           side: "right",
           align: "center"
         },
         {
           id: "home-menu-campaign",
-          title: "Campaign Mode",
-          description: "Campaign is the guided path. It is the best place to start, and you should try it first until you get familiar with the software.",
+          title: appHomeBasics.steps["home-menu-campaign"].title,
+          description: appHomeBasics.steps["home-menu-campaign"].description,
           target: `${tutorialSelector("home-menu-actions")} a[href="#${APP_ROUTES.campaign}"]`,
           side: "right",
           align: "center"
         },
         {
           id: "home-menu-community",
-          title: "Community Levels",
-          description: "Community Levels let you explore and play existing levels more freely, without following the campaign order.",
+          title: appHomeBasics.steps["home-menu-community"].title,
+          description: appHomeBasics.steps["home-menu-community"].description,
           target: `${tutorialSelector("home-menu-actions")} a[href="#${APP_ROUTES.play}"]`,
           side: "right",
           align: "center"
         },
         {
           id: "home-menu-editor",
-          title: "Level Editor",
-          description: "The Level Editor is where you build, test, and publish your own levels once you are comfortable with the tool.",
+          title: appHomeBasics.steps["home-menu-editor"].title,
+          description: appHomeBasics.steps["home-menu-editor"].description,
           target: `${tutorialSelector("home-menu-actions")} a[href="#${APP_ROUTES.editor}"]`,
           side: "right",
           align: "center"
         },
         {
           id: "app-help-fab",
-          title: "Need help again?",
-          description: "You can always click this ? button to replay the guide and get help later.",
+          title: appHomeBasics.steps["app-help-fab"].title,
+          description: appHomeBasics.steps["app-help-fab"].description,
           target: tutorialSelector("app-help-fab"),
           side: "right",
           align: "center"
@@ -70,7 +88,7 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
     },
     "community-basics": {
       id: "community-basics",
-      label: "Community levels basics",
+      label: communityBasics.label,
       route: APP_ROUTES.play,
       overlayOpacity: 0.7,
       stagePadding: 12,
@@ -81,32 +99,32 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
       steps: [
         {
           id: "community-search",
-          title: "Find a level",
-          description: "Use search, import, and sorting here to find the kind of level you want to play.",
+          title: communityBasics.steps["community-search"].title,
+          description: communityBasics.steps["community-search"].description,
           target: tutorialSelector("community-topbar"),
           side: "bottom",
           align: "start"
         },
         {
           id: "community-filters",
-          title: "Filter the catalog",
-          description: "These filters narrow the list by source, structure, difficulty, and completion state.",
+          title: communityBasics.steps["community-filters"].title,
+          description: communityBasics.steps["community-filters"].description,
           target: tutorialSelector("community-filters"),
           side: "right",
           align: "start"
         },
         {
           id: "community-level-list",
-          title: "Choose a level",
-          description: "Select any card in the catalog to inspect it before playing.",
+          title: communityBasics.steps["community-level-list"].title,
+          description: communityBasics.steps["community-level-list"].description,
           target: tutorialSelector("community-level-list"),
           side: "left",
           align: "start"
         },
         {
           id: "community-preview-play",
-          title: "Execute the selected level",
-          description: "After selecting a level, review its preview here and press Play to open and execute that level.",
+          title: communityBasics.steps["community-preview-play"].title,
+          description: communityBasics.steps["community-preview-play"].description,
           target: tutorialSelector("community-preview-play"),
           side: "left",
           align: "center"
@@ -115,7 +133,7 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
     },
     "editor-drafts-basics": {
       id: "editor-drafts-basics",
-      label: "Editor drafts basics",
+      label: editorDraftsBasics.label,
       route: APP_ROUTES.editor,
       overlayOpacity: 0.7,
       stagePadding: 12,
@@ -126,24 +144,24 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
       steps: [
         {
           id: "editor-drafts-topbar",
-          title: "Editor entry point",
-          description: "This screen manages your saved level drafts and campaign scaffolds.",
+          title: editorDraftsBasics.steps["editor-drafts-topbar"].title,
+          description: editorDraftsBasics.steps["editor-drafts-topbar"].description,
           target: tutorialSelector("editor-drafts-topbar"),
           side: "bottom",
           align: "start"
         },
         {
           id: "editor-drafts-actions",
-          title: "Create or scaffold",
-          description: "Use these actions to create a new level or generate the planned campaign draft structure.",
+          title: editorDraftsBasics.steps["editor-drafts-actions"].title,
+          description: editorDraftsBasics.steps["editor-drafts-actions"].description,
           target: tutorialSelector("editor-drafts-actions"),
           side: "bottom",
           align: "end"
         },
         {
           id: "editor-drafts-list",
-          title: "Open existing drafts",
-          description: "Each card is a saved level draft. Open one to continue editing or remove it if you no longer need it.",
+          title: editorDraftsBasics.steps["editor-drafts-list"].title,
+          description: editorDraftsBasics.steps["editor-drafts-list"].description,
           target: tutorialSelector("editor-drafts-list"),
           side: "top",
           align: "center"
@@ -152,7 +170,7 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
     },
     "settings-basics": {
       id: "settings-basics",
-      label: "Settings basics",
+      label: settingsBasics.label,
       route: APP_ROUTES.settings,
       overlayOpacity: 0.7,
       stagePadding: 12,
@@ -163,24 +181,24 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
       steps: [
         {
           id: "settings-preferences",
-          title: "Preferences",
-          description: "Here you control language and other shared interface preferences.",
+          title: settingsBasics.steps["settings-preferences"].title,
+          description: settingsBasics.steps["settings-preferences"].description,
           target: tutorialSelector("settings-preferences"),
           side: "right",
           align: "start"
         },
         {
           id: "settings-execution",
-          title: "Execution speed",
-          description: "Adjust the visible runtime speed to make step-by-step behavior easier or faster to inspect.",
+          title: settingsBasics.steps["settings-execution"].title,
+          description: settingsBasics.steps["settings-execution"].description,
           target: tutorialSelector("settings-execution"),
           side: "right",
           align: "start"
         },
         {
           id: "settings-local-data",
-          title: "Local data management",
-          description: "These actions export, import, or clear local progress, drafts, and preferences stored in the browser.",
+          title: settingsBasics.steps["settings-local-data"].title,
+          description: settingsBasics.steps["settings-local-data"].description,
           target: tutorialSelector("settings-local-data"),
           side: "left",
           align: "start"
@@ -306,30 +324,88 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
   },
   "campaign-w1-l1-guided": {
     id: "campaign-w1-l1-guided",
-    label: "Campaign W1-L1 guided",
+    label: campaignW1L1Guided.label,
     route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
     dismissible: false,
-    overlayOpacity: 0.76,
     stagePadding: 12,
     stageRadius: 16,
     previousButtonText: translate("tutorials.common.back"),
     closeButtonText: translate("tutorials.common.close"),
     steps: [
       {
-        id: "w1-l1-preview-goal",
-        title: "Read the boards first",
-        description: "Compare the current board with the goal. The top value of stack A must disappear, so keep that change in mind before touching the editor.",
+        id: "w1-l1-intro-stack",
+        title: campaignW1L1Guided.steps["w1-l1-intro-stack"].title,
+        description: campaignW1L1Guided.steps["w1-l1-intro-stack"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        advanceOn: "anywhereClick",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w1-l1-show-goal",
+        title: campaignW1L1Guided.steps["w1-l1-show-goal"].title,
+        description: campaignW1L1Guided.steps["w1-l1-show-goal"].description,
         target: tutorialSelector("play-preview-goal"),
+        blockOutsideInteraction: true,
+        advanceOn: "targetClick",
         side: "bottom",
-        align: "center",
-        nextButtonText: "I see it"
+        align: "center"
+      },
+      {
+        id: "w1-l1-goal-explained",
+        title: campaignW1L1Guided.steps["w1-l1-goal-explained"].title,
+        description: campaignW1L1Guided.steps["w1-l1-goal-explained"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w1-l1-show-current",
+        title: campaignW1L1Guided.steps["w1-l1-show-current"].title,
+        description: campaignW1L1Guided.steps["w1-l1-show-current"].description,
+        target: tutorialSelector("play-preview-goal"),
+        blockOutsideInteraction: true,
+        advanceOn: "targetClick",
+        side: "bottom",
+        align: "center"
+      },
+      {
+        id: "w1-l1-program-area",
+        title: campaignW1L1Guided.steps["w1-l1-program-area"].title,
+        description: campaignW1L1Guided.steps["w1-l1-program-area"].description,
+        target: tutorialSelector("editor-program-host"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "left",
+        align: "center"
+      },
+      {
+        id: "w1-l1-palette-structure",
+        title: campaignW1L1Guided.steps["w1-l1-palette-structure"].title,
+        description: campaignW1L1Guided.steps["w1-l1-palette-structure"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "center"
       },
       {
         id: "w1-l1-place-structure",
-        title: "Place stack A in the program",
-        description: "Drag stack A into the program area. The guide will stay here until the block is actually placed.",
-        target: tutorialSelector("editor-ide-panel"),
-        side: "left",
+        title: campaignW1L1Guided.steps["w1-l1-place-structure"].title,
+        description: campaignW1L1Guided.steps["w1-l1-place-structure"].description,
+      target: tutorialSelector("editor-palette-side-structure-A"),
+      arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
         align: "center",
         advanceOn: "event",
         advanceOnEvent: "campaign:w1-l1:structure-placed",
@@ -337,9 +413,11 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
       },
       {
         id: "w1-l1-choose-operation",
-        title: "Choose one operation",
-        description: "Now pick an operation for that stack block. Both options are visible, but only one changes the board.",
-        target: tutorialSelector("editor-ide-panel"),
+        title: campaignW1L1Guided.steps["w1-l1-choose-operation"].title,
+        description: campaignW1L1Guided.steps["w1-l1-choose-operation"].description,
+        target: tutorialSelector("play-program-surface"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
         side: "left",
         align: "center",
         advanceOn: "event",
@@ -347,10 +425,23 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
         allowInteraction: true
       },
       {
-        id: "w1-l1-run-program",
-        title: "Execute the program",
-        description: "Press Play to run your program. After it runs, the guide will move on automatically.",
+        id: "w1-l1-run-controls",
+        title: campaignW1L1Guided.steps["w1-l1-run-controls"].title,
+        description: campaignW1L1Guided.steps["w1-l1-run-controls"].description,
         target: tutorialSelector("play-run-actions"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "end",
+        advanceOn: "anywhereClick"
+      },
+      {
+        id: "w1-l1-run-program",
+        title: campaignW1L1Guided.steps["w1-l1-run-program"].title,
+        description: campaignW1L1Guided.steps["w1-l1-run-program"].description,
+        target: tutorialSelector("play-run-button"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
         side: "bottom",
         align: "end",
         advanceOn: "event",
@@ -358,19 +449,474 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
         allowInteraction: true
       },
       {
-        id: "w1-l1-observe-board",
-        title: "Observe the result",
-        description: "Watch the board and compare it with the goal. If you chose the wrong operation, try again and notice what changed.",
-        target: tutorialSelector("play-board-header"),
+        id: "w1-l1-executing",
+        title: campaignW1L1Guided.steps["w1-l1-executing"].title,
+        description: campaignW1L1Guided.steps["w1-l1-executing"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        hideCard: true,
+        blockOutsideInteraction: true,
         side: "left",
         align: "center",
-        nextButtonText: "Continue"
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l1:level-solved"
+      }
+    ]
+  },
+  "campaign-w1-l2-guided": {
+    id: "campaign-w1-l2-guided",
+    label: campaignW1L2Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    previousButtonText: translate("tutorials.common.back"),
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w1-l2-intro",
+        title: campaignW1L2Guided.steps["w1-l2-intro"].title,
+        description: campaignW1L2Guided.steps["w1-l2-intro"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        advanceOn: "anywhereClick",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w1-l2-place-two-stacks",
+        title: campaignW1L2Guided.steps["w1-l2-place-two-stacks"].title,
+        description: campaignW1L2Guided.steps["w1-l2-place-two-stacks"].description,
+      target: tutorialSelector("editor-palette-side-structure-A"),
+      arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l2:structures-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l2-choose-pop-twice",
+        title: campaignW1L2Guided.steps["w1-l2-choose-pop-twice"].title,
+        description: campaignW1L2Guided.steps["w1-l2-choose-pop-twice"].description,
+        target: tutorialSelector("play-program-surface"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "left",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l2:operations-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l2-step-once",
+        title: campaignW1L2Guided.steps["w1-l2-step-once"].title,
+        description: campaignW1L2Guided.steps["w1-l2-step-once"].description,
+        target: tutorialSelector("play-step-button"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "end",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l2:step-pressed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l2-step-result",
+        title: campaignW1L2Guided.steps["w1-l2-step-result"].title,
+        description: campaignW1L2Guided.steps["w1-l2-step-result"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w1-l2-reset",
+        title: campaignW1L2Guided.steps["w1-l2-reset"].title,
+        description: campaignW1L2Guided.steps["w1-l2-reset"].description,
+        target: tutorialSelector("play-reset-button"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "end",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l2:reset-pressed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l2-finish",
+        title: campaignW1L2Guided.steps["w1-l2-finish"].title,
+        description: campaignW1L2Guided.steps["w1-l2-finish"].description,
+        target: tutorialSelector("play-run-button"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "end",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l2:run-pressed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l2-executing",
+        title: campaignW1L2Guided.steps["w1-l2-executing"].title,
+        description: campaignW1L2Guided.steps["w1-l2-executing"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        hideCard: true,
+        blockOutsideInteraction: true,
+        side: "left",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l2:level-solved"
+      }
+    ]
+  },
+  "campaign-w1-l3-guided": {
+    id: "campaign-w1-l3-guided",
+    label: campaignW1L3Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    previousButtonText: translate("tutorials.common.back"),
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w1-l3-read-description",
+        title: campaignW1L3Guided.steps["w1-l3-read-description"].title,
+        description: campaignW1L3Guided.steps["w1-l3-read-description"].description,
+        target: tutorialSelector("play-level-description"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "bottom",
+        align: "center"
+      },
+      {
+        id: "w1-l3-place-queue",
+        title: campaignW1L3Guided.steps["w1-l3-place-queue"].title,
+        description: campaignW1L3Guided.steps["w1-l3-place-queue"].description,
+      target: tutorialSelector("editor-palette-side-structure-A"),
+      arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:structure-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l3-choose-enqueue",
+        title: campaignW1L3Guided.steps["w1-l3-choose-enqueue"].title,
+        description: campaignW1L3Guided.steps["w1-l3-choose-enqueue"].description,
+        target: tutorialSelector("play-program-surface"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "left",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:enqueue-selected",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l3-run-incomplete",
+        title: campaignW1L3Guided.steps["w1-l3-run-incomplete"].title,
+        description: campaignW1L3Guided.steps["w1-l3-run-incomplete"].description,
+        target: tutorialSelector("play-run-button"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "end",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:first-run-pressed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l3-output-feedback",
+        title: campaignW1L3Guided.steps["w1-l3-output-feedback"].title,
+        description: campaignW1L3Guided.steps["w1-l3-output-feedback"].description,
+        target: tutorialSelector("play-output-panel"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "top",
+        align: "center"
+      },
+      {
+        id: "w1-l3-left-palette",
+        title: campaignW1L3Guided.steps["w1-l3-left-palette"].title,
+        description: campaignW1L3Guided.steps["w1-l3-left-palette"].description,
+        target: tutorialSelector("editor-palette-group-expressions"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:expressions-opened",
+        side: "right",
+        align: "center"
+      },
+      {
+        id: "w1-l3-place-literal",
+        title: campaignW1L3Guided.steps["w1-l3-place-literal"].title,
+        description: campaignW1L3Guided.steps["w1-l3-place-literal"].description,
+        target: tutorialSelector("editor-palette-base-literal"),
+        arrowTarget: () =>
+          document.querySelector(
+            `${tutorialSelector("play-program-surface")} .editor-block-instance-cavity:not(.filled)`
+          ),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "start",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:literal-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l3-finish",
+        title: campaignW1L3Guided.steps["w1-l3-finish"].title,
+        description: campaignW1L3Guided.steps["w1-l3-finish"].description,
+        target: tutorialSelector("play-run-button"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "end",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:final-run-pressed",
+        allowInteraction: true
+      },
+      {
+        id: "w1-l3-executing",
+        title: campaignW1L3Guided.steps["w1-l3-executing"].title,
+        description: campaignW1L3Guided.steps["w1-l3-executing"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        hideCard: true,
+        blockOutsideInteraction: true,
+        side: "left",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w1-l3:level-solved"
+      }
+    ]
+  },
+  "campaign-w2-l4-guided": {
+    id: "campaign-w2-l4-guided",
+    label: campaignW2L4Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w2-l4-intro",
+        title: campaignW2L4Guided.steps["w2-l4-intro"].title,
+        description: campaignW2L4Guided.steps["w2-l4-intro"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w2-l4-place-if",
+        title: campaignW2L4Guided.steps["w2-l4-place-if"].title,
+        description: campaignW2L4Guided.steps["w2-l4-place-if"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w2-l4:conditional-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w2-l4-build-condition",
+        title: campaignW2L4Guided.steps["w2-l4-build-condition"].title,
+        description: campaignW2L4Guided.steps["w2-l4-build-condition"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w2-l4:comparison-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w2-l4-build-transfer",
+        title: campaignW2L4Guided.steps["w2-l4-build-transfer"].title,
+        description: campaignW2L4Guided.steps["w2-l4-build-transfer"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w2-l4:body-ready",
+        allowInteraction: true
+      }
+    ]
+  },
+  "campaign-w3-l3-guided": {
+    id: "campaign-w3-l3-guided",
+    label: campaignW3L3Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w3-l3-intro",
+        title: campaignW3L3Guided.steps["w3-l3-intro"].title,
+        description: campaignW3L3Guided.steps["w3-l3-intro"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w3-l3-place-while",
+        title: campaignW3L3Guided.steps["w3-l3-place-while"].title,
+        description: campaignW3L3Guided.steps["w3-l3-place-while"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w3-l3:while-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w3-l3-build-condition",
+        title: campaignW3L3Guided.steps["w3-l3-build-condition"].title,
+        description: campaignW3L3Guided.steps["w3-l3-build-condition"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w3-l3:condition-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w3-l3-build-loop-body",
+        title: campaignW3L3Guided.steps["w3-l3-build-loop-body"].title,
+        description: campaignW3L3Guided.steps["w3-l3-build-loop-body"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w3-l3:body-ready",
+        allowInteraction: true
+      }
+    ]
+  },
+  "campaign-w4-l3-guided": {
+    id: "campaign-w4-l3-guided",
+    label: campaignW4L3Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w4-l3-intro",
+        title: campaignW4L3Guided.steps["w4-l3-intro"].title,
+        description: campaignW4L3Guided.steps["w4-l3-intro"].description,
+        target: tutorialSelector("play-level-description"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "bottom",
+        align: "center"
+      },
+      {
+        id: "w4-l3-create-helper",
+        title: campaignW4L3Guided.steps["w4-l3-create-helper"].title,
+        description: campaignW4L3Guided.steps["w4-l3-create-helper"].description,
+        target: () => document.querySelector(".ide-topbar-tabs .routine-chip-add"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:helper-created",
+        allowInteraction: true
+      },
+      {
+        id: "w4-l3-place-definition",
+        title: campaignW4L3Guided.steps["w4-l3-place-definition"].title,
+        description: campaignW4L3Guided.steps["w4-l3-place-definition"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:definition-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w4-l3-build-helper-body",
+        title: campaignW4L3Guided.steps["w4-l3-build-helper-body"].title,
+        description: campaignW4L3Guided.steps["w4-l3-build-helper-body"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "start",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:helper-logic-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w4-l3-call-helper-from-main",
+        title: campaignW4L3Guided.steps["w4-l3-call-helper-from-main"].title,
+        description: campaignW4L3Guided.steps["w4-l3-call-helper-from-main"].description,
+        target: tutorialSelector("editor-ide-panel"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "left",
+        align: "start",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:main-call-ready",
+        allowInteraction: true
       }
     ]
   },
   "campaign-world-basics": {
     id: "campaign-world-basics",
-    label: "Campaign world basics",
+    label: campaignWorldBasics.label,
     route: APP_ROUTES.campaign,
     overlayOpacity: 0.72,
     stagePadding: 12,
@@ -381,24 +927,24 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
     steps: [
       {
         id: "campaign-world-strip",
-        title: "World progression",
-        description: "These nodes switch between worlds. Each world unlocks after finishing the previous one.",
+        title: campaignWorldBasics.steps["campaign-world-strip"].title,
+        description: campaignWorldBasics.steps["campaign-world-strip"].description,
         target: tutorialSelector("campaign-world-strip"),
         side: "bottom",
         align: "start"
       },
       {
         id: "campaign-map-shell",
-        title: "Move through the map",
-        description: "Click an unlocked level to move there. Then use the side panel or click the same level again to start playing.",
+        title: campaignWorldBasics.steps["campaign-map-shell"].title,
+        description: campaignWorldBasics.steps["campaign-map-shell"].description,
         target: tutorialSelector("campaign-map-shell"),
         side: "left",
         align: "center"
       },
       {
         id: "campaign-sidepanel",
-        title: "Level details",
-        description: "This panel shows the current level information and lets you press Play when you are ready.",
+        title: campaignWorldBasics.steps["campaign-sidepanel"].title,
+        description: campaignWorldBasics.steps["campaign-sidepanel"].description,
         target: tutorialSelector("campaign-sidepanel"),
         side: "left",
         align: "center"

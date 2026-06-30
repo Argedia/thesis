@@ -78,6 +78,7 @@ export function BoardPanel({
                 onPress={onReset}
                 isDisabled={isRunning}
                 aria-label={t("actions.reset")}
+                {...tutorialAnchorProps("play-reset-button")}
               >
                 <RotateCcw size={15} />
               </Button>
@@ -116,7 +117,7 @@ export function BoardPanel({
 
       <div className="board-surface">
         <div className="board-surface-grid" />
-        <div className="board-visual-panel">
+        <div className="board-visual-panel" {...tutorialAnchorProps("play-board-visual")}>
           {onAddStructure ? (
             <div className="board-canvas-actions">
               <TooltipTrigger delay={200} closeDelay={80}>

@@ -31,7 +31,9 @@ export function AppDialogs({ dialog }: AppDialogsProps) {
         <AppDialog title={dialogState.title}>
           <p className="app-dialog-message">{dialogState.message}</p>
           <div className="app-dialog-actions">
-            <Button className="app-dialog-button" onPress={handleDialogSubmit}>{t("common.ok")}</Button>
+            <Button className="app-dialog-button" onPress={handleDialogSubmit}>
+              {dialogState.confirmLabel ?? t("common.ok")}
+            </Button>
           </div>
         </AppDialog>
       ) : null}
@@ -66,7 +68,7 @@ export function AppDialogs({ dialog }: AppDialogsProps) {
       ) : null}
 
       {dialogState?.kind === "select" ? (
-        <AppDialog title={dialogState.title}>
+        <AppDialog title={dialogState.title} className="app-dialog--compact app-dialog--select">
           <label className="app-text-dialog-label" htmlFor="app-select-dialog-input">{dialogState.title}</label>
           <select
             id="app-select-dialog-input"

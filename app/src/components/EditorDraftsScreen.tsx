@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { Plus, Trash2 } from "lucide-react";
 import { Screen } from "@thesis/ui-editor";
-import { useTranslation } from "react-i18next";
 import { APP_ROUTES, buildEditorDraftRoute } from "../types/routes";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
 import { AppDialogs } from "../features/play-ui/AppDialogs";
+import { ScreenHeader } from "./ui/ScreenHeader";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
   createEditorDraftRecord,
   deleteEditorDraftRecord,
   listEditorDraftRecords,
-  saveEditorDraftRecord
+  saveEditorDraftRecord,
+  seedInitialExampleDraftRecords
 } from "../features/level-editor-drafts/storage";
 import type { LevelEditorDraftRecord } from "../features/level-editor-drafts/types";
 
@@ -22,7 +25,6 @@ const formatDate = (rawIso: string): string => {
 };
 
 export function EditorDraftsScreen() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const dialog = useDialogManager();
   const [drafts, setDrafts] = useState<LevelEditorDraftRecord[]>([]);
@@ -32,6 +34,7 @@ export function EditorDraftsScreen() {
   };
 
   useEffect(() => {
+    seedInitialExampleDraftRecords();
     refreshDrafts();
     const onFocus = () => refreshDrafts();
     window.addEventListener("focus", onFocus);
@@ -40,14 +43,14 @@ export function EditorDraftsScreen() {
 
   const handleCreate = async () => {
     const requestedName = await dialog.requestTextInput({
-      title: t("drafts.newLevelPrompt"),
-      initialValue: t("drafts.newLevelDefault"),
-      validate: (value) => (value.trim() ? null : t("drafts.nameRequired"))
+      title: "Nombre del nivel",
+      initialValue: "Nuevo nivel",
+      validate: (value) => (value.trim() ? null : "El nombre no puede estar vacío.")
     });
     if (requestedName === null) return;
     const draft = createEditorDraftRecord(requestedName);
     saveEditorDraftRecord(draft);
-    navigate(buildEditorDraftRoute(draft.id));
+    navigate(buildEditorDraftRoute(draft.id), { state: { returnTo: APP_ROUTES.editor } });
   };
 
   const handleDelete = (id: string) => {
@@ -58,49 +61,67 @@ export function EditorDraftsScreen() {
   return (
     <Screen mode="editor">
       <main className="editor-drafts-shell">
-        <header className="topbar primary-screen-topbar editor-drafts-topbar">
-          <Link className="back-link" to={APP_ROUTES.home}>{t("common.menu")}</Link>
-          <div>
-            <p className="eyebrow">{t("menu.editor")}</p>
-            <h1>{t("drafts.title")}</h1>
-          </div>
-          <button type="button" className="menu-link" onClick={() => void handleCreate()}>
-            + {t("drafts.newLevel")}
-          </button>
-        </header>
-        <section className="editor-drafts-list">
+        <ScreenHeader
+          backLabel="Menu"
+          backTo={APP_ROUTES.home}
+          eyebrow="Editor"
+          title="Mis niveles"
+          className="editor-drafts-topbar"
+          tutorialAnchorId="editor-drafts-topbar"
+          actions={
+            <div className="editor-drafts-topbar-actions" {...tutorialAnchorProps("editor-drafts-actions")}>
+              <button
+                type="button"
+                className="menu-link editor-drafts-create-button"
+                onClick={() => void handleCreate()}
+                aria-label="Nuevo nivel"
+                title="Nuevo nivel"
+              >
+                <Plus size={20} aria-hidden="true" />
+                <span>Nuevo nivel</span>
+              </button>
+            </div>
+          }
+        />
+        <section
+          className="editor-drafts-list"
+          {...tutorialAnchorProps("editor-drafts-list")}
+        >
           {drafts.length === 0 ? (
             <article className="editor-draft-card">
-              <h2>{t("drafts.emptyTitle")}</h2>
-              <p>{t("drafts.emptyBody")}</p>
+              <h2>No hay niveles guardados</h2>
+              <p>Crea un nivel para comenzar.</p>
             </article>
           ) : (
             drafts.map((draft) => (
               <article key={draft.id} className="editor-draft-card">
                 <div className="editor-draft-card-head">
-                  <h2>{draft.name}</h2>
-                  <span className={`mini-tag ${draft.publishedAt ? "is-published" : "is-draft"}`}>
-                    {draft.publishedAt ? t("common.published") : t("common.draft")}
-                  </span>
+                  <div className="editor-draft-card-title-group">
+                    <h2>{draft.name}</h2>
+                    <p>{draft.publishedAt ? `Publicado: ${formatDate(draft.publishedAt)}` : `Última edición: ${formatDate(draft.updatedAt)}`}</p>
+                  </div>
+                  <div className="editor-draft-card-head-actions">
+                    <span className={`mini-tag ${draft.publishedAt ? "is-published" : "is-draft"}`}>
+                      {draft.publishedAt ? "Publicado" : "Borrador"}
+                    </span>
+                    <button
+                      type="button"
+                      className="icon-only-button icon-only-button-danger editor-draft-delete-button"
+                      onClick={() => handleDelete(draft.id)}
+                      aria-label={`Eliminar ${draft.name}`}
+                      title="Eliminar"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
-                <p>{t("drafts.lastEdited", { date: formatDate(draft.updatedAt) })}</p>
-                {draft.publishedAt ? (
-                  <p>{t("drafts.publishedAt", { date: formatDate(draft.publishedAt) })}</p>
-                ) : null}
                 <div className="editor-draft-card-actions">
                   <button
                     type="button"
                     className="menu-link"
-                    onClick={() => navigate(buildEditorDraftRoute(draft.id))}
+                    onClick={() => navigate(buildEditorDraftRoute(draft.id), { state: { returnTo: APP_ROUTES.editor } })}
                   >
-                    {t("drafts.openEditor")}
-                  </button>
-                  <button
-                    type="button"
-                    className="menu-link danger"
-                    onClick={() => handleDelete(draft.id)}
-                  >
-                    {t("common.delete")}
+                    Abrir editor
                   </button>
                 </div>
               </article>

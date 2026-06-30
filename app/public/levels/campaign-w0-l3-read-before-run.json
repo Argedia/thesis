@@ -1,0 +1,197 @@
+{
+  "id": "campaign-w0-l3-read-before-run",
+  "title": "W1-L3 · Descripción, bloques y salida",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "queue",
+      "values": [],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "queue",
+      "values": [
+        "item"
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "forbidden",
+      "PUSH": "forbidden",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "permitted",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden",
+      "PEEK": "forbidden",
+      "IS_EMPTY": "forbidden",
+      "GET_AT": "forbidden",
+      "INSERT_AT": "forbidden",
+      "REMOVE_AT": "forbidden",
+      "CONTAINS": "forbidden",
+      "FIND": "forbidden",
+      "REVERSE": "forbidden",
+      "CLEAR": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 1,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 1,
+    "maxBlocksGlobal": 2,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": [
+      "A"
+    ],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": [
+      "queue"
+    ],
+    "difficulty": 1.4,
+    "author": "Core Team",
+    "description": "Lee la consigna, usa la paleta izquierda y apóyate en la salida para completar el nivel.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": [
+      "queue"
+    ],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": [
+      "usar la descripción del nivel, la paleta izquierda y la salida para completar un nivel"
+    ],
+    "reinforces": [
+      "enqueue needs a value",
+      "read feedback before guessing",
+      "literal blocks can complete an action"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Use the description, blocks, and output",
+        "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+        "concepts": [
+          "description",
+          "left palette",
+          "output",
+          "literal",
+          "enqueue"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "The output tells you what is missing",
+        "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+        "concepts": [
+          "output feedback",
+          "missing value",
+          "enqueue"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Use the literal the level asked for",
+        "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+        "concepts": [
+          "literal block",
+          "description",
+          "exact target"
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "usar la descripción del nivel, la paleta izquierda y la salida para completar un nivel"
+    ],
+    "reinforces": [
+      "enqueue needs a value",
+      "read feedback before guessing",
+      "literal blocks can complete an action"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Use the description, blocks, and output",
+        "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+        "concepts": [
+          "description",
+          "left palette",
+          "output",
+          "literal",
+          "enqueue"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "The output tells you what is missing",
+        "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+        "concepts": [
+          "output feedback",
+          "missing value",
+          "enqueue"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Use the literal the level asked for",
+        "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+        "concepts": [
+          "literal block",
+          "description",
+          "exact target"
+        ]
+      }
+    ]
+  }
+}

@@ -131,7 +131,7 @@ export interface EngineRegistryDeps {
 	clearExpressionSlot: (slotKey: string) => void;
 	assignLiteralExpressionIntoSlot: (slotKey: string, rawValue: string, expectedType: "value" | "boolean" | "any") => void;
 	getPaletteBlocks: () => PaletteBlock[];
-	getDefinitionDescriptor: (block: PaletteBlock) => { chip?: string; label: string };
+	getDefinitionDescriptor: (block: PaletteBlock) => { chip?: string; chipIcon?: string; label: string; metaText?: string; metaIcon?: string };
 	getPaletteBlockLimitState: (block: PaletteBlock) => {
 		limit: number;
 		remaining: number;
@@ -335,7 +335,16 @@ export class EngineServiceRegistry {
 				togglePaletteGroupExpanded: (lane, groupId) => {
 					const key = `${lane}:${groupId}`;
 					const ids = this.deps.getExpandedPaletteGroupIds();
-					if (ids.has(key)) { ids.delete(key); } else { ids.add(key); }
+					if (ids.has(key)) {
+						ids.delete(key);
+					} else {
+						for (const id of Array.from(ids)) {
+							if (id.startsWith(`${lane}:`)) {
+								ids.delete(id);
+							}
+						}
+						ids.add(key);
+					}
 					this.deps.render();
 				},
 				getPaletteGroupId: (block) => this.deps.getPaletteGroupId(block),
@@ -386,6 +395,7 @@ export class EngineServiceRegistry {
 				addBranchLineRef: (entry) => this.deps.getBranchLineRefs().push(entry),
 				blockContainsId: (block, blockId) => this.getTreeService().blockContainsId(block, blockId),
 				getHighlightedNodeId: () => this.deps.getProps().highlightedNodeId,
+				getDiagnosticNodeIds: () => this.deps.getProps().diagnosticNodeIds ?? [],
 				getBreakpointNodeIds: () => this.deps.getProps().breakpointNodeIds ?? [],
 				onToggleBreakpoint: (blockId) => this.deps.getProps().onToggleBreakpoint?.(blockId),
 				createBlockInstanceElement: (block, options) =>

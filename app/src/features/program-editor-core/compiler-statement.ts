@@ -1,5 +1,11 @@
 import type { OperationDefinition } from "@thesis/core-engine";
-import type { CompiledInstruction, RoutineSignature, StatementNode, TypeSignature } from "./types";
+import type {
+	CompiledInstruction,
+	CompilerDiagnostic,
+	RoutineSignature,
+	StatementNode,
+	TypeSignature
+} from "./types";
 import { projectProgramRows } from "./projection";
 import {
 	callStatementSupportsExecution,
@@ -23,6 +29,7 @@ export interface CompileContext {
 	operations: OperationDefinition[];
 	operationNodeIds: string[];
 	diagnostics: string[];
+	diagnosticDetails: CompilerDiagnostic[];
 	unsupportedFeatures: Set<string>;
 	nodeInstructionMap: Record<string, number[]>;
 	nodeRowMap: Record<string, string[]>;
@@ -52,6 +59,22 @@ export const rowNumbersForNode = (
 ): number[] => rowMap.rows.filter((row) => row.nodeId === nodeId).map((row) => row.rowNumber);
 
 export { collectRoutineDeclarationTypes };
+
+export const pushDiagnostic = (
+	context: CompileContext,
+	message: string,
+	nodeId?: string,
+	code = message,
+	severity: CompilerDiagnostic["severity"] = "error"
+): void => {
+	context.diagnostics.push(message);
+	context.diagnosticDetails.push({
+		code,
+		message,
+		severity,
+		nodeId
+	});
+};
 
 export const compileStatement = (
 	statement: StatementNode,
@@ -101,7 +124,7 @@ export const compileStatement = (
 				breakpointable: true
 			});
 			if (!statement.value || !expressionCanExecuteAtRuntime(statement.value, signatures)) {
-				context.diagnostics.push("Assignments need a complete value.");
+				pushDiagnostic(context, "Assignments need a complete value.", statement.id);
 			} else {
 				const expectedType =
 					(statement.targetDeclarationId
@@ -109,7 +132,7 @@ export const compileStatement = (
 						: findDeclarationTypeByName(declarationTypes, statement.targetName)) ?? null;
 				const actualType = inferExpressionTypeRef(statement.value, declarationTypes, typeSignatures);
 				if (!isTypeCompatible(expectedType, actualType)) {
-					context.diagnostics.push("type_mismatch_assign");
+					pushDiagnostic(context, "type_mismatch_assign", statement.id);
 				}
 			}
 			return;
@@ -127,7 +150,7 @@ export const compileStatement = (
 				typeFieldName: statement.fieldName
 			});
 			if (!statement.value || !expressionCanExecuteAtRuntime(statement.value, signatures)) {
-				context.diagnostics.push("Assignments need a complete value.");
+				pushDiagnostic(context, "Assignments need a complete value.", statement.id);
 			} else {
 				const targetType = declarationTypes.get(statement.targetDeclarationId)?.declaredTypeRef;
 				if (targetType?.kind === "user") {
@@ -137,7 +160,7 @@ export const compileStatement = (
 							?.declaredTypeRef ?? null;
 					const actualType = inferExpressionTypeRef(statement.value, declarationTypes, typeSignatures);
 					if (!isTypeCompatible(fieldType, actualType)) {
-						context.diagnostics.push("type_mismatch_field_assign");
+						pushDiagnostic(context, "type_mismatch_field_assign", statement.id);
 					}
 				}
 			}
@@ -153,14 +176,22 @@ export const compileStatement = (
 				breakpointable: true
 			});
 			if (!expressionCanExecuteAtRuntime(statement.expression, signatures)) {
-				context.diagnostics.push("Standalone expressions need a complete value.");
+				pushDiagnostic(context, "Standalone expressions need a complete value.", statement.id);
 			}
 			return;
 
 		case "call": {
 			const compiledArgument = statement.args[0]
 				? compileExpression(statement.args[0], signatures, declarationTypes, typeSignatures)
-				: { operations: [], operationNodeIds: [], provides: null, isComplete: true, unsupportedFeatures: [], diagnostics: [] };
+				: {
+					operations: [],
+					operationNodeIds: [],
+					provides: null,
+					isComplete: true,
+					unsupportedFeatures: [],
+					diagnostics: [],
+					diagnosticDetails: []
+				};
 
 			const hasDynamicTarget = !!statement.targetDeclarationId || !!statement.targetName;
 			const supportsDynamicTargetExecution =
@@ -206,14 +237,40 @@ export const compileStatement = (
 			} else {
 				context.unsupportedFeatures.add("call");
 				compiledArgument.unsupportedFeatures.forEach((f) => context.unsupportedFeatures.add(f));
-				context.diagnostics.push(...compiledArgument.diagnostics);
+				compiledArgument.diagnosticDetails?.forEach((diagnostic) => {
+					pushDiagnostic(
+						context,
+						diagnostic.message,
+						diagnostic.nodeId ?? statement.id,
+						diagnostic.code,
+						diagnostic.severity
+					);
+				});
+				if (!compiledArgument.diagnosticDetails?.length) {
+					compiledArgument.diagnostics.forEach((diagnostic) =>
+						pushDiagnostic(context, diagnostic, statement.id)
+					);
+				}
 				if (!compiledArgument.diagnostics.length) {
-					context.diagnostics.push("Finish each block and fill any missing value slots.");
+					pushDiagnostic(context, t("playSession.finishBlocksHint"), statement.id);
 				}
 			}
 			if (!callStatementSupportsExecution(statement)) {
 				compiledArgument.unsupportedFeatures.forEach((f) => context.unsupportedFeatures.add(f));
-				context.diagnostics.push(...compiledArgument.diagnostics);
+				compiledArgument.diagnosticDetails?.forEach((diagnostic) => {
+					pushDiagnostic(
+						context,
+						diagnostic.message,
+						diagnostic.nodeId ?? statement.id,
+						diagnostic.code,
+						diagnostic.severity
+					);
+				});
+				if (!compiledArgument.diagnosticDetails?.length) {
+					compiledArgument.diagnostics.forEach((diagnostic) =>
+						pushDiagnostic(context, diagnostic, statement.id)
+					);
+				}
 			}
 			return;
 		}
@@ -230,12 +287,16 @@ export const compileStatement = (
 				routineId: statement.routineId
 			});
 			if (!signature?.isPublishable || signature.returnKind !== "none") {
-				context.diagnostics.push(`${statement.routineName} is not publishable as an action function.`);
+				pushDiagnostic(
+					context,
+					`${statement.routineName} is not publishable as an action function.`,
+					statement.id
+				);
 			} else if (
 				statement.args.length !== signature.params.length ||
 				!statement.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
 			) {
-				context.diagnostics.push("Finish each block and fill any missing value slots.");
+				pushDiagnostic(context, t("playSession.finishBlocksHint"), statement.id);
 			} else if (
 				statement.args.some((arg, i) =>
 					!isTypeCompatible(
@@ -244,7 +305,7 @@ export const compileStatement = (
 					)
 				)
 			) {
-				context.diagnostics.push("type_mismatch_expect_arg");
+				pushDiagnostic(context, "type_mismatch_expect_arg", statement.id);
 			}
 			return;
 		}
@@ -262,12 +323,16 @@ export const compileStatement = (
 				routineId: statement.memberRoutineId
 			});
 			if (!ownerSignature || ownerSignature.exportKind !== "object-value" || !memberSignature) {
-				context.diagnostics.push(`${statement.routineName}.${statement.memberName} is not publishable yet.`);
+				pushDiagnostic(
+					context,
+					`${statement.routineName}.${statement.memberName} is not publishable yet.`,
+					statement.id
+				);
 			} else if (
 				statement.args.length !== (memberSignature.params?.length ?? 0) ||
 				!statement.args.every((arg) => expressionCanExecuteAtRuntime(arg, signatures))
 			) {
-				context.diagnostics.push("Finish each block and fill any missing value slots.");
+				pushDiagnostic(context, t("playSession.finishBlocksHint"), statement.id);
 			} else if (
 				statement.args.some((arg, i) =>
 					!isTypeCompatible(
@@ -276,7 +341,7 @@ export const compileStatement = (
 					)
 				)
 			) {
-				context.diagnostics.push("type_mismatch_expect_arg");
+				pushDiagnostic(context, "type_mismatch_expect_arg", statement.id);
 			}
 			return;
 		}
@@ -291,7 +356,7 @@ export const compileStatement = (
 				breakpointable: true
 			});
 			if (statement.value && !expressionCanExecuteAtRuntime(statement.value, signatures)) {
-				context.diagnostics.push("Return blocks need a complete value.");
+				pushDiagnostic(context, "Return blocks need a complete value.", statement.id);
 			}
 			return;
 
@@ -346,7 +411,7 @@ export const compileStatement = (
 				};
 			}
 			if (!expressionCanExecuteAtRuntime(statement.condition, signatures)) {
-				context.diagnostics.push("Conditional blocks need a complete condition input.");
+				pushDiagnostic(context, "Conditional blocks need a complete condition input.", statement.id);
 			}
 			return;
 		}
@@ -394,7 +459,7 @@ export const compileStatement = (
 			});
 			loopStack.pop();
 			if (!expressionCanExecuteAtRuntime(statement.condition, signatures)) {
-				context.diagnostics.push(t("diagnostics.loopConditionIncomplete"));
+				pushDiagnostic(context, t("diagnostics.loopConditionIncomplete"), statement.id, "loopConditionIncomplete");
 			}
 			return;
 		}
@@ -405,10 +470,10 @@ export const compileStatement = (
 				statement.sourceStructureKind !== "queue" &&
 				statement.sourceStructureKind !== "list"
 			) {
-				context.diagnostics.push(t("diagnostics.forEachLinearOnly"));
+				pushDiagnostic(context, t("diagnostics.forEachLinearOnly"), statement.id, "forEachLinearOnly");
 			}
 			if (!statement.sourceStructureId?.trim()) {
-				context.diagnostics.push(t("diagnostics.forEachNeedsSource"));
+				pushDiagnostic(context, t("diagnostics.forEachNeedsSource"), statement.id, "forEachNeedsSource");
 			}
 
 			const forEachFrame: LoopCompileFrame = { breakInstructionIps: [] };
@@ -481,7 +546,7 @@ export const compileStatement = (
 				jumpTargetIp: -1
 			});
 			if (!currentLoop) {
-				context.diagnostics.push("Break can only be used inside while or for-each.");
+				pushDiagnostic(context, "Break can only be used inside while or for-each.", statement.id);
 				context.instructions[breakIp] = {
 					...context.instructions[breakIp]!,
 					jumpTargetIp: breakIp + 1

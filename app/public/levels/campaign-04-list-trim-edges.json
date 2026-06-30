@@ -1,20 +1,36 @@
 {
   "id": "campaign-04-list-trim-edges",
-  "title": "Campaign 04 · List Edge Operations",
+  "title": "W4-L2 · Recorte de bordes",
   "initialState": [
     {
       "id": "L",
       "kind": "list",
-      "values": [1, 2, 3, 4, 5],
-      "properties": { "color": "#c6a8ff", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
     {
       "id": "L",
       "kind": "list",
-      "values": [2, 3, 4],
-      "properties": { "color": "#c6a8ff", "nodeAutoTaint": false }
+      "values": [
+        2,
+        3,
+        4
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -54,47 +70,110 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["L"],
+    "structureOrder": [
+      "L"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["list"],
-    "difficulty": "medium",
+    "structuresUsed": [
+      "list"
+    ],
+    "difficulty": 3,
     "author": "Core Team",
-    "description": "Learn list edge operations: trim exactly one item from each side of L."
+    "description": "Practica cómo quitar primer y último elemento de una lista sin alterar el interior.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["list"],
+    "availableStructures": [
+      "list"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {
-    "introduces": ["list edge operations", "first and last element as separate positions"],
+    "introduces": [
+      "list edge operations",
+      "first and last element as separate positions"
+    ],
     "messages": [
       {
         "trigger": "level_start",
         "title": "This level introduces list edges",
         "body": "A list lets you act on the first and last positions directly. This level teaches the difference between trimming the left edge and trimming the right edge without disturbing the middle values.",
-        "concepts": ["REMOVE_FIRST", "REMOVE_LAST", "list edges"]
+        "concepts": [
+          "REMOVE_FIRST",
+          "REMOVE_LAST",
+          "list edges"
+        ]
       },
       {
         "trigger": "first_failure",
         "title": "Preserve the middle",
         "body": "The center of the list should survive unchanged. If the middle values moved or disappeared, the operation sequence trimmed more than the two outer positions.",
-        "concepts": ["middle values", "edge-only changes"]
+        "concepts": [
+          "middle values",
+          "edge-only changes"
+        ]
       },
       {
         "trigger": "repeated_failure",
         "title": "Each edge is a different position",
         "body": "This level is not about general stack or queue movement. It is about targeting the current first item and the current last item of the same structure.",
-        "concepts": ["first position", "last position"]
+        "concepts": [
+          "first position",
+          "last position"
+        ]
+      }
+    ]
+  },
+  "teachingPlan": {
+    "introduces": [
+      "list edge operations",
+      "first and last element as separate positions"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces list edges",
+        "body": "A list lets you act on the first and last positions directly. This level teaches the difference between trimming the left edge and trimming the right edge without disturbing the middle values.",
+        "concepts": [
+          "REMOVE_FIRST",
+          "REMOVE_LAST",
+          "list edges"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Preserve the middle",
+        "body": "The center of the list should survive unchanged. If the middle values moved or disappeared, the operation sequence trimmed more than the two outer positions.",
+        "concepts": [
+          "middle values",
+          "edge-only changes"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Each edge is a different position",
+        "body": "This level is not about general stack or queue movement. It is about targeting the current first item and the current last item of the same structure.",
+        "concepts": [
+          "first position",
+          "last position"
+        ]
       }
     ]
   }

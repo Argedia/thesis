@@ -80,6 +80,7 @@ const resources = {
 				items: "items",
 				more: "more",
 				ok: "OK",
+				backToMap: "Back to map",
 				cancel: "Cancel",
 				save: "Save",
 				delete: "Delete",
@@ -116,7 +117,7 @@ const resources = {
 					steps: {
 						actions: {
 							title: "Top actions",
-							description: "Core draft actions stay here: export, test, save, publish, and this tutorial entrypoint."
+							description: "Core draft actions stay here: export, test, save, and publish."
 						},
 						paletteBase: {
 							title: "Main palette",
@@ -177,7 +178,8 @@ const resources = {
 				playBoard: "Play Board",
 				executionFeed: "Execution Feed",
 				output: "Output",
-				blocksCount: "{{count}}/{{max}} blocks",
+				blocksCount: "{{count}}/{{max}}",
+				blocksCountTooltip: "Number of blocks",
 				runHint: "Feedback here.",
 				feedHint: "Run your program to watch the data move.",
 				expandOutput: "Expand output",
@@ -285,7 +287,11 @@ const resources = {
 				couldNotLoadCampaign: "Could not load campaign.",
 				stepLimitReached: "Step limit reached ({{max}}).",
 				requiresMoreRoutines: "This level requires at least {{count}} scripts (create a helper function).",
-				requiresRoutineCall: "This level requires calling a custom function from another script."
+				requiresRoutineCall: "This level requires calling a custom function from main. Put the action in another script, call it from main, and run main."
+				,
+				missingRequiredBlockKinds: "This level requires using: {{blocks}}.",
+				blockKindFunction: "function",
+				blockKindValue: "value block"
 			},
 			diagnostics: {
 				loopConditionIncomplete: "Loop blocks need a complete condition input.",
@@ -356,8 +362,21 @@ const resources = {
 				blockLimitDisplay: "Limit reached ({{used}}/{{limit}}).",
 				collapseInstructions: "Collapse instructions",
 				expandInstructions: "Expand instructions",
+				openHelpGuide: "Open help guide",
+				helpFabTooltip: "A little lost? Click this!",
 				levelCouldNotBeLoaded: "Level \"{{id}}\" could not be loaded.",
-				draftDefaultName: "Untitled level"
+				draftDefaultName: "Untitled level",
+				examples: {
+					author: "Software example",
+					stack: {
+						name: "Example · Empty the stack",
+						description: "A minimal example with two pop actions. Open it to inspect how a tiny stack level is configured in the editor."
+					},
+					queue: {
+						name: "Example · Enqueue one value",
+						description: "A small example that inserts one literal into a queue. It shows a structure action with a filled value slot."
+					}
+				}
 			},
 			editorShell: {
 				save: "Save",
@@ -641,6 +660,7 @@ const resources = {
 				items: "elementos",
 				more: "más",
 				ok: "Aceptar",
+				backToMap: "Volver al mapa",
 				cancel: "Cancelar",
 				save: "Guardar",
 				delete: "Eliminar",
@@ -658,7 +678,7 @@ const resources = {
 				draft: "Borrador"
 			},
 			actions: {
-				play: "Ejecutar",
+				play: "Jugar",
 				step: "Paso",
 				pause: "Pausa",
 				stop: "Detener",
@@ -677,7 +697,7 @@ const resources = {
 					steps: {
 						actions: {
 							title: "Acciones superiores",
-							description: "Aquí están las acciones principales del borrador: exportar, probar, guardar, publicar y abrir este tutorial."
+							description: "Aquí están las acciones principales del borrador: exportar, probar, guardar y publicar."
 						},
 						paletteBase: {
 							title: "Paleta principal",
@@ -738,7 +758,8 @@ const resources = {
 				playBoard: "Tablero de Ejecución",
 				executionFeed: "Registro de Ejecución",
 				output: "Salida",
-				blocksCount: "{{count}}/{{max}} bloques",
+				blocksCount: "{{count}}/{{max}}",
+				blocksCountTooltip: "Numero de bloques",
 				runHint: "Feedback aquí.",
 				feedHint: "Ejecuta tu programa para ver cómo se mueven los datos.",
 				expandOutput: "Expandir salida",
@@ -846,7 +867,11 @@ const resources = {
 				couldNotLoadCampaign: "No se pudo cargar la campaña.",
 				stepLimitReached: "Límite de pasos alcanzado ({{max}}).",
 				requiresMoreRoutines: "Este nivel requiere al menos {{count}} scripts (crea una función auxiliar).",
-				requiresRoutineCall: "Este nivel requiere llamar a una función personalizada desde otro script."
+				requiresRoutineCall: "Este nivel requiere llamar a una función personalizada desde principal. Pon la acción en otro script, llámalo desde principal y ejecuta principal."
+				,
+				missingRequiredBlockKinds: "Este nivel requiere usar: {{blocks}}.",
+				blockKindFunction: "función",
+				blockKindValue: "bloque literal"
 			},
 			diagnostics: {
 				loopConditionIncomplete: "Los bloques de bucle necesitan una condición completa.",
@@ -917,8 +942,21 @@ const resources = {
 				blockLimitDisplay: "Límite alcanzado ({{used}}/{{limit}}).",
 				collapseInstructions: "Contraer instrucciones",
 				expandInstructions: "Expandir instrucciones",
+				openHelpGuide: "Abrir guía de ayuda",
+				helpFabTooltip: "¿Algo perdido? Haz clic aquí",
 				levelCouldNotBeLoaded: "No se pudo cargar el nivel \"{{id}}\".",
-				draftDefaultName: "Nivel sin nombre"
+				draftDefaultName: "Nivel sin nombre",
+				examples: {
+					author: "Ejemplo del software",
+					stack: {
+						name: "Ejemplo · Vaciar la pila",
+						description: "Un ejemplo mínimo con dos desapilar. Ábrelo para inspeccionar cómo se configura un nivel pequeño de pila dentro del editor."
+					},
+					queue: {
+						name: "Ejemplo · Encolar un valor",
+						description: "Un ejemplo corto que inserta un literal en una cola. Muestra una acción de estructura con su slot de valor ya completo."
+					}
+				}
 			},
 			editorShell: {
 				save: "Guardar",

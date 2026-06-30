@@ -1,0 +1,420 @@
+[
+  {
+    "id": "world-thesis-onboarding",
+    "name": "W1 · Familiarización con el editor",
+    "theme": "onboarding",
+    "mapStyle": "grid",
+    "worldUnlockRule": "always",
+    "requiredCompletions": 3,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Base de uso",
+      "objective": "Aprende a leer el tablero, ejecutar y corregir una solución simple.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Primer contacto",
+          "description": "Ya sabes abrir un nivel, arrastrar un bloque y ejecutar."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 3,
+          "title": "Onboarding completo",
+          "description": "Ya dominas el flujo básico del editor antes de pasar a estructuras."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo de familiarización. Desde aquí partes al primer nivel."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w0-l1-first-contact",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W1-L1 · Primer contacto",
+        "descriptionOverride": "Primera práctica para arrastrar bloques, ejecutar y observar una transformación simple."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-w0-l2-step-and-reset",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W1-L2 · Step y reset",
+        "descriptionOverride": "Aprende a usar paso a paso y reinicio mientras repites una acción simple."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w0-l3-read-before-run",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W1-L3 · Descripción, bloques y salida",
+        "descriptionOverride": "Cierra el onboarding usando la descripción, la paleta izquierda y la salida."
+      }
+    ],
+    "edges": [
+      {
+        "from": "start",
+        "to": "n1",
+        "type": "normal"
+      },
+      {
+        "from": "n1",
+        "to": "n2",
+        "type": "normal"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "type": "normal"
+      }
+    ],
+    "grid": {
+      "columns": 4,
+      "rows": 1,
+      "marginX": 16,
+      "marginY": 34
+    }
+  },
+  {
+    "id": "world-thesis-stack",
+    "name": "W2 · Pila",
+    "theme": "stack",
+    "mapStyle": "grid",
+    "requiredCompletions": 4,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Semántica LIFO",
+      "objective": "Practica cómo funciona una pila, cómo usar una pila auxiliar y cómo verificar una condición simple antes de mover.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Tope identificado",
+          "description": "Ya distingues el tope como punto natural de trabajo."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 4,
+          "title": "Mundo pila completo",
+          "description": "Ya puedes resolver retos básicos de pila con autonomía razonable."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo de pila. Desde aquí entras al primer reto."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-01-stack-top-transfer",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W2-L1 · Transferencia de tope",
+        "descriptionOverride": "Introduce la idea más básica de pila: solo el tope está disponible de forma natural."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-02-stack-build-from-scratch",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W2-L2 · Construir pila objetivo",
+        "descriptionOverride": "Practica cómo construir una pila final respetando el orden LIFO."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w2-1",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W2-L3 · Destapar y restaurar",
+        "descriptionOverride": "Usa una pila auxiliar para acceder a un valor que no está en el tope."
+      },
+      {
+        "id": "n4",
+        "levelId": "campaign-w2-2",
+        "gridCol": 4,
+        "gridRow": 0,
+        "titleOverride": "W2-L4 · Verificar antes de mover",
+        "descriptionOverride": "Introduce un condicional simple para verificar el tope antes de transferirlo."
+      }
+    ],
+    "edges": [
+      {
+        "from": "start",
+        "to": "n1",
+        "type": "normal"
+      },
+      {
+        "from": "n1",
+        "to": "n2",
+        "type": "normal"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "type": "normal"
+      },
+      {
+        "from": "n3",
+        "to": "n4",
+        "type": "normal"
+      }
+    ],
+    "grid": {
+      "columns": 5,
+      "rows": 1,
+      "marginX": 12,
+      "marginY": 34
+    }
+  },
+  {
+    "id": "world-thesis-queue",
+    "name": "W3 · Cola + un poco de pila",
+    "theme": "queue",
+    "mapStyle": "grid",
+    "requiredCompletions": 4,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Semántica FIFO y repetición",
+      "objective": "Comprende el frente, el final, la repetición con while y cómo una pila auxiliar cambia lo que una cola puede lograr.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "FIFO básico",
+          "description": "Ya distingues qué sale primero y qué entra al final."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 4,
+          "title": "Mundo cola completo",
+          "description": "Ya puedes trabajar con cola pura, repetir con while y apoyarte en una pila auxiliar."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo de cola. Desde aquí entras al primer reto."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w3-1",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W3-L1 · Frente y final",
+        "descriptionOverride": "Introduce cola pura: sacar del frente y enviar al final sin romper el orden."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-w3-2",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W3-L2 · Rotar sin invertir",
+        "descriptionOverride": "Practica una rotación simple de cola moviendo el frente al final."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w3-3",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W3-L3 · Mientras queden elementos",
+        "descriptionOverride": "Introduce un while para repetir una misma transferencia mientras la cola siga teniendo elementos."
+      },
+      {
+        "id": "n4",
+        "levelId": "campaign-03-queue-stack-reverse",
+        "gridCol": 4,
+        "gridRow": 0,
+        "titleOverride": "W3-L4 · Invertir cola con pila auxiliar",
+        "descriptionOverride": "Usa una pila auxiliar para invertir una cola después de haber entendido FIFO puro."
+      }
+    ],
+    "edges": [
+      {
+        "from": "start",
+        "to": "n1",
+        "type": "normal"
+      },
+      {
+        "from": "n1",
+        "to": "n2",
+        "type": "normal"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "type": "normal"
+      },
+      {
+        "from": "n3",
+        "to": "n4",
+        "type": "normal"
+      }
+    ],
+    "grid": {
+      "columns": 5,
+      "rows": 1,
+      "marginX": 12,
+      "marginY": 34
+    }
+  },
+  {
+    "id": "world-thesis-list",
+    "name": "W4 · Lista + funciones sencillas",
+    "theme": "list",
+    "mapStyle": "grid",
+    "requiredCompletions": 4,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Extremos y abstracción",
+      "objective": "Aprende a trabajar con extremos de lista y luego encapsula movimientos simples en funciones helper.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Primer contacto con lista",
+          "description": "Ya usaste la lista como estructura flexible en sus extremos."
+        },
+        {
+          "id": "m2",
+          "minCompleted": 4,
+          "title": "Mundo lista completo",
+          "description": "Ya combinas operaciones de extremos y funciones sencillas para organizar soluciones."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo de lista. Desde aquí entras al primer reto."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w4-1",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W4-L1 · Construir desde extremos",
+        "descriptionOverride": "Introduce APPEND y PREPEND como ventaja básica de la lista."
+      },
+      {
+        "id": "n2",
+        "levelId": "campaign-04-list-trim-edges",
+        "gridCol": 2,
+        "gridRow": 0,
+        "titleOverride": "W4-L2 · Recorte de bordes",
+        "descriptionOverride": "Practica cómo quitar primer y último elemento sin alterar el interior."
+      },
+      {
+        "id": "n3",
+        "levelId": "campaign-w4-2",
+        "gridCol": 3,
+        "gridRow": 0,
+        "titleOverride": "W4-L3 · Primer helper sobre lista",
+        "descriptionOverride": "Introduce una función sencilla para mover un valor por extremos."
+      },
+      {
+        "id": "n4",
+        "levelId": "campaign-w4-3",
+        "gridCol": 4,
+        "gridRow": 0,
+        "titleOverride": "W4-L4 · Reusar helper para cerrar",
+        "descriptionOverride": "Cierra el mundo reusando una función helper varias veces."
+      }
+    ],
+    "edges": [
+      {
+        "from": "start",
+        "to": "n1",
+        "type": "normal"
+      },
+      {
+        "from": "n1",
+        "to": "n2",
+        "type": "normal"
+      },
+      {
+        "from": "n2",
+        "to": "n3",
+        "type": "normal"
+      },
+      {
+        "from": "n3",
+        "to": "n4",
+        "type": "normal"
+      }
+    ],
+    "grid": {
+      "columns": 5,
+      "rows": 1,
+      "marginX": 12,
+      "marginY": 34
+    }
+  },
+  {
+    "id": "world-thesis-integration",
+    "name": "W5 · Final boss",
+    "theme": "integration",
+    "mapStyle": "grid",
+    "requiredCompletions": 1,
+    "startNodeId": "start",
+    "hubGoal": {
+      "title": "Integración final",
+      "objective": "Compara stack, queue y list en un mismo problema y coordina una estrategia corta con un helper.",
+      "milestones": [
+        {
+          "id": "m1",
+          "minCompleted": 1,
+          "title": "Campaña completa",
+          "description": "Ya puedes usar el software con autonomía moderada mientras aplicas estructuras lineales."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "start",
+        "gridCol": 0,
+        "gridRow": 0,
+        "titleOverride": "Inicio del mundo",
+        "descriptionOverride": "Punto de llegada al mundo final. Desde aquí entras al reto de integración."
+      },
+      {
+        "id": "n1",
+        "levelId": "campaign-w5-1",
+        "gridCol": 1,
+        "gridRow": 0,
+        "titleOverride": "W5-L1 · Final boss lineal",
+        "descriptionOverride": "Reto final corto que mezcla stack, queue, list y un helper sencillo."
+      }
+    ],
+    "edges": [
+      {
+        "from": "start",
+        "to": "n1",
+        "type": "normal"
+      }
+    ],
+    "grid": {
+      "columns": 2,
+      "rows": 1,
+      "marginX": 24,
+      "marginY": 34
+    }
+  }
+]

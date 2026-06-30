@@ -1,32 +1,53 @@
 {
   "id": "campaign-01-stack-top-transfer",
-  "title": "Campaign 01 · Stack Top Transfer",
+  "title": "W2-L1 · Transferencia de tope",
   "initialState": [
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
-      "values": [3],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "values": [
+        3
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -66,47 +87,115 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": [
+      "A",
+      "B"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
-    "difficulty": "easy",
+    "structuresUsed": [
+      "stack"
+    ],
+    "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Learn stack basics: use POP on A and PUSH into B to move the top element."
+    "description": "Introduce la semántica LIFO moviendo solo el tope de una pila hacia otra.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {
-    "introduces": ["goal-state reading", "stack top behavior", "pop then push transfer"],
+    "introduces": [
+      "goal-state reading",
+      "stack top behavior",
+      "pop then push transfer"
+    ],
     "messages": [
       {
         "trigger": "level_start",
         "title": "This level introduces stack transfers",
         "body": "Read the initial and goal states first. Only the top value of a stack comes out when you POP, so this level is about moving exactly that visible top element into the other stack with PUSH.",
-        "concepts": ["stack top", "POP", "PUSH", "goal state"]
+        "concepts": [
+          "stack top",
+          "POP",
+          "PUSH",
+          "goal state"
+        ]
       },
       {
         "trigger": "first_failure",
         "title": "Focus on the top value only",
         "body": "If more than one value changed, the program probably moved too much. This level only needs the current top of A to end up on top of B.",
-        "concepts": ["single transfer", "top element"]
+        "concepts": [
+          "single transfer",
+          "top element"
+        ]
       },
       {
         "trigger": "repeated_failure",
         "title": "Transfer has an order",
         "body": "For this level, think in two actions: remove from the source stack first, then insert into the target stack. The result should change both structures in one controlled transfer.",
-        "concepts": ["source then target", "ordered actions"]
+        "concepts": [
+          "source then target",
+          "ordered actions"
+        ]
+      }
+    ]
+  },
+  "teachingPlan": {
+    "introduces": [
+      "goal-state reading",
+      "stack top behavior",
+      "pop then push transfer"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces stack transfers",
+        "body": "Read the initial and goal states first. Only the top value of a stack comes out when you POP, so this level is about moving exactly that visible top element into the other stack with PUSH.",
+        "concepts": [
+          "stack top",
+          "POP",
+          "PUSH",
+          "goal state"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Focus on the top value only",
+        "body": "If more than one value changed, the program probably moved too much. This level only needs the current top of A to end up on top of B.",
+        "concepts": [
+          "single transfer",
+          "top element"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Transfer has an order",
+        "body": "For this level, think in two actions: remove from the source stack first, then insert into the target stack. The result should change both structures in one controlled transfer.",
+        "concepts": [
+          "source then target",
+          "ordered actions"
+        ]
       }
     ]
   }

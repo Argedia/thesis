@@ -41,6 +41,7 @@ import {
 import { executeOperationWithLevelConstraints } from "./constraints";
 import { createTypedObjectValue, resolveHeapObject } from "./typed-objects";
 import { isHeapRefValue } from "./runtime-values";
+import { t } from "../../../i18n-helpers";
 
 const MAX_WHILE_ITERATIONS = 20;
 const MAX_FUNCTION_CALL_DEPTH = 20;
@@ -188,6 +189,7 @@ export const executeInstruction = (
 
     case "call-routine": {
       if (!statement || statement.kind !== "routine-call") throw new Error("Routine call statement is missing.");
+      ctx.onRoutineCall?.();
       invokeRoutineFrame(ctx, compiled, statement.routineId, statement.args);
       frame.ip += 1;
       return;
@@ -336,7 +338,7 @@ const executeCallStepped = (
     operation = createSourceOperation(statement.operation, targetId, argVal);
   } else if (isTargetOperation(statement.operation)) {
     const argument = statement.args[0] ? evaluateExpression(statement.args[0], ctx) : null;
-    if (!argument) throw new Error("Finish each block and fill any missing value slots.");
+    if (!argument) throw new Error(t("playSession.finishBlocksHint"));
     const value = argument.kind === "literal" ? assertPrimitiveValue(argument.value) : undefined;
     if (statement.operation === "INSERT_AT") {
       const indexExpr = statement.args[1] ? evaluateExpression(statement.args[1], ctx) : null;

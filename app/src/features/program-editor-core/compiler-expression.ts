@@ -1,4 +1,4 @@
-import type { ExpressionNode, RoutineSignature, TypeSignature } from "./types";
+import type { CompilerDiagnostic, ExpressionNode, RoutineSignature, TypeSignature } from "./types";
 import type { OperationDefinition } from "@thesis/core-engine";
 import { structureExpressionSupportsValue, isSourceOperation, createSourceOperation } from "./compiler-structure-ops";
 import { inferExpressionTypeRef, isTypeCompatible, type DeclarationTypeLookup } from "./compiler-type-inference";
@@ -101,6 +101,7 @@ export interface ExpressionCompileResult {
 	isComplete: boolean;
 	unsupportedFeatures: string[];
 	diagnostics: string[];
+	diagnosticDetails?: CompilerDiagnostic[];
 }
 
 export const compileExpression = (
@@ -116,7 +117,7 @@ export const compileExpression = (
 			provides: null,
 			isComplete: false,
 			unsupportedFeatures: [],
-			diagnostics: ["Finish each block and fill any missing value slots."]
+			diagnostics: [t("playSession.finishBlocksHint")]
 		};
 	}
 
@@ -207,7 +208,7 @@ export const compileExpression = (
 						)
 					)
 						? ["type_mismatch_expect_arg"]
-						: ["Finish each block and fill any missing value slots."]
+						: [t("playSession.finishBlocksHint")]
 			};
 		}
 
@@ -322,7 +323,7 @@ export const compileExpression = (
 					expression.mode === "value" ||
 						(expression.operand && expressionCanExecuteAtRuntime(expression.operand, signatures))
 						? []
-						: ["Finish each block and fill any missing value slots."]
+						: [t("playSession.finishBlocksHint")]
 			};
 
 		case "binary":
@@ -334,7 +335,7 @@ export const compileExpression = (
 				provides: null,
 				isComplete,
 				unsupportedFeatures: [],
-				diagnostics: isComplete ? [] : ["Finish each block and fill any missing value slots."]
+				diagnostics: isComplete ? [] : [t("playSession.finishBlocksHint")]
 			};
 		}
 	}

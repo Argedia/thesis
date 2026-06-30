@@ -31,6 +31,7 @@ export interface EditorCanvasRendererContext {
   }): void;
   blockContainsId(block: EditorBlock, blockId: string | null | undefined): boolean;
   getHighlightedNodeId(): string | null | undefined;
+  getDiagnosticNodeIds(): string[];
   getBreakpointNodeIds(): string[];
   onToggleBreakpoint(blockId: string): void;
   createBlockInstanceElement(
@@ -176,6 +177,9 @@ export class EditorCanvasRenderer {
     const element = this.ctx.createBlockInstanceElement(block, { preview: isPreviewBlock });
 
     if (element.classList.contains("has-slot-error")) {
+      line.classList.add("editor-program-row-error");
+    }
+    if (this.ctx.getDiagnosticNodeIds().some((nodeId) => this.ctx.blockContainsId(block, nodeId))) {
       line.classList.add("editor-program-row-error");
     }
 

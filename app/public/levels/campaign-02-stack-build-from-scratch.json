@@ -1,18 +1,29 @@
 {
   "id": "campaign-02-stack-build-from-scratch",
-  "title": "Campaign 02 · Build Stack From Scratch",
+  "title": "W2-L2 · Construir pila objetivo",
   "initialState": [
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3, 4],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -20,13 +31,24 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
-      "values": [4, 3, 2, 1],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "values": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -66,47 +88,109 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": [
+      "A",
+      "B"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
-    "difficulty": "easy",
+    "structuresUsed": [
+      "stack"
+    ],
+    "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Practice repetition: empty A with POP and build B from scratch using PUSH only."
+    "description": "Practica cómo construir una pila final respetando el orden LIFO.",
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {
-    "introduces": ["repeating a stack pattern", "building a target state step by step"],
+    "introduces": [
+      "repeating a stack pattern",
+      "building a target state step by step"
+    ],
     "messages": [
       {
         "trigger": "level_start",
         "title": "This level introduces repetition",
         "body": "The same stack transfer idea must happen several times in a row. Instead of thinking about one big answer, think about a repeatable move that removes the current top of A and places it on B.",
-        "concepts": ["repeatable pattern", "stack sequence"]
+        "concepts": [
+          "repeatable pattern",
+          "stack sequence"
+        ]
       },
       {
         "trigger": "first_failure",
         "title": "Build the result one layer at a time",
         "body": "B is not filled at once. Each transfer creates the next visible layer of the target stack, so check how B should grow after every move.",
-        "concepts": ["incremental build", "visible layers"]
+        "concepts": [
+          "incremental build",
+          "visible layers"
+        ]
       },
       {
         "trigger": "repeated_failure",
         "title": "Keep the same transfer rule",
         "body": "If your program works once but not for the whole stack, the issue is usually consistency. The solution should apply the same POP then PUSH idea until A is empty.",
-        "concepts": ["consistency", "repeat until empty"]
+        "concepts": [
+          "consistency",
+          "repeat until empty"
+        ]
+      }
+    ]
+  },
+  "teachingPlan": {
+    "introduces": [
+      "repeating a stack pattern",
+      "building a target state step by step"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces repetition",
+        "body": "The same stack transfer idea must happen several times in a row. Instead of thinking about one big answer, think about a repeatable move that removes the current top of A and places it on B.",
+        "concepts": [
+          "repeatable pattern",
+          "stack sequence"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Build the result one layer at a time",
+        "body": "B is not filled at once. Each transfer creates the next visible layer of the target stack, so check how B should grow after every move.",
+        "concepts": [
+          "incremental build",
+          "visible layers"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Keep the same transfer rule",
+        "body": "If your program works once but not for the whole stack, the issue is usually consistency. The solution should apply the same POP then PUSH idea until A is empty.",
+        "concepts": [
+          "consistency",
+          "repeat until empty"
+        ]
       }
     ]
   }

@@ -64,6 +64,7 @@ export const getRequiredOperationsFromPolicy = (
 export interface LevelConstraints {
   operationPolicy: LevelOperationPolicy;
   forbiddenBlocks: string[];
+  requiredBlockKinds?: string[];
   blockLimits?: Record<string, number>;
   maxSteps: number;
   allowAdditionalRoutines?: boolean;
@@ -80,7 +81,8 @@ export interface LevelConstraints {
 
 export type LevelSource = "community" | "my-levels";
 export type StructureTag = "stack" | "queue" | "list" | "doubly-linked-list" | "circular-list";
-export type LevelDifficulty = "easy" | "medium" | "hard";
+export type LevelCatalogCategory = "campaign" | "community";
+export type LevelDifficulty = number;
 
 export type PlayerPanelId = "board" | "steps" | "timeline";
 export type EditorPanelId =
@@ -123,9 +125,12 @@ export interface LevelTeachingMessage {
 export interface LevelTeachingPlan {
   introduces: string[];
   messages: LevelTeachingMessage[];
+  reinforces?: string[];
+  inf261Reference?: string;
 }
 
 export interface LevelCatalogMetadata {
+  catalog: LevelCatalogCategory;
   source: LevelSource;
   structuresUsed: StructureTag[];
   difficulty: LevelDifficulty;
@@ -143,6 +148,7 @@ export interface LevelDefinition {
   playLayout: PlayLayout;
   editorLayout: EditorLayout;
   metadata: LevelCatalogMetadata;
+  teachingPlan?: LevelTeachingPlan;
   tooling?: EditorTooling;
   teaching?: LevelTeachingPlan;
 }

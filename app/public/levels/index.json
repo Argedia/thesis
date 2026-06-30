@@ -7,9 +7,7 @@
         "id": "A",
         "kind": "stack",
         "values": [
-          1,
-          2,
-          3
+          1
         ],
         "properties": {
           "color": "#f6b457",
@@ -38,30 +36,6 @@
         ],
         "properties": {
           "color": "#c6a8ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "D",
-        "kind": "doubly-linked-list",
-        "values": [
-          11,
-          12
-        ],
-        "properties": {
-          "color": "#c6a8ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "E",
-        "kind": "circular-list",
-        "values": [
-          13,
-          14
-        ],
-        "properties": {
-          "color": "#7ad3ba",
           "nodeAutoTaint": false
         }
       }
@@ -104,30 +78,6 @@
           "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
-      },
-      {
-        "id": "D",
-        "kind": "doubly-linked-list",
-        "values": [
-          11,
-          12
-        ],
-        "properties": {
-          "color": "#c6a8ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "E",
-        "kind": "circular-list",
-        "values": [
-          13,
-          14
-        ],
-        "properties": {
-          "color": "#7ad3ba",
-          "nodeAutoTaint": false
-        }
       }
     ],
     "constraints": {
@@ -142,16 +92,7 @@
         "REMOVE_LAST": "permitted",
         "GET_HEAD": "permitted",
         "GET_TAIL": "permitted",
-        "SIZE": "permitted",
-        "PEEK": "permitted",
-        "IS_EMPTY": "permitted",
-        "GET_AT": "permitted",
-        "INSERT_AT": "permitted",
-        "REMOVE_AT": "permitted",
-        "CONTAINS": "permitted",
-        "FIND": "permitted",
-        "REVERSE": "permitted",
-        "CLEAR": "permitted"
+        "SIZE": "permitted"
       },
       "forbiddenBlocks": [],
       "maxSteps": 99
@@ -168,9 +109,7 @@
       "structureOrder": [
         "A",
         "B",
-        "C",
-        "D",
-        "E"
+        "C"
       ],
       "leftPanel": "palette",
       "rightPanel": "inspector",
@@ -185,21 +124,18 @@
       "structuresUsed": [
         "stack",
         "queue",
-        "list",
-        "doubly-linked-list",
-        "circular-list"
+        "list"
       ],
-      "difficulty": "easy",
+      "difficulty": 1.5,
       "author": "Core Team",
-      "description": "Open sandbox with all five data structure types: stack, queue, singly linked list, doubly linked list, and circular list."
+      "description": "Open sandbox level with one stack, one queue, and one list.",
+      "catalog": "community"
     },
     "tooling": {
       "availableStructures": [
         "stack",
         "queue",
-        "list",
-        "doubly-linked-list",
-        "circular-list"
+        "list"
       ],
       "advancedToolsEnabled": true
     }
@@ -317,9 +253,10 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "hard",
+      "difficulty": 4.5,
       "author": "Core Team",
-      "description": "Solve the basic Tower of Hanoi using three stacks."
+      "description": "Solve the basic Tower of Hanoi using three stacks.",
+      "catalog": "community"
     },
     "tooling": {
       "availableStructures": [
@@ -329,8 +266,580 @@
     }
   },
   {
+    "id": "campaign-w0-l1-first-contact",
+    "title": "W1-L1 · Primer contacto",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "permitted",
+        "PUSH": "forbidden",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 1,
+      "maxBlocksGlobal": 1,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 1,
+      "author": "Core Team",
+      "description": "Primera práctica para arrastrar un bloque de estructura, elegir una operación y ejecutar.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "colocar un bloque de estructura, seleccionar una operación y ejecutarla"
+      ],
+      "reinforces": [
+        "read initial state",
+        "read goal state",
+        "top element of a stack"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Place the stack block and use its operation",
+          "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+          "concepts": [
+            "structure block",
+            "structure operation",
+            "run",
+            "top value"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Open the action menu and run the stack operation",
+          "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+          "concepts": [
+            "POP",
+            "structure operation",
+            "run"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Match the exact visible difference",
+          "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+          "concepts": [
+            "goal comparison",
+            "top element",
+            "single operation"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "colocar un bloque de estructura, seleccionar una operación y ejecutarla"
+      ],
+      "reinforces": [
+        "read initial state",
+        "read goal state",
+        "top element of a stack"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Place the stack block and use its operation",
+          "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+          "concepts": [
+            "structure block",
+            "structure operation",
+            "run",
+            "top value"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Open the action menu and run the stack operation",
+          "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+          "concepts": [
+            "POP",
+            "structure operation",
+            "run"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Match the exact visible difference",
+          "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+          "concepts": [
+            "goal comparison",
+            "top element",
+            "single operation"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w0-l2-step-and-reset",
+    "title": "W1-L2 · Step y reset",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "permitted",
+        "PUSH": "forbidden",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 2,
+      "maxBlocksGlobal": 2,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 1.2,
+      "author": "Core Team",
+      "description": "Aprende a seguir la ejecución paso a paso y a reiniciar el tablero cuando necesites reintentar.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "ejecución paso a paso y reinicio mientras repites una acción de pila"
+      ],
+      "reinforces": [
+        "observe intermediate states",
+        "repeat the same operation twice",
+        "watch execution timeline"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Use Step and Reset with one stack",
+          "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+          "concepts": [
+            "step",
+            "reset",
+            "intermediate state",
+            "repeated action"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Check the stack after the first move",
+          "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+          "concepts": [
+            "step",
+            "intermediate state",
+            "one remaining element"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "This level repeats the same move twice",
+          "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+          "concepts": [
+            "repeatable move",
+            "single structure",
+            "reset"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "ejecución paso a paso y reinicio mientras repites una acción de pila"
+      ],
+      "reinforces": [
+        "observe intermediate states",
+        "repeat the same operation twice",
+        "watch execution timeline"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Use Step and Reset with one stack",
+          "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+          "concepts": [
+            "step",
+            "reset",
+            "intermediate state",
+            "repeated action"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Check the stack after the first move",
+          "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+          "concepts": [
+            "step",
+            "intermediate state",
+            "one remaining element"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "This level repeats the same move twice",
+          "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+          "concepts": [
+            "repeatable move",
+            "single structure",
+            "reset"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w0-l3-read-before-run",
+    "title": "W1-L3 · Descripción, bloques y salida",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [
+          "item"
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "forbidden",
+        "PUSH": "forbidden",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "permitted",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "forbidden",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 1,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 1,
+      "maxBlocksGlobal": 2,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "queue"
+      ],
+      "difficulty": 1.4,
+      "author": "Core Team",
+      "description": "Lee la consigna, usa la paleta izquierda y apóyate en la salida para completar el nivel.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "queue"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "usar la descripción del nivel, la paleta izquierda y la salida para completar un nivel"
+      ],
+      "reinforces": [
+        "enqueue needs a value",
+        "read feedback before guessing",
+        "literal blocks can complete an action"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Use the description, blocks, and output",
+          "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+          "concepts": [
+            "description",
+            "left palette",
+            "output",
+            "literal",
+            "enqueue"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "The output tells you what is missing",
+          "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+          "concepts": [
+            "output feedback",
+            "missing value",
+            "enqueue"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Use the literal the level asked for",
+          "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+          "concepts": [
+            "literal block",
+            "description",
+            "exact target"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "usar la descripción del nivel, la paleta izquierda y la salida para completar un nivel"
+      ],
+      "reinforces": [
+        "enqueue needs a value",
+        "read feedback before guessing",
+        "literal blocks can complete an action"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Use the description, blocks, and output",
+          "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+          "concepts": [
+            "description",
+            "left palette",
+            "output",
+            "literal",
+            "enqueue"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "The output tells you what is missing",
+          "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+          "concepts": [
+            "output feedback",
+            "missing value",
+            "enqueue"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Use the literal the level asked for",
+          "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+          "concepts": [
+            "literal block",
+            "description",
+            "exact target"
+          ]
+        }
+      ]
+    }
+  },
+  {
     "id": "campaign-01-stack-top-transfer",
-    "title": "Campaign 01 · Stack Top Transfer",
+    "title": "W2-L1 · Transferencia de tope",
     "initialState": [
       {
         "id": "A",
@@ -412,7 +921,9 @@
         "var_reference": 0,
         "var_operation": 0
       },
-      "maxSteps": 6
+      "maxSteps": 6,
+      "maxBlocksGlobal": 4,
+      "allowAdditionalRoutines": false
     },
     "playLayout": {
       "panelOrder": [
@@ -440,20 +951,97 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "easy",
+      "difficulty": 1.5,
       "author": "Core Team",
-      "description": "Learn stack basics: use POP on A and PUSH into B to move the top element."
+      "description": "Introduce la semántica LIFO moviendo solo el tope de una pila hacia otra.",
+      "catalog": "campaign"
     },
     "tooling": {
       "availableStructures": [
         "stack"
       ],
       "advancedToolsEnabled": true
+    },
+    "teaching": {
+      "introduces": [
+        "goal-state reading",
+        "stack top behavior",
+        "pop then push transfer"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces stack transfers",
+          "body": "Read the initial and goal states first. Only the top value of a stack comes out when you POP, so this level is about moving exactly that visible top element into the other stack with PUSH.",
+          "concepts": [
+            "stack top",
+            "POP",
+            "PUSH",
+            "goal state"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Focus on the top value only",
+          "body": "If more than one value changed, the program probably moved too much. This level only needs the current top of A to end up on top of B.",
+          "concepts": [
+            "single transfer",
+            "top element"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Transfer has an order",
+          "body": "For this level, think in two actions: remove from the source stack first, then insert into the target stack. The result should change both structures in one controlled transfer.",
+          "concepts": [
+            "source then target",
+            "ordered actions"
+          ]
+        }
+      ]
+    },
+    "teachingPlan": {
+      "introduces": [
+        "goal-state reading",
+        "stack top behavior",
+        "pop then push transfer"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces stack transfers",
+          "body": "Read the initial and goal states first. Only the top value of a stack comes out when you POP, so this level is about moving exactly that visible top element into the other stack with PUSH.",
+          "concepts": [
+            "stack top",
+            "POP",
+            "PUSH",
+            "goal state"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Focus on the top value only",
+          "body": "If more than one value changed, the program probably moved too much. This level only needs the current top of A to end up on top of B.",
+          "concepts": [
+            "single transfer",
+            "top element"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Transfer has an order",
+          "body": "For this level, think in two actions: remove from the source stack first, then insert into the target stack. The result should change both structures in one controlled transfer.",
+          "concepts": [
+            "source then target",
+            "ordered actions"
+          ]
+        }
+      ]
     }
   },
   {
     "id": "campaign-02-stack-build-from-scratch",
-    "title": "Campaign 02 · Build Stack From Scratch",
+    "title": "W2-L2 · Construir pila objetivo",
     "initialState": [
       {
         "id": "A",
@@ -536,7 +1124,9 @@
         "var_reference": 0,
         "var_operation": 0
       },
-      "maxSteps": 12
+      "maxSteps": 12,
+      "maxBlocksGlobal": 10,
+      "allowAdditionalRoutines": false
     },
     "playLayout": {
       "panelOrder": [
@@ -564,20 +1154,1166 @@
       "structuresUsed": [
         "stack"
       ],
-      "difficulty": "easy",
+      "difficulty": 1.5,
       "author": "Core Team",
-      "description": "Practice repetition: empty A with POP and build B from scratch using PUSH only."
+      "description": "Practica cómo construir una pila final respetando el orden LIFO.",
+      "catalog": "campaign"
     },
     "tooling": {
       "availableStructures": [
         "stack"
       ],
       "advancedToolsEnabled": true
+    },
+    "teaching": {
+      "introduces": [
+        "repeating a stack pattern",
+        "building a target state step by step"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces repetition",
+          "body": "The same stack transfer idea must happen several times in a row. Instead of thinking about one big answer, think about a repeatable move that removes the current top of A and places it on B.",
+          "concepts": [
+            "repeatable pattern",
+            "stack sequence"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Build the result one layer at a time",
+          "body": "B is not filled at once. Each transfer creates the next visible layer of the target stack, so check how B should grow after every move.",
+          "concepts": [
+            "incremental build",
+            "visible layers"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Keep the same transfer rule",
+          "body": "If your program works once but not for the whole stack, the issue is usually consistency. The solution should apply the same POP then PUSH idea until A is empty.",
+          "concepts": [
+            "consistency",
+            "repeat until empty"
+          ]
+        }
+      ]
+    },
+    "teachingPlan": {
+      "introduces": [
+        "repeating a stack pattern",
+        "building a target state step by step"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces repetition",
+          "body": "The same stack transfer idea must happen several times in a row. Instead of thinking about one big answer, think about a repeatable move that removes the current top of A and places it on B.",
+          "concepts": [
+            "repeatable pattern",
+            "stack sequence"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Build the result one layer at a time",
+          "body": "B is not filled at once. Each transfer creates the next visible layer of the target stack, so check how B should grow after every move.",
+          "concepts": [
+            "incremental build",
+            "visible layers"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Keep the same transfer rule",
+          "body": "If your program works once but not for the whole stack, the issue is usually consistency. The solution should apply the same POP then PUSH idea until A is empty.",
+          "concepts": [
+            "consistency",
+            "repeat until empty"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w2-1",
+    "title": "W2-L3 · Destapar y restaurar",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "C",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          1,
+          3
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          2
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "C",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "permitted",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 8,
+      "maxBlocksGlobal": 6,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B",
+        "C"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 2.6,
+      "author": "Core Team",
+      "description": "Usa una pila auxiliar para apartar temporalmente el tope, rescatar un valor interno y restaurar la pila principal.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Uso de pila auxiliar para acceder a elementos que no están en el tope"
+      ],
+      "reinforces": [
+        "LIFO",
+        "restauración del orden",
+        "planificación antes de mover"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "No todo valor útil está en el tope",
+          "body": "El valor que buscas no está arriba. Usa una pila auxiliar para apartar temporalmente lo que estorba, luego restaura la pila principal.",
+          "concepts": [
+            "pila auxiliar",
+            "tope",
+            "restauración"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Restaurar también forma parte de la solución",
+          "body": "Si B recibió el valor correcto pero A quedó mal, faltó devolver a A el elemento que solo salió para despejar el camino.",
+          "concepts": [
+            "estado final exacto",
+            "restaurar"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Piensa en tres movimientos",
+          "body": "Primero aparta, luego rescata, y al final devuelve. Esa secuencia respeta la lógica LIFO sin perder información.",
+          "concepts": [
+            "secuencia de estrategia",
+            "LIFO"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Uso de pila auxiliar para acceder a elementos que no están en el tope"
+      ],
+      "reinforces": [
+        "LIFO",
+        "restauración del orden",
+        "planificación antes de mover"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "No todo valor útil está en el tope",
+          "body": "El valor que buscas no está arriba. Usa una pila auxiliar para apartar temporalmente lo que estorba, luego restaura la pila principal.",
+          "concepts": [
+            "pila auxiliar",
+            "tope",
+            "restauración"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Restaurar también forma parte de la solución",
+          "body": "Si B recibió el valor correcto pero A quedó mal, faltó devolver a A el elemento que solo salió para despejar el camino.",
+          "concepts": [
+            "estado final exacto",
+            "restaurar"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Piensa en tres movimientos",
+          "body": "Primero aparta, luego rescata, y al final devuelve. Esa secuencia respeta la lógica LIFO sin perder información.",
+          "concepts": [
+            "secuencia de estrategia",
+            "LIFO"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w2-2",
+    "title": "W2-L4 · Verificar antes de mover",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [
+          9
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "stack",
+        "values": [],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "stack",
+        "values": [
+          9
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "required",
+        "PUSH": "required",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "required",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "requiredBlockKinds": [
+        "conditional"
+      ],
+      "blockLimits": {
+        "value": 1,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 1,
+        "conditional": 1,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 8,
+      "maxBlocksGlobal": 6,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "stack"
+      ],
+      "difficulty": 3.2,
+      "author": "Core Team",
+      "description": "Antes de mover el valor, hay que verificarlo. Observa el tope de la pila y solo transfiérelo a la pila destino si pasa la comprobación.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "stack"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Uso de un condicional simple para verificar una condición antes de mover desde una pila"
+      ],
+      "reinforces": [
+        "PEEK como lectura sin extraer",
+        "comparación simple",
+        "decisión antes de actuar"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Primero verifica, luego mueve",
+          "body": "Imagina que B solo acepta valores aprobados. Antes de transferir el tope de A, primero debes revisarlo y moverlo únicamente si pasa la comprobación.",
+          "concepts": [
+            "if",
+            "PEEK",
+            "verificación"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Mirar evita mover a ciegas",
+          "body": "PEEK te deja revisar el tope sin sacar nada. Úsalo para decidir si el traslado a B debe ocurrir o no.",
+          "concepts": [
+            "PEEK",
+            "chequeo previo"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "El traslado debe estar justificado",
+          "body": "La meta no es mover por mover. La idea de este nivel es que la acción suceda como resultado de una verificación simple sobre el valor visible.",
+          "concepts": [
+            "condición útil",
+            "acción verificada"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Uso de un condicional simple para verificar una condición antes de mover desde una pila"
+      ],
+      "reinforces": [
+        "PEEK como lectura sin extraer",
+        "comparación simple",
+        "decisión antes de actuar"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Primero verifica, luego mueve",
+          "body": "Imagina que B solo acepta valores aprobados. Antes de transferir el tope de A, primero debes revisarlo y moverlo únicamente si pasa la comprobación.",
+          "concepts": [
+            "if",
+            "PEEK",
+            "verificación"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Mirar evita mover a ciegas",
+          "body": "PEEK te deja revisar el tope sin sacar nada. Úsalo para decidir si el traslado a B debe ocurrir o no.",
+          "concepts": [
+            "PEEK",
+            "chequeo previo"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "El traslado debe estar justificado",
+          "body": "La meta no es mover por mover. La idea de este nivel es que la acción suceda como resultado de una verificación simple sobre el valor visible.",
+          "concepts": [
+            "condición útil",
+            "acción verificada"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w3-1",
+    "title": "W3-L1 · Frente y final",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "queue",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "queue",
+        "values": [
+          1
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "forbidden",
+        "PUSH": "forbidden",
+        "DEQUEUE": "required",
+        "ENQUEUE": "required",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "permitted",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 2,
+      "maxBlocksGlobal": 2,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "queue"
+      ],
+      "difficulty": 1.6,
+      "author": "Core Team",
+      "description": "Introduce la semántica FIFO moviendo el frente de una cola al final de otra.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "queue"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Comportamiento FIFO en cola mediante DEQUEUE y ENQUEUE"
+      ],
+      "reinforces": [
+        "frente de la cola",
+        "final de la cola",
+        "preservación del orden"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Identifica qué sale primero",
+          "body": "En una cola no trabajas con el tope, sino con el frente. Observa A y mueve exactamente el primer valor hacia B para que el resto conserve su orden.",
+          "concepts": [
+            "FIFO",
+            "frente",
+            "final"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "El orden de llegada importa",
+          "body": "Si A no quedó con 2 y 3 en ese orden, entonces la cola fue manipulada como si fuera otra estructura. Recuerda: sale el frente y entra por el final.",
+          "concepts": [
+            "DEQUEUE",
+            "ENQUEUE",
+            "orden"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Haz solo el cambio necesario",
+          "body": "La meta pide un movimiento muy específico: el primer elemento de A debe terminar como único elemento en B, sin alterar el orden restante de A.",
+          "concepts": [
+            "diferencia exacta",
+            "FIFO"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Comportamiento FIFO en cola mediante DEQUEUE y ENQUEUE"
+      ],
+      "reinforces": [
+        "frente de la cola",
+        "final de la cola",
+        "preservación del orden"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Identifica qué sale primero",
+          "body": "En una cola no trabajas con el tope, sino con el frente. Observa A y mueve exactamente el primer valor hacia B para que el resto conserve su orden.",
+          "concepts": [
+            "FIFO",
+            "frente",
+            "final"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "El orden de llegada importa",
+          "body": "Si A no quedó con 2 y 3 en ese orden, entonces la cola fue manipulada como si fuera otra estructura. Recuerda: sale el frente y entra por el final.",
+          "concepts": [
+            "DEQUEUE",
+            "ENQUEUE",
+            "orden"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Haz solo el cambio necesario",
+          "body": "La meta pide un movimiento muy específico: el primer elemento de A debe terminar como único elemento en B, sin alterar el orden restante de A.",
+          "concepts": [
+            "diferencia exacta",
+            "FIFO"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w3-2",
+    "title": "W3-L2 · Rotar sin invertir",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [
+          2,
+          3,
+          4,
+          1
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "forbidden",
+        "PUSH": "forbidden",
+        "DEQUEUE": "required",
+        "ENQUEUE": "required",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "permitted",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 2,
+      "maxBlocksGlobal": 2,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "queue"
+      ],
+      "difficulty": 2.2,
+      "author": "Core Team",
+      "description": "Practica una rotación simple de cola: el frente se mueve al final sin invertir el orden de los demás elementos.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "queue"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Rotación controlada de una cola preservando FIFO"
+      ],
+      "reinforces": [
+        "mover frente al final",
+        "reordenamiento sin inversión"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Rota la cola sin romper su lógica",
+          "body": "La meta no invierte la cola. Solo mueve el frente actual al final y deja que los demás valores avancen una posición.",
+          "concepts": [
+            "rotación",
+            "FIFO",
+            "frente al final"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Rotar no es invertir",
+          "body": "Si el orden quedó al revés, entonces la estrategia ya no respeta el comportamiento natural de una cola. Busca un cambio circular, no una inversión.",
+          "concepts": [
+            "rotación",
+            "orden relativo"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Piensa qué valor debe quedar último",
+          "body": "El 1 ya no debe estar primero: debe terminar al final. Todo lo demás conserva el mismo orden relativo que ya tenía.",
+          "concepts": [
+            "frente",
+            "final",
+            "conservar orden"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Rotación controlada de una cola preservando FIFO"
+      ],
+      "reinforces": [
+        "mover frente al final",
+        "reordenamiento sin inversión"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Rota la cola sin romper su lógica",
+          "body": "La meta no invierte la cola. Solo mueve el frente actual al final y deja que los demás valores avancen una posición.",
+          "concepts": [
+            "rotación",
+            "FIFO",
+            "frente al final"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Rotar no es invertir",
+          "body": "Si el orden quedó al revés, entonces la estrategia ya no respeta el comportamiento natural de una cola. Busca un cambio circular, no una inversión.",
+          "concepts": [
+            "rotación",
+            "orden relativo"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Piensa qué valor debe quedar último",
+          "body": "El 1 ya no debe estar primero: debe terminar al final. Todo lo demás conserva el mismo orden relativo que ya tenía.",
+          "concepts": [
+            "frente",
+            "final",
+            "conservar orden"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w3-3",
+    "title": "W3-L3 · Mientras queden elementos",
+    "initialState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [
+          4,
+          5,
+          6
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "queue",
+        "values": [],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "A",
+        "kind": "queue",
+        "values": [],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "queue",
+        "values": [
+          4,
+          5,
+          6
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "forbidden",
+        "PUSH": "forbidden",
+        "DEQUEUE": "required",
+        "ENQUEUE": "required",
+        "APPEND": "forbidden",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "required",
+        "PEEK": "forbidden",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 1,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 1,
+        "conditional": 0,
+        "while": 1,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 14,
+      "maxBlocksGlobal": 6,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "queue"
+      ],
+      "difficulty": 3.6,
+      "author": "Core Team",
+      "description": "Introduce un while para repetir una misma transferencia mientras la cola A todavía tenga elementos.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "queue"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Repetición con while usando el tamaño de una cola como condición"
+      ],
+      "reinforces": [
+        "SIZE",
+        "comparación con 0",
+        "una acción por iteración"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "El while evita duplicar bloques",
+          "body": "Hay varios elementos y todos requieren la misma acción. En vez de copiar el patrón muchas veces, usa un while que repita mientras A tenga tamaño mayor que 0.",
+          "concepts": [
+            "while",
+            "SIZE",
+            "repetición"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "La condición controla cuándo termina",
+          "body": "Si el programa se queda corto o se pasa, revisa la condición del while. El cuerpo puede ser correcto y aun así fallar si la repetición termina mal.",
+          "concepts": [
+            "condición de salida",
+            "while"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Una transferencia por vuelta",
+          "body": "Cada iteración debería hacer exactamente el mismo movimiento: sacar del frente de A y enviar al final de B. El while se encarga de repetir.",
+          "concepts": [
+            "cuerpo del while",
+            "FIFO"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Repetición con while usando el tamaño de una cola como condición"
+      ],
+      "reinforces": [
+        "SIZE",
+        "comparación con 0",
+        "una acción por iteración"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "El while evita duplicar bloques",
+          "body": "Hay varios elementos y todos requieren la misma acción. En vez de copiar el patrón muchas veces, usa un while que repita mientras A tenga tamaño mayor que 0.",
+          "concepts": [
+            "while",
+            "SIZE",
+            "repetición"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "La condición controla cuándo termina",
+          "body": "Si el programa se queda corto o se pasa, revisa la condición del while. El cuerpo puede ser correcto y aun así fallar si la repetición termina mal.",
+          "concepts": [
+            "condición de salida",
+            "while"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Una transferencia por vuelta",
+          "body": "Cada iteración debería hacer exactamente el mismo movimiento: sacar del frente de A y enviar al final de B. El while se encarga de repetir.",
+          "concepts": [
+            "cuerpo del while",
+            "FIFO"
+          ]
+        }
+      ]
     }
   },
   {
     "id": "campaign-03-queue-stack-reverse",
-    "title": "Campaign 03 · Reverse Queue With Stack",
+    "title": "W3-L4 · Invertir cola con pila auxiliar",
     "initialState": [
       {
         "id": "Q",
@@ -658,7 +2394,9 @@
         "var_reference": 0,
         "var_operation": 0
       },
-      "maxSteps": 20
+      "maxSteps": 20,
+      "maxBlocksGlobal": 8,
+      "allowAdditionalRoutines": false
     },
     "playLayout": {
       "panelOrder": [
@@ -687,9 +2425,10 @@
         "queue",
         "stack"
       ],
-      "difficulty": "medium",
+      "difficulty": 3,
       "author": "Core Team",
-      "description": "Mix default data structures: reverse queue Q using stack S as auxiliary memory."
+      "description": "Usa una pila auxiliar para invertir una cola después de dominar FIFO puro y repetición con while.",
+      "catalog": "campaign"
     },
     "tooling": {
       "availableStructures": [
@@ -697,11 +2436,276 @@
         "queue"
       ],
       "advancedToolsEnabled": true
+    },
+    "teaching": {
+      "introduces": [
+        "queue front behavior",
+        "using a stack as auxiliary memory",
+        "contrasting FIFO and LIFO"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces queue order",
+          "body": "Queues and stacks do not release values the same way. A queue removes from the front, while a stack removes from the top. This level teaches how a stack can temporarily change the order of values coming from a queue.",
+          "concepts": [
+            "queue front",
+            "stack top",
+            "FIFO vs LIFO"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Watch where values leave from",
+          "body": "If the order is wrong, the mistake is usually assuming the queue behaves like a stack. Dequeue removes the oldest visible value, not the newest one.",
+          "concepts": [
+            "DEQUEUE",
+            "oldest first"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "The helper structure changes order",
+          "body": "The stack is not the final goal here; it is the mechanism that flips order while values pass through it. Think about what order values have after entering and leaving the helper stack.",
+          "concepts": [
+            "auxiliary structure",
+            "order reversal"
+          ]
+        }
+      ]
+    },
+    "teachingPlan": {
+      "introduces": [
+        "queue front behavior",
+        "using a stack as auxiliary memory",
+        "contrasting FIFO and LIFO"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces queue order",
+          "body": "Queues and stacks do not release values the same way. A queue removes from the front, while a stack removes from the top. This level teaches how a stack can temporarily change the order of values coming from a queue.",
+          "concepts": [
+            "queue front",
+            "stack top",
+            "FIFO vs LIFO"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Watch where values leave from",
+          "body": "If the order is wrong, the mistake is usually assuming the queue behaves like a stack. Dequeue removes the oldest visible value, not the newest one.",
+          "concepts": [
+            "DEQUEUE",
+            "oldest first"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "The helper structure changes order",
+          "body": "The stack is not the final goal here; it is the mechanism that flips order while values pass through it. Think about what order values have after entering and leaving the helper stack.",
+          "concepts": [
+            "auxiliary structure",
+            "order reversal"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w4-1",
+    "title": "W4-L1 · Construir desde extremos",
+    "initialState": [
+      {
+        "id": "L",
+        "kind": "list",
+        "values": [],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "L",
+        "kind": "list",
+        "values": [
+          2,
+          1,
+          3
+        ],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "forbidden",
+        "PUSH": "forbidden",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "required",
+        "PREPEND": "required",
+        "REMOVE_FIRST": "forbidden",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "forbidden",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 3,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 6,
+      "maxBlocksGlobal": 6,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "L"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "list"
+      ],
+      "difficulty": 2.4,
+      "author": "Core Team",
+      "description": "Introduce la ventaja básica de la lista: construir una secuencia usando tanto el extremo izquierdo como el derecho.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Flexibilidad de lista en sus extremos con APPEND y PREPEND"
+      ],
+      "reinforces": [
+        "extremo inicial",
+        "extremo final",
+        "orden objetivo"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "La lista trabaja por ambos extremos",
+          "body": "A diferencia de stack y queue, aquí puedes decidir si el nuevo valor entra por el inicio o por el final. Usa esa flexibilidad para reproducir la secuencia objetivo.",
+          "concepts": [
+            "APPEND",
+            "PREPEND",
+            "lista"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "El orden final depende del extremo elegido",
+          "body": "Si los valores correctos están pero en otra secuencia, el problema no es el literal: es el extremo por el que fue insertado.",
+          "concepts": [
+            "orden",
+            "extremos"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "No todas las inserciones son iguales",
+          "body": "La lista te obliga a pensar dónde entra cada valor. Esa decisión es precisamente lo que este nivel quiere enseñar.",
+          "concepts": [
+            "decisión de inserción",
+            "lista"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Flexibilidad de lista en sus extremos con APPEND y PREPEND"
+      ],
+      "reinforces": [
+        "extremo inicial",
+        "extremo final",
+        "orden objetivo"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "La lista trabaja por ambos extremos",
+          "body": "A diferencia de stack y queue, aquí puedes decidir si el nuevo valor entra por el inicio o por el final. Usa esa flexibilidad para reproducir la secuencia objetivo.",
+          "concepts": [
+            "APPEND",
+            "PREPEND",
+            "lista"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "El orden final depende del extremo elegido",
+          "body": "Si los valores correctos están pero en otra secuencia, el problema no es el literal: es el extremo por el que fue insertado.",
+          "concepts": [
+            "orden",
+            "extremos"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "No todas las inserciones son iguales",
+          "body": "La lista te obliga a pensar dónde entra cada valor. Esa decisión es precisamente lo que este nivel quiere enseñar.",
+          "concepts": [
+            "decisión de inserción",
+            "lista"
+          ]
+        }
+      ]
     }
   },
   {
     "id": "campaign-04-list-trim-edges",
-    "title": "Campaign 04 · List Edge Operations",
+    "title": "W4-L2 · Recorte de bordes",
     "initialState": [
       {
         "id": "L",
@@ -766,7 +2770,9 @@
         "var_reference": 0,
         "var_operation": 0
       },
-      "maxSteps": 6
+      "maxSteps": 6,
+      "maxBlocksGlobal": 4,
+      "allowAdditionalRoutines": false
     },
     "playLayout": {
       "panelOrder": [
@@ -793,37 +2799,109 @@
       "structuresUsed": [
         "list"
       ],
-      "difficulty": "medium",
+      "difficulty": 3,
       "author": "Core Team",
-      "description": "Learn list edge operations: trim exactly one item from each side of L."
+      "description": "Practica cómo quitar primer y último elemento de una lista sin alterar el interior.",
+      "catalog": "campaign"
     },
     "tooling": {
       "availableStructures": [
         "list"
       ],
       "advancedToolsEnabled": true
+    },
+    "teaching": {
+      "introduces": [
+        "list edge operations",
+        "first and last element as separate positions"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces list edges",
+          "body": "A list lets you act on the first and last positions directly. This level teaches the difference between trimming the left edge and trimming the right edge without disturbing the middle values.",
+          "concepts": [
+            "REMOVE_FIRST",
+            "REMOVE_LAST",
+            "list edges"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Preserve the middle",
+          "body": "The center of the list should survive unchanged. If the middle values moved or disappeared, the operation sequence trimmed more than the two outer positions.",
+          "concepts": [
+            "middle values",
+            "edge-only changes"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Each edge is a different position",
+          "body": "This level is not about general stack or queue movement. It is about targeting the current first item and the current last item of the same structure.",
+          "concepts": [
+            "first position",
+            "last position"
+          ]
+        }
+      ]
+    },
+    "teachingPlan": {
+      "introduces": [
+        "list edge operations",
+        "first and last element as separate positions"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "This level introduces list edges",
+          "body": "A list lets you act on the first and last positions directly. This level teaches the difference between trimming the left edge and trimming the right edge without disturbing the middle values.",
+          "concepts": [
+            "REMOVE_FIRST",
+            "REMOVE_LAST",
+            "list edges"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Preserve the middle",
+          "body": "The center of the list should survive unchanged. If the middle values moved or disappeared, the operation sequence trimmed more than the two outer positions.",
+          "concepts": [
+            "middle values",
+            "edge-only changes"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Each edge is a different position",
+          "body": "This level is not about general stack or queue movement. It is about targeting the current first item and the current last item of the same structure.",
+          "concepts": [
+            "first position",
+            "last position"
+          ]
+        }
+      ]
     }
   },
   {
-    "id": "campaign-05-custom-function-helper",
-    "title": "Campaign 05 · Use A Custom Function",
+    "id": "campaign-w4-2",
+    "title": "W4-L3 · Primer helper sobre lista",
     "initialState": [
       {
         "id": "A",
-        "kind": "stack",
+        "kind": "list",
         "values": [
           1,
-          2,
-          3
+          2
         ],
         "properties": {
-          "color": "#f6b457",
+          "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
       },
       {
         "id": "B",
-        "kind": "stack",
+        "kind": "list",
         "values": [],
         "properties": {
           "color": "#8ec5ff",
@@ -834,19 +2912,19 @@
     "goalState": [
       {
         "id": "A",
-        "kind": "stack",
-        "values": [],
+        "kind": "list",
+        "values": [
+          2
+        ],
         "properties": {
-          "color": "#f6b457",
+          "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
       },
       {
         "id": "B",
-        "kind": "stack",
+        "kind": "list",
         "values": [
-          3,
-          2,
           1
         ],
         "properties": {
@@ -857,23 +2935,48 @@
     ],
     "constraints": {
       "operationPolicy": {
-        "POP": "required",
-        "PUSH": "required",
+        "POP": "forbidden",
+        "PUSH": "forbidden",
         "DEQUEUE": "forbidden",
         "ENQUEUE": "forbidden",
-        "APPEND": "forbidden",
+        "APPEND": "required",
         "PREPEND": "forbidden",
-        "REMOVE_FIRST": "forbidden",
+        "REMOVE_FIRST": "required",
         "REMOVE_LAST": "forbidden",
         "GET_HEAD": "forbidden",
         "GET_TAIL": "forbidden",
-        "SIZE": "forbidden"
+        "SIZE": "forbidden",
+        "PEEK": "forbidden",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
       },
       "forbiddenBlocks": [],
-      "maxSteps": 20,
-      "maxBlocksGlobal": 6,
-      "minRoutineCount": 2,
-      "requiresRoutineCall": true
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 8,
+      "maxBlocksGlobal": 5,
+      "allowAdditionalRoutines": false
     },
     "playLayout": {
       "panelOrder": [
@@ -899,85 +3002,121 @@
     "metadata": {
       "source": "community",
       "structuresUsed": [
-        "stack"
+        "list"
       ],
-      "difficulty": "medium",
+      "difficulty": 3.4,
       "author": "Core Team",
-      "description": "Create a helper function (for example moveOne) and reuse it to transfer A into B."
+      "description": "Crea una rutina helper corta para mover el primer elemento de A hacia B. La acción debe vivir en la helper y principal debe llamarla.",
+      "catalog": "campaign"
     },
     "tooling": {
       "availableStructures": [
-        "stack"
+        "list"
       ],
-      "advancedToolsEnabled": true,
-      "starterDocumentJson": "{\"version\":3,\"activeRoutineId\":\"routine-main-05\",\"routines\":[{\"id\":\"routine-main-05\",\"name\":\"principal\",\"program\":{\"id\":\"program-main-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-while-05\",\"kind\":\"while\",\"condition\":null,\"body\":[{\"id\":\"stmt-call-05\",\"kind\":\"routine-call\",\"routineId\":\"routine-helper-05\",\"routineName\":\"mover\",\"args\":[],\"returnKind\":\"none\"}]}]}},{\"id\":\"routine-helper-05\",\"name\":\"mover\",\"program\":{\"id\":\"program-helper-05\",\"kind\":\"program\",\"statements\":[{\"id\":\"stmt-funcdef-05\",\"kind\":\"function-definition\",\"routineId\":\"routine-helper-05\",\"name\":\"mover\"}]}}]}",
-      "lockedBlockIds": [
-        "stmt-while-05",
-        "stmt-call-05",
-        "stmt-funcdef-05"
-      ]
+      "advancedToolsEnabled": true
     },
-    "teaching": {
+    "teachingPlan": {
       "introduces": [
-        "custom functions",
-        "naming a reusable action",
-        "abstraction over repeated steps"
+        "Definición de una función sencilla y llamada desde otro script"
+      ],
+      "reinforces": [
+        "REMOVE_FIRST",
+        "APPEND",
+        "separar una acción reusable"
       ],
       "messages": [
         {
           "trigger": "level_start",
-          "title": "This level introduces custom functions",
-          "body": "A function lets you name a sequence you want to reuse. Here, the important idea is not only moving values, but packaging that move into a helper so the program becomes repeatable and easier to control.",
+          "title": "Convierte la acción en helper",
+          "body": "Pon la acción reusable dentro de la rutina helper. Luego vuelve a principal, coloca la llamada a esa rutina y ejecuta principal.",
           "concepts": [
-            "function",
-            "reuse",
-            "abstraction"
+            "función helper",
+            "llamada de rutina"
           ]
         },
         {
           "trigger": "first_failure",
-          "title": "The helper should do one clear job",
-          "body": "If the function is hard to reuse, it may be doing too much. A good first function here is a small transfer action that can be called again when needed.",
+          "title": "La campaña ya exige otro script",
+          "body": "No basta con correr la rutina helper por separado. Para pasar, principal debe contener la llamada a esa rutina y la ejecución debe comenzar en principal.",
           "concepts": [
-            "single responsibility",
-            "helper action"
+            "minRoutineCount",
+            "requiresRoutineCall"
           ]
         },
         {
           "trigger": "repeated_failure",
-          "title": "Reuse beats copy-paste thinking",
-          "body": "This level teaches a structural idea: once a sequence is valid, you should call it again instead of rebuilding the same logic each time in the main flow.",
+          "title": "El helper debe contener la acción reusable",
+          "body": "La unidad mínima reusable aquí es: quitar el primero de A y añadirlo al final de B. Esa lógica va en la helper; principal solo la invoca.",
           "concepts": [
-            "call again",
-            "main flow vs helper"
+            "abstracción",
+            "reuso"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Definición de una función sencilla y llamada desde otro script"
+      ],
+      "reinforces": [
+        "REMOVE_FIRST",
+        "APPEND",
+        "separar una acción reusable"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Convierte la acción en helper",
+          "body": "Este mundo introduce funciones sencillas. La idea es encapsular un movimiento corto en otro script y llamarlo desde principal.",
+          "concepts": [
+            "función helper",
+            "llamada de rutina"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "La campaña ya exige otro script",
+          "body": "No basta con resolver el tablero. Para pasar, debes crear al menos un script adicional y llamarlo desde principal.",
+          "concepts": [
+            "minRoutineCount",
+            "requiresRoutineCall"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "El helper debe contener la acción reusable",
+          "body": "Piensa en la unidad mínima que tiene sentido repetir: quitar el primero de A y añadirlo al final de B.",
+          "concepts": [
+            "abstracción",
+            "reuso"
           ]
         }
       ]
     }
   },
   {
-    "id": "campaign-06-custom-function-mixed",
-    "title": "Campaign 06 · Function In Mixed Structures",
+    "id": "campaign-w4-3",
+    "title": "W4-L4 · Reusar helper para cerrar",
     "initialState": [
       {
         "id": "A",
-        "kind": "stack",
+        "kind": "list",
         "values": [
-          3,
+          1,
           2,
-          1
+          3
         ],
         "properties": {
-          "color": "#f6b457",
+          "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
       },
       {
-        "id": "Q",
-        "kind": "queue",
+        "id": "B",
+        "kind": "list",
         "values": [],
         "properties": {
-          "color": "#7ad3ba",
+          "color": "#8ec5ff",
           "nodeAutoTaint": false
         }
       }
@@ -985,6 +3124,229 @@
     "goalState": [
       {
         "id": "A",
+        "kind": "list",
+        "values": [],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "B",
+        "kind": "list",
+        "values": [
+          1,
+          2,
+          3
+        ],
+        "properties": {
+          "color": "#8ec5ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "constraints": {
+      "operationPolicy": {
+        "POP": "forbidden",
+        "PUSH": "forbidden",
+        "DEQUEUE": "forbidden",
+        "ENQUEUE": "forbidden",
+        "APPEND": "required",
+        "PREPEND": "forbidden",
+        "REMOVE_FIRST": "required",
+        "REMOVE_LAST": "forbidden",
+        "GET_HEAD": "forbidden",
+        "GET_TAIL": "forbidden",
+        "SIZE": "forbidden",
+        "PEEK": "forbidden",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
+      },
+      "forbiddenBlocks": [],
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 12,
+      "maxBlocksGlobal": 7,
+      "allowAdditionalRoutines": false
+    },
+    "playLayout": {
+      "panelOrder": [
+        "board",
+        "steps",
+        "timeline"
+      ],
+      "initialPanel": "board"
+    },
+    "editorLayout": {
+      "structureOrder": [
+        "A",
+        "B"
+      ],
+      "leftPanel": "palette",
+      "rightPanel": "inspector",
+      "bottomPanel": "timeline",
+      "openTabs": [
+        "canvas",
+        "preview"
+      ]
+    },
+    "metadata": {
+      "source": "community",
+      "structuresUsed": [
+        "list"
+      ],
+      "difficulty": 4.1,
+      "author": "Core Team",
+      "description": "Cierra el mundo reusando una función helper varias veces para transferir una lista completa sin duplicar la lógica principal.",
+      "catalog": "campaign"
+    },
+    "tooling": {
+      "availableStructures": [
+        "list"
+      ],
+      "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Reuso deliberado de una función helper para reducir bloques en la rutina principal"
+      ],
+      "reinforces": [
+        "llamadas repetidas",
+        "abstracción",
+        "transferencia por extremos"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Ahora el helper debe ahorrar trabajo",
+          "body": "Ya no basta con crear una función. Debe valer la pena usarla varias veces para que la rutina principal quede más simple.",
+          "concepts": [
+            "reuso",
+            "rutina principal"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "No repitas bloques donde puedes repetir llamadas",
+          "body": "Si la rutina principal está creciendo demasiado, la abstracción no está cumpliendo su objetivo. Mueve la lógica repetible al helper.",
+          "concepts": [
+            "menos bloques",
+            "repetición de llamadas"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "El mismo movimiento, varias veces",
+          "body": "Cada llamada debe hacer exactamente una transferencia desde el primer elemento de A hacia el final de B. Repite la llamada, no el diseño.",
+          "concepts": [
+            "helper estable",
+            "repetición controlada"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Reuso deliberado de una función helper para reducir bloques en la rutina principal"
+      ],
+      "reinforces": [
+        "llamadas repetidas",
+        "abstracción",
+        "transferencia por extremos"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Ahora el helper debe ahorrar trabajo",
+          "body": "Ya no basta con crear una función. Debe valer la pena usarla varias veces para que la rutina principal quede más simple.",
+          "concepts": [
+            "reuso",
+            "rutina principal"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "No repitas bloques donde puedes repetir llamadas",
+          "body": "Si la rutina principal está creciendo demasiado, la abstracción no está cumpliendo su objetivo. Mueve la lógica repetible al helper.",
+          "concepts": [
+            "menos bloques",
+            "repetición de llamadas"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "El mismo movimiento, varias veces",
+          "body": "Cada llamada debe hacer exactamente una transferencia desde el primer elemento de A hacia el final de B. Repite la llamada, no el diseño.",
+          "concepts": [
+            "helper estable",
+            "repetición controlada"
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "id": "campaign-w5-1",
+    "title": "W5-L1 · Final boss lineal",
+    "initialState": [
+      {
+        "id": "S",
+        "kind": "stack",
+        "values": [
+          1,
+          2
+        ],
+        "properties": {
+          "color": "#f6b457",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "Q",
+        "kind": "queue",
+        "values": [
+          3,
+          4
+        ],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "L",
+        "kind": "list",
+        "values": [],
+        "properties": {
+          "color": "#c6a8ff",
+          "nodeAutoTaint": false
+        }
+      }
+    ],
+    "goalState": [
+      {
+        "id": "S",
         "kind": "stack",
         "values": [],
         "properties": {
@@ -995,13 +3357,23 @@
       {
         "id": "Q",
         "kind": "queue",
+        "values": [],
+        "properties": {
+          "color": "#7ad3ba",
+          "nodeAutoTaint": false
+        }
+      },
+      {
+        "id": "L",
+        "kind": "list",
         "values": [
           1,
           2,
-          3
+          3,
+          4
         ],
         "properties": {
-          "color": "#7ad3ba",
+          "color": "#c6a8ff",
           "nodeAutoTaint": false
         }
       }
@@ -1010,121 +3382,46 @@
       "operationPolicy": {
         "POP": "required",
         "PUSH": "forbidden",
-        "DEQUEUE": "forbidden",
-        "ENQUEUE": "required",
-        "APPEND": "forbidden",
-        "PREPEND": "forbidden",
-        "REMOVE_FIRST": "forbidden",
-        "REMOVE_LAST": "forbidden",
-        "GET_HEAD": "forbidden",
-        "GET_TAIL": "forbidden",
-        "SIZE": "forbidden"
-      },
-      "forbiddenBlocks": [],
-      "maxSteps": 9
-    },
-    "playLayout": {
-      "panelOrder": [
-        "board",
-        "steps",
-        "timeline"
-      ],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": [
-        "A",
-        "Q"
-      ],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": [
-        "canvas",
-        "preview"
-      ]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": [
-        "stack",
-        "queue"
-      ],
-      "difficulty": "medium",
-      "author": "Core Team",
-      "description": "Define a custom function and reuse it to move values from stack A into queue Q."
-    },
-    "tooling": {
-      "availableStructures": [
-        "stack",
-        "queue"
-      ],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "campaign-07-custom-type-intro",
-    "title": "Campaign 07 · Create A Custom Type",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [
-          2
-        ],
-        "properties": {
-          "color": "#f6b457",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [],
-        "properties": {
-          "color": "#8ec5ff",
-          "nodeAutoTaint": false
-        }
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [],
-        "properties": {
-          "color": "#f6b457",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [
-          2
-        ],
-        "properties": {
-          "color": "#8ec5ff",
-          "nodeAutoTaint": false
-        }
-      }
-    ],
-    "constraints": {
-      "operationPolicy": {
-        "POP": "required",
-        "PUSH": "required",
-        "DEQUEUE": "forbidden",
+        "DEQUEUE": "required",
         "ENQUEUE": "forbidden",
-        "APPEND": "forbidden",
-        "PREPEND": "forbidden",
+        "APPEND": "required",
+        "PREPEND": "required",
         "REMOVE_FIRST": "forbidden",
         "REMOVE_LAST": "forbidden",
         "GET_HEAD": "forbidden",
         "GET_TAIL": "forbidden",
-        "SIZE": "forbidden"
+        "SIZE": "forbidden",
+        "PEEK": "forbidden",
+        "IS_EMPTY": "forbidden",
+        "GET_AT": "forbidden",
+        "INSERT_AT": "forbidden",
+        "REMOVE_AT": "forbidden",
+        "CONTAINS": "forbidden",
+        "FIND": "forbidden",
+        "REVERSE": "forbidden",
+        "CLEAR": "forbidden"
       },
       "forbiddenBlocks": [],
-      "maxSteps": 8
+      "blockLimits": {
+        "value": 0,
+        "var_binary_operation:arithmetic": 0,
+        "var_binary_operation:logical": 0,
+        "var_binary_operation:comparison": 0,
+        "conditional": 0,
+        "while": 0,
+        "for_each": 0,
+        "break": 0,
+        "function_definition": 0,
+        "type_definition": 0,
+        "return": 0,
+        "var_declaration": 0,
+        "var_assign": 0,
+        "var_reference": 0,
+        "var_operation": 0
+      },
+      "maxSteps": 16,
+      "maxBlocksGlobal": 8,
+      "allowAdditionalRoutines": false
     },
     "playLayout": {
       "panelOrder": [
@@ -1136,135 +3433,9 @@
     },
     "editorLayout": {
       "structureOrder": [
-        "A",
-        "B"
-      ],
-      "leftPanel": "palette",
-      "rightPanel": "inspector",
-      "bottomPanel": "timeline",
-      "openTabs": [
-        "canvas",
-        "preview"
-      ]
-    },
-    "metadata": {
-      "source": "community",
-      "structuresUsed": [
-        "stack"
-      ],
-      "difficulty": "hard",
-      "author": "Core Team",
-      "description": "Create a custom type (example: Box), then solve the stack transfer using your own model objects if you want."
-    },
-    "tooling": {
-      "availableStructures": [
-        "stack"
-      ],
-      "advancedToolsEnabled": true
-    }
-  },
-  {
-    "id": "campaign-08-custom-type-integration",
-    "title": "Campaign 08 · Integrate Custom Type + Default DS",
-    "initialState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [
-          1,
-          2,
-          3
-        ],
-        "properties": {
-          "color": "#f6b457",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [],
-        "properties": {
-          "color": "#8ec5ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "Q",
-        "kind": "queue",
-        "values": [],
-        "properties": {
-          "color": "#7ad3ba",
-          "nodeAutoTaint": false
-        }
-      }
-    ],
-    "goalState": [
-      {
-        "id": "A",
-        "kind": "stack",
-        "values": [],
-        "properties": {
-          "color": "#f6b457",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "B",
-        "kind": "stack",
-        "values": [
-          3,
-          2,
-          1
-        ],
-        "properties": {
-          "color": "#8ec5ff",
-          "nodeAutoTaint": false
-        }
-      },
-      {
-        "id": "Q",
-        "kind": "queue",
-        "values": [],
-        "properties": {
-          "color": "#7ad3ba",
-          "nodeAutoTaint": false
-        }
-      }
-    ],
-    "constraints": {
-      "operationPolicy": {
-        "POP": "required",
-        "PUSH": "required",
-        "DEQUEUE": "forbidden",
-        "ENQUEUE": "forbidden",
-        "APPEND": "forbidden",
-        "PREPEND": "forbidden",
-        "REMOVE_FIRST": "forbidden",
-        "REMOVE_LAST": "forbidden",
-        "GET_HEAD": "forbidden",
-        "GET_TAIL": "forbidden",
-        "SIZE": "forbidden"
-      },
-      "forbiddenBlocks": [],
-      "maxSteps": 14,
-      "valueDomain": {
-        "numericOnly": true
-      }
-    },
-    "playLayout": {
-      "panelOrder": [
-        "board",
-        "steps",
-        "timeline"
-      ],
-      "initialPanel": "board"
-    },
-    "editorLayout": {
-      "structureOrder": [
-        "A",
-        "B",
-        "Q"
+        "S",
+        "Q",
+        "L"
       ],
       "leftPanel": "palette",
       "rightPanel": "inspector",
@@ -1278,11 +3449,13 @@
       "source": "community",
       "structuresUsed": [
         "stack",
-        "queue"
+        "queue",
+        "list"
       ],
-      "difficulty": "hard",
+      "difficulty": 4.7,
       "author": "Core Team",
-      "description": "Final challenge: solve with default structures and optionally model helper data using a custom type."
+      "description": "Reto final corto: vacía pila y cola en una lista conservando el orden correcto de cada estructura.",
+      "catalog": "campaign"
     },
     "tooling": {
       "availableStructures": [
@@ -1291,6 +3464,92 @@
         "list"
       ],
       "advancedToolsEnabled": true
+    },
+    "teachingPlan": {
+      "introduces": [
+        "Integración final de stack, queue y list con una estrategia compuesta"
+      ],
+      "reinforces": [
+        "PREPEND para preservar orden desde pila",
+        "APPEND para preservar FIFO",
+        "integración de semánticas"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Final boss: cada estructura pide un trato distinto",
+          "body": "La pila y la cola no pueden vaciarse de la misma manera si quieres llegar al mismo orden final en la lista. El reto es escoger la operación correcta según la semántica de origen.",
+          "concepts": [
+            "stack",
+            "queue",
+            "list",
+            "estrategia"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Conservar orden no significa usar la misma operación",
+          "body": "Desde la pila probablemente necesites trabajar con PREPEND; desde la cola, con APPEND. La lista final revela si confundiste ambas semánticas.",
+          "concepts": [
+            "PREPEND",
+            "APPEND",
+            "orden"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Cada origen pide una operación distinta",
+          "body": "Si el orden final no coincide, revisa qué estructura estás vaciando en cada paso. La pila entrega desde arriba y la cola entrega desde el frente; por eso la lista no debe recibir ambos flujos igual.",
+          "concepts": [
+            "LIFO",
+            "FIFO",
+            "integración final"
+          ]
+        }
+      ]
+    },
+    "teaching": {
+      "introduces": [
+        "Integración final de stack, queue y list con una estrategia compuesta"
+      ],
+      "reinforces": [
+        "PREPEND para preservar orden desde pila",
+        "APPEND para preservar FIFO",
+        "integración de semánticas"
+      ],
+      "messages": [
+        {
+          "trigger": "level_start",
+          "title": "Final boss: cada estructura pide un trato distinto",
+          "body": "La pila y la cola no pueden vaciarse de la misma manera si quieres llegar al mismo orden final en la lista. El reto es escoger la operación correcta según la semántica de origen.",
+          "concepts": [
+            "stack",
+            "queue",
+            "list",
+            "estrategia"
+          ]
+        },
+        {
+          "trigger": "first_failure",
+          "title": "Conservar orden no significa usar la misma operación",
+          "body": "Desde la pila probablemente necesites trabajar con PREPEND; desde la cola, con APPEND. La lista final revela si confundiste ambas semánticas.",
+          "concepts": [
+            "PREPEND",
+            "APPEND",
+            "orden"
+          ]
+        },
+        {
+          "trigger": "repeated_failure",
+          "title": "Cada origen pide una operación distinta",
+          "body": "Si el orden final no coincide, revisa qué estructura estás vaciando en cada paso. La pila entrega desde arriba y la cola entrega desde el frente; por eso la lista no debe recibir ambos flujos igual.",
+          "concepts": [
+            "LIFO",
+            "FIFO",
+            "integración final"
+          ]
+        }
+      ]
     }
   }
 ]

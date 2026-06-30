@@ -1,0 +1,151 @@
+{
+  "id": "campaign-w0-l4-onboarding-checkpoint",
+  "title": "W1-L4 · Onboarding Checkpoint",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1, 2],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [7],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    },
+    {
+      "id": "C",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#8fd6c2", "nodeAutoTaint": false }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [1],
+      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+    },
+    {
+      "id": "C",
+      "kind": "stack",
+      "values": [7, 2],
+      "properties": { "color": "#8fd6c2", "nodeAutoTaint": false }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "required",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 6,
+    "maxBlocksGlobal": 6,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": ["board", "steps", "timeline"],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": ["A", "B", "C"],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": ["canvas", "preview"]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": ["stack"],
+    "difficulty": 1.8,
+    "author": "Core Team",
+    "description": "A short autonomous checkpoint: compare the boards, choose the correct move order, and solve the full mini challenge by yourself.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": ["stack"],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": ["resolución autónoma de un reto corto usando el flujo completo del editor"],
+    "reinforces": ["plan move order", "run and correct intentionally"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Time for a small independent challenge",
+        "body": "This level combines the workflow from the previous onboarding levels. Read both boards, decide the correct order of moves, then solve it without step-by-step guidance.",
+        "concepts": ["independent solve", "workflow integration"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Order matters now",
+        "body": "The target stack C must receive values in the right order. If the result is reversed, check which transfer should happen first.",
+        "concepts": ["move order", "target order"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Use the whole routine you learned",
+        "body": "Compare, plan, run, and correct. This checkpoint is not introducing a new tool; it is checking that you can use the editor flow on your own.",
+        "concepts": ["compare-plan-run-correct", "editor autonomy"]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": ["resolución autónoma de un reto corto usando el flujo completo del editor"],
+    "reinforces": ["plan move order", "run and correct intentionally"],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Time for a small independent challenge",
+        "body": "This level combines the workflow from the previous onboarding levels. Read both boards, decide the correct order of moves, then solve it without step-by-step guidance.",
+        "concepts": ["independent solve", "workflow integration"]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Order matters now",
+        "body": "The target stack C must receive values in the right order. If the result is reversed, check which transfer should happen first.",
+        "concepts": ["move order", "target order"]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Use the whole routine you learned",
+        "body": "Compare, plan, run, and correct. This checkpoint is not introducing a new tool; it is checking that you can use the editor flow on your own.",
+        "concepts": ["compare-plan-run-correct", "editor autonomy"]
+      }
+    ]
+  }
+}

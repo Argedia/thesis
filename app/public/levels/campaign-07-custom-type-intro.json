@@ -5,14 +5,22 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [2],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        2
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -20,13 +28,21 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     },
     {
       "id": "B",
       "kind": "stack",
-      "values": [2],
-      "properties": { "color": "#8ec5ff", "nodeAutoTaint": false }
+      "values": [
+        2
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -47,26 +63,41 @@
     "maxSteps": 8
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B"],
+    "structureOrder": [
+      "A",
+      "B"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
-    "difficulty": "hard",
+    "structuresUsed": [
+      "stack"
+    ],
+    "difficulty": 4.5,
     "author": "Core Team",
     "description": "Create a custom type (example: Box), then solve the stack transfer using your own model objects if you want.",
-    "hidden": true
+    "hidden": true,
+    "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   },
   "teaching": {

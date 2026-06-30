@@ -5,7 +5,11 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
+      "values": [
+        1,
+        2,
+        3
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -14,7 +18,10 @@
     {
       "id": "B",
       "kind": "queue",
-      "values": [4, 5],
+      "values": [
+        4,
+        5
+      ],
       "properties": {
         "color": "#7ad3ba",
         "nodeAutoTaint": false
@@ -23,27 +30,13 @@
     {
       "id": "C",
       "kind": "list",
-      "values": [8, 9, 10],
+      "values": [
+        8,
+        9,
+        10
+      ],
       "properties": {
         "color": "#c6a8ff",
-        "nodeAutoTaint": false
-      }
-    },
-    {
-      "id": "D",
-      "kind": "doubly-linked-list",
-      "values": [11, 12],
-      "properties": {
-        "color": "#c6a8ff",
-        "nodeAutoTaint": false
-      }
-    },
-    {
-      "id": "E",
-      "kind": "circular-list",
-      "values": [13, 14],
-      "properties": {
-        "color": "#7ad3ba",
         "nodeAutoTaint": false
       }
     }
@@ -52,7 +45,11 @@
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2, 3],
+      "values": [
+        1,
+        2,
+        3
+      ],
       "properties": {
         "color": "#f6b457",
         "nodeAutoTaint": false
@@ -61,7 +58,10 @@
     {
       "id": "B",
       "kind": "queue",
-      "values": [4, 5],
+      "values": [
+        4,
+        5
+      ],
       "properties": {
         "color": "#7ad3ba",
         "nodeAutoTaint": false
@@ -70,27 +70,13 @@
     {
       "id": "C",
       "kind": "list",
-      "values": [8, 9, 10],
+      "values": [
+        8,
+        9,
+        10
+      ],
       "properties": {
         "color": "#c6a8ff",
-        "nodeAutoTaint": false
-      }
-    },
-    {
-      "id": "D",
-      "kind": "doubly-linked-list",
-      "values": [11, 12],
-      "properties": {
-        "color": "#c6a8ff",
-        "nodeAutoTaint": false
-      }
-    },
-    {
-      "id": "E",
-      "kind": "circular-list",
-      "values": [13, 14],
-      "properties": {
-        "color": "#7ad3ba",
         "nodeAutoTaint": false
       }
     }
@@ -107,40 +93,51 @@
       "REMOVE_LAST": "permitted",
       "GET_HEAD": "permitted",
       "GET_TAIL": "permitted",
-      "SIZE": "permitted",
-      "PEEK": "permitted",
-      "IS_EMPTY": "permitted",
-      "GET_AT": "permitted",
-      "INSERT_AT": "permitted",
-      "REMOVE_AT": "permitted",
-      "CONTAINS": "permitted",
-      "FIND": "permitted",
-      "REVERSE": "permitted",
-      "CLEAR": "permitted"
+      "SIZE": "permitted"
     },
     "forbiddenBlocks": [],
     "maxSteps": 99
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A", "B", "C", "D", "E"],
+    "structureOrder": [
+      "A",
+      "B",
+      "C"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack", "queue", "list", "doubly-linked-list", "circular-list"],
-    "difficulty": "easy",
+    "structuresUsed": [
+      "stack",
+      "queue",
+      "list"
+    ],
+    "difficulty": 1.5,
     "author": "Core Team",
-    "description": "Open sandbox with all five data structure types: stack, queue, singly linked list, doubly linked list, and circular list."
+    "description": "Open sandbox level with one stack, one queue, and one list.",
+    "catalog": "community"
   },
   "tooling": {
-    "availableStructures": ["stack", "queue", "list", "doubly-linked-list", "circular-list"],
+    "availableStructures": [
+      "stack",
+      "queue",
+      "list"
+    ],
     "advancedToolsEnabled": true
   }
 }

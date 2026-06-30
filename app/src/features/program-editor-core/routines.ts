@@ -149,7 +149,7 @@ const analyzeRoutineBase = (
       params,
       returnKind: "none",
       isPublishable: true,
-      exportKind: params.length > 0 ? "callable" : "object-value",
+      exportKind: "callable",
       members: [],
       diagnostics: definitionDiagnostics
     };
@@ -171,7 +171,7 @@ const analyzeRoutineBase = (
       params,
       returnKind: "none",
       isPublishable: true,
-      exportKind: params.length > 0 ? "callable" : "object-value",
+      exportKind: "callable",
       members: [],
       diagnostics: definitionDiagnostics
     };

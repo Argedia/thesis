@@ -40,6 +40,7 @@ import {
 import { createTypedObjectValue, resolveHeapObject } from "./typed-objects";
 import type { StructureCallStatement } from "../../program-editor-core";
 import { executeOperationWithLevelConstraints } from "./constraints";
+import { t } from "../../../i18n-helpers";
 
 const MAX_WHILE_ITERATIONS = 20;
 const MAX_FUNCTION_CALL_DEPTH = 20;
@@ -108,7 +109,7 @@ export const evaluateExpression = (
   ctx: InterpreterContext
 ): EvalResult => {
   if (!expression) {
-    throw new Error("Finish each block and fill any missing value slots.");
+    throw new Error(t("playSession.finishBlocksHint"));
   }
 
   switch (expression.kind) {
@@ -230,7 +231,7 @@ export const evaluateExpressionDirect = (
   depth: number
 ): EvalResult => {
   if (!expression) {
-    throw new Error("Finish each block and fill any missing value slots.");
+    throw new Error(t("playSession.finishBlocksHint"));
   }
 
   switch (expression.kind) {
@@ -589,7 +590,7 @@ export const executeCallDirect = (
     operation = createSourceOperation(statement.operation, targetId);
   } else if (isTargetOperation(statement.operation)) {
     const argument = statement.args[0] ? evaluateExpressionDirect(statement.args[0], ctx, frames, depth) : null;
-    if (!argument) throw new Error("Finish each block and fill any missing value slots.");
+    if (!argument) throw new Error(t("playSession.finishBlocksHint"));
     operation = createTargetOperation(
       statement.operation,
       targetId,

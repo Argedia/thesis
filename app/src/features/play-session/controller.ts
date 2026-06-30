@@ -34,7 +34,11 @@ import { getCurrentExecutionPoint, executeVisibleInstruction, executeInstruction
 import { evaluateExpression, getObjectInstance, type InterpreterContext } from "./runtime/interpreter";
 import type { RuntimeStoredValue } from "./runtime/runtime-values";
 import { setActiveRoutineId as setRoutineId } from "../program-editor-core";
-import { getMissingRequiredOperations, checkRoutineConstraints } from "./runtime/constraints";
+import {
+  getMissingRequiredOperations,
+  checkRoutineConstraints,
+  getMissingRequiredBlockKinds
+} from "./runtime/constraints";
 import { getRunLineDelayMs } from "../settings/execution-speed";
 
 class StepLimitError extends Error {
@@ -242,9 +246,9 @@ export class DefaultPlaySessionController implements PlaySessionController {
 
     try {
       while (!this.runAbort) {
-        this.assertRuntimeStepBudget();
         const currentPoint = getCurrentExecutionPoint(this.runtimeFrames, prepared);
         if (!currentPoint) break;
+        this.assertRuntimeStepBudget();
         this.updateExecutionFocus(prepared);
 
         if (
@@ -533,6 +537,23 @@ export class DefaultPlaySessionController implements PlaySessionController {
       this.patchState({
         lastEvaluationOutcome: "missing_required_ops",
         status: routineConstraintError
+      });
+      return;
+    }
+
+    const missingRequiredBlockKinds = getMissingRequiredBlockKinds({
+      constraints: this.state.level.constraints,
+      document: this.state.document
+    });
+    if (missingRequiredBlockKinds.length > 0) {
+      await this.finishAnalyticsAttempt("missing_required_ops", {
+        missingRequiredBlockKinds
+      });
+      this.patchState({
+        lastEvaluationOutcome: "missing_required_ops",
+        status: t("playSession.missingRequiredBlockKinds", {
+          blocks: missingRequiredBlockKinds.join(", ")
+        })
       });
       return;
     }

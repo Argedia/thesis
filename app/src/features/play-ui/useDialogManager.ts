@@ -14,6 +14,7 @@ export type DialogState =
       kind: "alert";
       title: string;
       message: string;
+      confirmLabel?: string;
       resolve: () => void;
     }
   | {
@@ -66,7 +67,7 @@ export interface DialogManager {
     initialTypeValue?: string;
     options: Array<{ value: string; label: string }>;
   }) => Promise<{ name: string; typeValue: string } | null>;
-  showAlert: (options: { title?: string; message: string }) => Promise<void>;
+  showAlert: (options: { title?: string; message: string; confirmLabel?: string }) => Promise<void>;
   showLevelComplete: (options: { title: string; message: string; nextLevelId: string | null }) => Promise<"next" | "levels">;
   setDialogValue: (value: string) => void;
   setDialogSecondaryValue: (value: string) => void;
@@ -132,7 +133,7 @@ export const useDialogManager = (): DialogManager => {
       setDialogState({ kind: "declaration", ...options, resolve });
     });
 
-  const showAlert = (options: { title?: string; message: string }) =>
+  const showAlert = (options: { title?: string; message: string; confirmLabel?: string }) =>
     new Promise<void>((resolve) => {
       setDialogValue("");
       setDialogError("");
@@ -140,6 +141,7 @@ export const useDialogManager = (): DialogManager => {
         kind: "alert",
         title: options.title ?? t("common.notice"),
         message: options.message,
+        confirmLabel: options.confirmLabel,
         resolve
       });
     });

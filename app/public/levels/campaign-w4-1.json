@@ -1,0 +1,191 @@
+{
+  "id": "campaign-w4-1",
+  "title": "W4-L1 · Construir desde extremos",
+  "initialState": [
+    {
+      "id": "L",
+      "kind": "list",
+      "values": [],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "L",
+      "kind": "list",
+      "values": [
+        2,
+        1,
+        3
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "forbidden",
+      "PUSH": "forbidden",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "required",
+      "PREPEND": "required",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden",
+      "PEEK": "forbidden",
+      "IS_EMPTY": "forbidden",
+      "GET_AT": "forbidden",
+      "INSERT_AT": "forbidden",
+      "REMOVE_AT": "forbidden",
+      "CONTAINS": "forbidden",
+      "FIND": "forbidden",
+      "REVERSE": "forbidden",
+      "CLEAR": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 3,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 6,
+    "maxBlocksGlobal": 6,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": [
+      "L"
+    ],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": [
+      "list"
+    ],
+    "difficulty": 2.4,
+    "author": "Core Team",
+    "description": "Introduce la ventaja básica de la lista: construir una secuencia usando tanto el extremo izquierdo como el derecho.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": [
+      "list"
+    ],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": [
+      "Flexibilidad de lista en sus extremos con APPEND y PREPEND"
+    ],
+    "reinforces": [
+      "extremo inicial",
+      "extremo final",
+      "orden objetivo"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "La lista trabaja por ambos extremos",
+        "body": "A diferencia de stack y queue, aquí puedes decidir si el nuevo valor entra por el inicio o por el final. Usa esa flexibilidad para reproducir la secuencia objetivo.",
+        "concepts": [
+          "APPEND",
+          "PREPEND",
+          "lista"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "El orden final depende del extremo elegido",
+        "body": "Si los valores correctos están pero en otra secuencia, el problema no es el literal: es el extremo por el que fue insertado.",
+        "concepts": [
+          "orden",
+          "extremos"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "No todas las inserciones son iguales",
+        "body": "La lista te obliga a pensar dónde entra cada valor. Esa decisión es precisamente lo que este nivel quiere enseñar.",
+        "concepts": [
+          "decisión de inserción",
+          "lista"
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "Flexibilidad de lista en sus extremos con APPEND y PREPEND"
+    ],
+    "reinforces": [
+      "extremo inicial",
+      "extremo final",
+      "orden objetivo"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "La lista trabaja por ambos extremos",
+        "body": "A diferencia de stack y queue, aquí puedes decidir si el nuevo valor entra por el inicio o por el final. Usa esa flexibilidad para reproducir la secuencia objetivo.",
+        "concepts": [
+          "APPEND",
+          "PREPEND",
+          "lista"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "El orden final depende del extremo elegido",
+        "body": "Si los valores correctos están pero en otra secuencia, el problema no es el literal: es el extremo por el que fue insertado.",
+        "concepts": [
+          "orden",
+          "extremos"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "No todas las inserciones son iguales",
+        "body": "La lista te obliga a pensar dónde entra cada valor. Esa decisión es precisamente lo que este nivel quiere enseñar.",
+        "concepts": [
+          "decisión de inserción",
+          "lista"
+        ]
+      }
+    ]
+  }
+}

@@ -1,5 +1,4 @@
 import type {
-  LevelDifficulty,
   LevelOperationPolicy,
   StructureTag
 } from "@thesis/game-system";
@@ -23,7 +22,7 @@ export interface StructureDraft {
 export interface LevelEditorDraftSnapshot {
   description: string;
   author: string;
-  difficulty: LevelDifficulty;
+  difficulty: number;
   maxSteps: number;
   allowAdditionalRoutines: boolean;
   maxRoutineCount: number;

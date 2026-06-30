@@ -10,6 +10,7 @@ import {
   type LevelConstraints,
   type LevelOperation
 } from "@thesis/game-system";
+import { projectDocumentToEditorBlocks, type EditorBlock, type EditorDocument } from "../../program-editor-core";
 import { t } from "../../../i18n-helpers";
 
 const INSERT_OPERATION_TYPES = new Set<OperationDefinition["type"]>([
@@ -21,6 +22,47 @@ const INSERT_OPERATION_TYPES = new Set<OperationDefinition["type"]>([
 
 const normalizeOperationToken = (operation: string): string =>
   operation.trim().toUpperCase();
+
+const normalizeBlockKindToken = (kind: string): string =>
+  kind.trim().toLowerCase();
+
+const collectBlockKinds = (blocks: EditorBlock[], kinds: Set<string>): void => {
+  blocks.forEach((block) => {
+    kinds.add(normalizeBlockKindToken(block.kind));
+    if (block.inputBlock) {
+      collectBlockKinds([block.inputBlock], kinds);
+    }
+    if (block.inputBlocks) {
+      collectBlockKinds(
+        block.inputBlocks.filter((candidate): candidate is EditorBlock => candidate !== null),
+        kinds
+      );
+    }
+    if (block.bodyBlocks) {
+      collectBlockKinds(block.bodyBlocks, kinds);
+    }
+    if (block.alternateBodyBlocks) {
+      collectBlockKinds(block.alternateBodyBlocks, kinds);
+    }
+  });
+};
+
+const formatRequiredBlockKind = (kind: string): string => {
+  switch (normalizeBlockKindToken(kind)) {
+    case "conditional":
+      return "if";
+    case "while":
+      return "while";
+    case "for_each":
+      return "for-each";
+    case "function_definition":
+      return t("playSession.blockKindFunction");
+    case "value":
+      return t("playSession.blockKindValue");
+    default:
+      return kind;
+  }
+};
 
 const isInsertOperation = (
   operation: OperationDefinition
@@ -185,4 +227,19 @@ export const checkRoutineConstraints = (options: {
     return t("playSession.requiresRoutineCall");
   }
   return null;
+};
+
+export const getMissingRequiredBlockKinds = (options: {
+  constraints: LevelConstraints;
+  document: EditorDocument;
+}): string[] => {
+  const required = (options.constraints.requiredBlockKinds ?? []).map(normalizeBlockKindToken);
+  if (required.length === 0) {
+    return [];
+  }
+
+  const presentKinds = new Set<string>();
+  collectBlockKinds(projectDocumentToEditorBlocks(options.document), presentKinds);
+
+  return required.filter((kind) => !presentKinds.has(kind)).map(formatRequiredBlockKind);
 };

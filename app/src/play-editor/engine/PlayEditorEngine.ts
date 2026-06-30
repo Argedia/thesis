@@ -90,6 +90,9 @@ export class PlayEditorEngine {
 
 	public update(props: PlayEditorSurfaceProps): void {
 		this.props = props;
+		if (this.props.forceSidePaletteExpanded) {
+			this.isSidePaletteCollapsed = false;
+		}
 		this.render();
 	}
 
@@ -338,6 +341,9 @@ export class PlayEditorEngine {
 	// ---------------------------------------------------------------------------
 
 	private render(): void {
+		if (this.props.forceSidePaletteExpanded) {
+			this.isSidePaletteCollapsed = false;
+		}
 		render({
 			getProps: () => this.props,
 			getShell: () => this.shell,

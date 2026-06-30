@@ -1,6 +1,7 @@
 import {
   LEVEL_OPERATIONS,
   createOperationPolicy,
+  type LevelDifficulty,
   type LevelDefinition,
   type LevelOperationPolicy
 } from "@thesis/game-system";
@@ -30,6 +31,67 @@ export interface LevelRepository {
   importLevel(level: LevelDefinition): Promise<void>;
 }
 
+export interface CampaignBranchUnlockRule {
+  branchGroup: string;
+  requiresNodeIds: string[];
+  mode?: "all" | "any";
+}
+
+export interface CampaignHubMilestone {
+  id: string;
+  minCompleted: number;
+  title: string;
+  description: string;
+}
+
+export interface CampaignHubGoal {
+  title: string;
+  objective: string;
+  milestones: CampaignHubMilestone[];
+}
+
+export interface CampaignNode {
+  id: string;
+  levelId?: string;
+  x?: number;
+  y?: number;
+  gridCol?: number;
+  gridRow?: number;
+  titleOverride?: string;
+  descriptionOverride?: string;
+  branchGroup?: string;
+}
+
+export interface CampaignEdge {
+  from: string;
+  to: string;
+  type: "normal" | "branch";
+}
+
+export interface CampaignWorldDefinition {
+  id: string;
+  name: string;
+  theme: string;
+  mapStyle?: string;
+  grid?: {
+    columns: number;
+    rows: number;
+    marginX?: number;
+    marginY?: number;
+  };
+  worldUnlockRule?: string;
+  startNodeId?: string;
+  requiredCompletions?: number;
+  hubGoal: CampaignHubGoal;
+  nodes: CampaignNode[];
+  edges: CampaignEdge[];
+  branchUnlockRules?: CampaignBranchUnlockRule[];
+}
+
+export interface CampaignWorldRepository {
+  listWorlds(): Promise<CampaignWorldDefinition[]>;
+}
+
 export interface ProgressRepository {
   saveProgress(data: ProgressData): Promise<void>;
   loadProgress(): Promise<ProgressData>;
@@ -43,32 +105,37 @@ export interface UiPreferencesRepository {
 const playerPanelIdSchema = z.enum(["board", "steps", "timeline"]);
 const editorPanelIdSchema = z.enum(["palette", "canvas", "inspector", "preview", "timeline"]);
 const structureKindSchema = z.enum(["stack", "queue", "list", "doubly-linked-list", "circular-list"]);
+const levelCatalogCategorySchema = z.enum(["campaign", "community"]);
 const levelSourceSchema = z.enum(["community", "my-levels"]);
 const structureTagSchema = z.enum(["stack", "queue", "list", "doubly-linked-list", "circular-list"]);
-const levelDifficultySchema = z.enum(["easy", "medium", "hard"]);
+const levelDifficultySchema = z.number().min(0).max(5);
+const importedDifficultySchema = z.union([
+  levelDifficultySchema,
+  z.enum(["easy", "medium", "hard"])
+]);
 const dataValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 const levelOperationStateSchema = z.enum(["forbidden", "permitted", "required"]);
 const operationPolicySchema = z.object({
-  POP: levelOperationStateSchema,
-  PUSH: levelOperationStateSchema,
-  DEQUEUE: levelOperationStateSchema,
-  ENQUEUE: levelOperationStateSchema,
-  APPEND: levelOperationStateSchema,
-  PREPEND: levelOperationStateSchema,
-  REMOVE_FIRST: levelOperationStateSchema,
-  REMOVE_LAST: levelOperationStateSchema,
-  GET_HEAD: levelOperationStateSchema,
-  GET_TAIL: levelOperationStateSchema,
-  SIZE: levelOperationStateSchema,
-  PEEK: levelOperationStateSchema.default("permitted"),
-  IS_EMPTY: levelOperationStateSchema.default("permitted"),
-  GET_AT: levelOperationStateSchema.default("permitted"),
-  INSERT_AT: levelOperationStateSchema.default("permitted"),
-  REMOVE_AT: levelOperationStateSchema.default("permitted"),
-  CONTAINS: levelOperationStateSchema.default("permitted"),
-  FIND: levelOperationStateSchema.default("permitted"),
-  REVERSE: levelOperationStateSchema.default("permitted"),
-  CLEAR: levelOperationStateSchema.default("permitted")
+  POP: levelOperationStateSchema.default("forbidden"),
+  PUSH: levelOperationStateSchema.default("forbidden"),
+  DEQUEUE: levelOperationStateSchema.default("forbidden"),
+  ENQUEUE: levelOperationStateSchema.default("forbidden"),
+  APPEND: levelOperationStateSchema.default("forbidden"),
+  PREPEND: levelOperationStateSchema.default("forbidden"),
+  REMOVE_FIRST: levelOperationStateSchema.default("forbidden"),
+  REMOVE_LAST: levelOperationStateSchema.default("forbidden"),
+  GET_HEAD: levelOperationStateSchema.default("forbidden"),
+  GET_TAIL: levelOperationStateSchema.default("forbidden"),
+  SIZE: levelOperationStateSchema.default("forbidden"),
+  PEEK: levelOperationStateSchema.default("forbidden"),
+  IS_EMPTY: levelOperationStateSchema.default("forbidden"),
+  GET_AT: levelOperationStateSchema.default("forbidden"),
+  INSERT_AT: levelOperationStateSchema.default("forbidden"),
+  REMOVE_AT: levelOperationStateSchema.default("forbidden"),
+  CONTAINS: levelOperationStateSchema.default("forbidden"),
+  FIND: levelOperationStateSchema.default("forbidden"),
+  REVERSE: levelOperationStateSchema.default("forbidden"),
+  CLEAR: levelOperationStateSchema.default("forbidden")
 });
 
 const importedOperationPolicySchema = z.object({
@@ -129,6 +196,7 @@ const structureSnapshotSchema = z.object({
 const levelConstraintsSchema = z.object({
   operationPolicy: operationPolicySchema,
   forbiddenBlocks: z.array(z.string()),
+  requiredBlockKinds: z.array(z.string().min(1)).optional(),
   blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
   maxSteps: z.number().int().nonnegative(),
   allowAdditionalRoutines: z.boolean().optional(),
@@ -175,10 +243,13 @@ const levelTeachingMessageSchema = z.object({
 
 const levelTeachingPlanSchema = z.object({
   introduces: z.array(z.string().min(1)),
-  messages: z.array(levelTeachingMessageSchema)
+  messages: z.array(levelTeachingMessageSchema),
+  reinforces: z.array(z.string().min(1)).optional(),
+  inf261Reference: z.string().min(1).optional()
 });
 
 const levelCatalogMetadataSchema = z.object({
+  catalog: levelCatalogCategorySchema,
   source: levelSourceSchema,
   structuresUsed: z.array(structureTagSchema),
   difficulty: levelDifficultySchema,
@@ -195,8 +266,9 @@ const levelDefinitionSchema = z.object({
   playLayout: playLayoutSchema,
   editorLayout: editorLayoutSchema,
   metadata: levelCatalogMetadataSchema,
-  tooling: editorToolingSchema.optional(),
-  teaching: levelTeachingPlanSchema.optional()
+  teachingPlan: levelTeachingPlanSchema.optional(),
+  teaching: levelTeachingPlanSchema.optional(),
+  tooling: editorToolingSchema.optional()
 });
 
 const importedLevelConstraintsSchema = z
@@ -206,6 +278,7 @@ const importedLevelConstraintsSchema = z
     requiredOperations: z.array(z.string()).optional(),
     forbiddenOperations: z.array(z.string()).optional(),
     forbiddenBlocks: z.array(z.string()).optional(),
+    requiredBlockKinds: z.array(z.string().min(1)).optional(),
     blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
     maxSteps: z.number().int().nonnegative().optional(),
     allowAdditionalRoutines: z.boolean().optional(),
@@ -234,13 +307,15 @@ const importedLevelCandidateSchema = z.object({
   editorLayout: editorLayoutSchema.optional(),
   metadata: z
     .object({
+      catalog: levelCatalogCategorySchema.optional(),
       source: levelSourceSchema.optional(),
       structuresUsed: z.array(structureTagSchema).optional(),
-      difficulty: levelDifficultySchema.optional(),
+      difficulty: importedDifficultySchema.optional(),
       author: z.string().optional(),
       description: z.string().optional()
     })
     .optional(),
+  teachingPlan: levelTeachingPlanSchema.optional(),
   tooling: z
     .object({
       availableStructures: z.array(z.string()).optional(),
@@ -251,6 +326,74 @@ const importedLevelCandidateSchema = z.object({
     })
     .optional(),
   teaching: levelTeachingPlanSchema.optional()
+});
+
+const campaignEdgeSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  type: z.enum(["normal", "branch"])
+});
+
+const campaignNodeSchema = z.object({
+  id: z.string().min(1),
+  levelId: z.string().min(1).optional(),
+  x: z.number().min(0).max(100).optional(),
+  y: z.number().min(0).max(100).optional(),
+  gridCol: z.number().int().nonnegative().optional(),
+  gridRow: z.number().int().nonnegative().optional(),
+  titleOverride: z.string().optional(),
+  descriptionOverride: z.string().optional(),
+  branchGroup: z.string().min(1).optional()
+}).superRefine((node, context) => {
+  const hasXY = typeof node.x === "number" && typeof node.y === "number";
+  const hasGrid = typeof node.gridCol === "number" && typeof node.gridRow === "number";
+  if (!hasXY && !hasGrid) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Node must define either x/y or gridCol/gridRow."
+    });
+  }
+});
+
+const campaignGridSchema = z.object({
+  columns: z.number().int().positive(),
+  rows: z.number().int().positive(),
+  marginX: z.number().min(0).max(49).optional(),
+  marginY: z.number().min(0).max(49).optional()
+});
+
+const campaignHubMilestoneSchema = z.object({
+  id: z.string().min(1),
+  minCompleted: z.number().int().nonnegative(),
+  title: z.string().min(1),
+  description: z.string().min(1)
+});
+
+const campaignHubGoalSchema = z.object({
+  title: z.string().min(1),
+  objective: z.string().min(1),
+  milestones: z.array(campaignHubMilestoneSchema).min(1)
+});
+
+const campaignBranchUnlockRuleSchema = z.object({
+  branchGroup: z.string().min(1),
+  requiresNodeIds: z.array(z.string().min(1)).min(1),
+  mode: z.enum(["all", "any"]).optional()
+});
+
+const campaignWorldDefinitionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  theme: z.string().min(1),
+  mapStyle: z.string().optional(),
+  grid: campaignGridSchema.optional(),
+  worldUnlockRule: z.string().optional(),
+  startNodeId: z.string().min(1).optional(),
+  requiredCompletions: z.number().int().nonnegative().optional(),
+  hubGoal: campaignHubGoalSchema,
+  nodes: z.array(campaignNodeSchema),
+  edges: z.array(campaignEdgeSchema),
+  branchUnlockRules: z.array(campaignBranchUnlockRuleSchema).optional()
 });
 
 const progressDataSchema = z.object({
@@ -272,6 +415,24 @@ const uiPreferencesDataSchema = z.object({
 });
 
 type ImportedLevelCandidate = z.infer<typeof importedLevelCandidateSchema>;
+
+const LEGACY_DIFFICULTY_MAP = {
+  easy: 1.5,
+  medium: 3.0,
+  hard: 4.5
+} as const;
+
+const normalizeDifficultyValue = (
+  difficulty: z.infer<typeof importedDifficultySchema> | undefined
+): LevelDifficulty => {
+  if (typeof difficulty === "string") {
+    return LEGACY_DIFFICULTY_MAP[difficulty];
+  }
+  if (typeof difficulty === "number" && Number.isFinite(difficulty)) {
+    return Math.max(0, Math.min(5, Number(difficulty.toFixed(1)))) as LevelDifficulty;
+  }
+  return 2.5 as LevelDifficulty;
+};
 
 const normalizeOperationToken = (operation: string): string =>
   operation.trim().toUpperCase();
@@ -356,6 +517,7 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
   const normalizedConstraints: LevelDefinition["constraints"] = {
     operationPolicy: normalizeOperationPolicy(level.constraints),
     forbiddenBlocks: level.constraints.forbiddenBlocks ?? [],
+    requiredBlockKinds: level.constraints.requiredBlockKinds,
     blockLimits: level.constraints.blockLimits,
     maxSteps: level.constraints.maxSteps ?? 99,
     allowAdditionalRoutines: level.constraints.allowAdditionalRoutines ?? true,
@@ -388,12 +550,14 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
       openTabs: ["canvas", "preview"]
     },
     metadata: {
+      catalog: level.metadata?.catalog ?? "community",
       source: "my-levels",
       structuresUsed: level.metadata?.structuresUsed ?? [],
-      difficulty: level.metadata?.difficulty ?? "medium",
+      difficulty: normalizeDifficultyValue(level.metadata?.difficulty),
       author: level.metadata?.author ?? "You",
       description: level.metadata?.description ?? "Imported level"
     },
+    ...(level.teachingPlan ? { teachingPlan: level.teachingPlan } : {}),
     tooling: {
       availableStructures: level.tooling?.availableStructures ?? ["stack", "queue", "list"],
       advancedToolsEnabled: level.tooling?.advancedToolsEnabled ?? true,
@@ -432,14 +596,83 @@ const parsePersistedLevelDefinitions = (raw: string): LevelDefinition[] => {
 };
 
 export const parseLevelDefinition = (input: unknown): LevelDefinition =>
-  parseWithSchema(levelDefinitionSchema, input, "Level");
+  parseWithSchema(levelDefinitionSchema, input, "Level") as LevelDefinition;
 
 export const parseLevelDefinitions = (input: unknown): LevelDefinition[] =>
-  parseWithSchema(z.array(levelDefinitionSchema), input, "Level index");
+  parseWithSchema(z.array(levelDefinitionSchema), input, "Level index") as LevelDefinition[];
 
 export const parseImportedLevelDefinition = (input: unknown): LevelDefinition => {
   const candidate = parseWithSchema(importedLevelCandidateSchema, input, "Imported level");
   return parseLevelDefinition(normalizeImportedLevel(candidate));
+};
+
+const validateCampaignWorldDefinition = (world: CampaignWorldDefinition): CampaignWorldDefinition => {
+  const nodeIds = new Set<string>();
+  const levelIds = new Set<string>();
+
+  for (const node of world.nodes) {
+    if (nodeIds.has(node.id)) {
+      throw new Error(`Campaign world "${world.id}" has duplicate node id "${node.id}".`);
+    }
+    nodeIds.add(node.id);
+    if (node.levelId) {
+      if (levelIds.has(node.levelId)) {
+        throw new Error(`Campaign world "${world.id}" reuses level id "${node.levelId}" in multiple nodes.`);
+      }
+      levelIds.add(node.levelId);
+    }
+
+    if (world.grid && typeof node.gridCol === "number" && typeof node.gridRow === "number") {
+      if (node.gridCol >= world.grid.columns || node.gridRow >= world.grid.rows) {
+        throw new Error(
+          `Campaign world "${world.id}" node "${node.id}" is outside grid bounds (${world.grid.columns}x${world.grid.rows}).`
+        );
+      }
+    }
+  }
+
+  if (world.nodes.length > 0) {
+    if (!world.startNodeId) {
+      throw new Error(`Campaign world "${world.id}" requires startNodeId when nodes are defined.`);
+    }
+    if (!nodeIds.has(world.startNodeId)) {
+      throw new Error(`Campaign world "${world.id}" startNodeId "${world.startNodeId}" does not exist.`);
+    }
+  }
+
+  world.edges.forEach((edge, index) => {
+    if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) {
+      throw new Error(
+        `Campaign world "${world.id}" has edge #${index + 1} with unknown node reference "${edge.from}" -> "${edge.to}".`
+      );
+    }
+  });
+
+  world.branchUnlockRules?.forEach((rule) => {
+    rule.requiresNodeIds.forEach((nodeId) => {
+      if (!nodeIds.has(nodeId)) {
+        throw new Error(
+          `Campaign world "${world.id}" branch rule "${rule.branchGroup}" references unknown node "${nodeId}".`
+        );
+      }
+    });
+  });
+
+  return world;
+};
+
+export const parseCampaignWorldDefinition = (input: unknown): CampaignWorldDefinition =>
+  validateCampaignWorldDefinition(
+    parseWithSchema(campaignWorldDefinitionSchema, input, "Campaign world")
+  );
+
+export const parseCampaignWorldDefinitions = (input: unknown): CampaignWorldDefinition[] => {
+  const worlds = parseWithSchema(
+    z.array(campaignWorldDefinitionSchema).min(1),
+    input,
+    "Campaign worlds index"
+  );
+  return worlds.map((world) => validateCampaignWorldDefinition(world));
 };
 
 export class JsonLevelRepository implements LevelRepository {
@@ -508,6 +741,32 @@ export class JsonLevelRepository implements LevelRepository {
     } catch {
       return [];
     }
+  }
+
+  private resolveBundledUrl(fileName: string): string {
+    const trimmedBasePath = this.basePath.replace(/^\/+|\/+$/g, "");
+    const relativePath = trimmedBasePath ? `${trimmedBasePath}/${fileName}` : fileName;
+
+    if (typeof document !== "undefined" && document.baseURI) {
+      return new URL(relativePath, document.baseURI).toString();
+    }
+
+    return `/${relativePath}`;
+  }
+}
+
+export class JsonCampaignWorldRepository implements CampaignWorldRepository {
+  constructor(
+    private readonly basePath = "levels",
+    private readonly worldsFileName = "campaign-worlds.json"
+  ) {}
+
+  public async listWorlds(): Promise<CampaignWorldDefinition[]> {
+    const response = await fetch(this.resolveBundledUrl(this.worldsFileName));
+    if (!response.ok) {
+      throw new Error("Campaign worlds index could not be loaded.");
+    }
+    return parseCampaignWorldDefinitions(await response.json());
   }
 
   private resolveBundledUrl(fileName: string): string {
