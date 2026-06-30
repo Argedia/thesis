@@ -110,8 +110,8 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Place the stack block and use its operation",
-        "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+        "title": "Coloca el bloque de pila y usa su operación",
+        "body": "Primero mira el tablero inicial y el objetivo. La pila A tiene un solo elemento y la meta es quitarlo. Arrastra la estructura A al programa, abre su menú de acciones, elige la única operación disponible y luego presiona Jugar para ver qué ocurre. Así es como el software aplica acciones sobre estructuras de datos.",
         "concepts": [
           "structure block",
           "structure operation",
@@ -121,8 +121,8 @@
       },
       {
         "trigger": "first_failure",
-        "title": "Open the action menu and run the stack operation",
-        "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+        "title": "Abre el menú de acciones y ejecuta la operación de pila",
+        "body": "Este primer nivel solo usa una acción de pila. Coloca A, abre su menú, selecciona la operación disponible y juega el programa para quitar el único elemento.",
         "concepts": [
           "POP",
           "structure operation",
@@ -131,8 +131,8 @@
       },
       {
         "trigger": "repeated_failure",
-        "title": "Match the exact visible difference",
-        "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+        "title": "Haz coincidir la diferencia visible exacta",
+        "body": "El tablero objetivo muestra una pila vacía. Usa la acción de pila disponible en el bloque, vuelve a jugar y observa el tablero.",
         "concepts": [
           "goal comparison",
           "top element",
@@ -153,8 +153,8 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Place the stack block and use its operation",
-        "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+        "title": "Coloca el bloque de pila y usa su operación",
+        "body": "Primero mira el tablero inicial y el objetivo. La pila A tiene un solo elemento y la meta es quitarlo. Arrastra la estructura A al programa, abre su menú de acciones, elige la única operación disponible y luego presiona Jugar para ver qué ocurre. Así es como el software aplica acciones sobre estructuras de datos.",
         "concepts": [
           "structure block",
           "structure operation",
@@ -164,8 +164,8 @@
       },
       {
         "trigger": "first_failure",
-        "title": "Open the action menu and run the stack operation",
-        "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+        "title": "Abre el menú de acciones y ejecuta la operación de pila",
+        "body": "Este primer nivel solo usa una acción de pila. Coloca A, abre su menú, selecciona la operación disponible y juega el programa para quitar el único elemento.",
         "concepts": [
           "POP",
           "structure operation",
@@ -174,8 +174,8 @@
       },
       {
         "trigger": "repeated_failure",
-        "title": "Match the exact visible difference",
-        "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+        "title": "Haz coincidir la diferencia visible exacta",
+        "body": "El tablero objetivo muestra una pila vacía. Usa la acción de pila disponible en el bloque, vuelve a jugar y observa el tablero.",
         "concepts": [
           "goal comparison",
           "top element",

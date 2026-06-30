@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Plus, Trash2 } from "lucide-react";
 import { Screen } from "@thesis/ui-editor";
 import { APP_ROUTES, buildEditorDraftRoute } from "../types/routes";
@@ -26,6 +27,7 @@ const formatDate = (rawIso: string): string => {
 
 export function EditorDraftsScreen() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const dialog = useDialogManager();
   const [drafts, setDrafts] = useState<LevelEditorDraftRecord[]>([]);
 
@@ -43,9 +45,9 @@ export function EditorDraftsScreen() {
 
   const handleCreate = async () => {
     const requestedName = await dialog.requestTextInput({
-      title: "Nombre del nivel",
-      initialValue: "Nuevo nivel",
-      validate: (value) => (value.trim() ? null : "El nombre no puede estar vacío.")
+      title: t("drafts.newLevelPrompt"),
+      initialValue: t("drafts.newLevelDefault"),
+      validate: (value) => (value.trim() ? null : t("drafts.nameRequired"))
     });
     if (requestedName === null) return;
     const draft = createEditorDraftRecord(requestedName);
@@ -65,7 +67,7 @@ export function EditorDraftsScreen() {
           backLabel="Menu"
           backTo={APP_ROUTES.home}
           eyebrow="Editor"
-          title="Mis niveles"
+          title={t("drafts.title")}
           className="editor-drafts-topbar"
           tutorialAnchorId="editor-drafts-topbar"
           actions={
@@ -74,11 +76,11 @@ export function EditorDraftsScreen() {
                 type="button"
                 className="menu-link editor-drafts-create-button"
                 onClick={() => void handleCreate()}
-                aria-label="Nuevo nivel"
-                title="Nuevo nivel"
+                aria-label={t("drafts.newLevel")}
+                title={t("drafts.newLevel")}
               >
                 <Plus size={20} aria-hidden="true" />
-                <span>Nuevo nivel</span>
+                <span>{t("drafts.newLevel")}</span>
               </button>
             </div>
           }
@@ -89,8 +91,8 @@ export function EditorDraftsScreen() {
         >
           {drafts.length === 0 ? (
             <article className="editor-draft-card">
-              <h2>No hay niveles guardados</h2>
-              <p>Crea un nivel para comenzar.</p>
+              <h2>{t("drafts.emptyTitle")}</h2>
+              <p>{t("drafts.emptyBody")}</p>
             </article>
           ) : (
             drafts.map((draft) => (
@@ -98,18 +100,18 @@ export function EditorDraftsScreen() {
                 <div className="editor-draft-card-head">
                   <div className="editor-draft-card-title-group">
                     <h2>{draft.name}</h2>
-                    <p>{draft.publishedAt ? `Publicado: ${formatDate(draft.publishedAt)}` : `Última edición: ${formatDate(draft.updatedAt)}`}</p>
+                    <p>{draft.publishedAt ? t("drafts.publishedAt", { date: formatDate(draft.publishedAt) }) : t("drafts.lastEdited", { date: formatDate(draft.updatedAt) })}</p>
                   </div>
                   <div className="editor-draft-card-head-actions">
                     <span className={`mini-tag ${draft.publishedAt ? "is-published" : "is-draft"}`}>
-                      {draft.publishedAt ? "Publicado" : "Borrador"}
+                      {draft.publishedAt ? t("drafts.publishedBadge") : t("drafts.draftBadge")}
                     </span>
                     <button
                       type="button"
                       className="icon-only-button icon-only-button-danger editor-draft-delete-button"
                       onClick={() => handleDelete(draft.id)}
-                      aria-label={`Eliminar ${draft.name}`}
-                      title="Eliminar"
+                      aria-label={t("drafts.deleteLevel", { name: draft.name })}
+                      title={t("drafts.deleteAction")}
                     >
                       <Trash2 size={16} aria-hidden="true" />
                     </button>
@@ -121,7 +123,7 @@ export function EditorDraftsScreen() {
                     className="menu-link"
                     onClick={() => navigate(buildEditorDraftRoute(draft.id), { state: { returnTo: APP_ROUTES.editor } })}
                   >
-                    Abrir editor
+                    {t("drafts.openEditor")}
                   </button>
                 </div>
               </article>

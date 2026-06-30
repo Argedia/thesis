@@ -118,8 +118,8 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Use the description, blocks, and output",
-        "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+        "title": "Usa la descripción, los bloques y la salida",
+        "body": "Este nivel cierra la introducción. Lee primero la descripción, coloca la cola A, elige encolar y usa el bloque literal de la paleta izquierda para insertar item. Si falta algo, el área de salida te lo dirá.",
         "concepts": [
           "description",
           "left palette",
@@ -130,8 +130,8 @@
       },
       {
         "trigger": "first_failure",
-        "title": "The output tells you what is missing",
-        "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+        "title": "La salida te dice qué falta",
+        "body": "Si la cola no cambió, lee el área de salida antes de probar cambios al azar. En este nivel, lo más probable es que encolar todavía necesite su valor.",
         "concepts": [
           "output feedback",
           "missing value",
@@ -140,8 +140,8 @@
       },
       {
         "trigger": "repeated_failure",
-        "title": "Use the literal the level asked for",
-        "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+        "title": "Usa el literal que pide el nivel",
+        "body": "La descripción del nivel ya te dice el valor exacto que debes insertar. Arrastra el bloque literal desde la paleta izquierda al espacio vacío de la acción de la cola y vuelve a jugar.",
         "concepts": [
           "literal block",
           "description",
@@ -162,8 +162,8 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Use the description, blocks, and output",
-        "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+        "title": "Usa la descripción, los bloques y la salida",
+        "body": "Este nivel cierra la introducción. Lee primero la descripción, coloca la cola A, elige encolar y usa el bloque literal de la paleta izquierda para insertar item. Si falta algo, el área de salida te lo dirá.",
         "concepts": [
           "description",
           "left palette",
@@ -174,8 +174,8 @@
       },
       {
         "trigger": "first_failure",
-        "title": "The output tells you what is missing",
-        "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+        "title": "La salida te dice qué falta",
+        "body": "Si la cola no cambió, lee el área de salida antes de probar cambios al azar. En este nivel, lo más probable es que encolar todavía necesite su valor.",
         "concepts": [
           "output feedback",
           "missing value",
@@ -184,8 +184,8 @@
       },
       {
         "trigger": "repeated_failure",
-        "title": "Use the literal the level asked for",
-        "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+        "title": "Usa el literal que pide el nivel",
+        "body": "La descripción del nivel ya te dice el valor exacto que debes insertar. Arrastra el bloque literal desde la paleta izquierda al espacio vacío de la acción de la cola y vuelve a jugar.",
         "concepts": [
           "literal block",
           "description",

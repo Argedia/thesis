@@ -299,7 +299,7 @@ export function EditorShell(_props: EditorShellProps) {
     typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string"
       ? (location.state as { returnTo: string }).returnTo
       : APP_ROUTES.editor;
-  const [draftName, setDraftName] = useState("Nivel sin nombre");
+  const [draftName, setDraftName] = useState(t("editorShell.untitledLevel"));
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [description, setDescription] = useState("");
   const [author, setAuthor] = useState("");
@@ -323,7 +323,7 @@ export function EditorShell(_props: EditorShellProps) {
   const [valueDomainMinRaw, setValueDomainMinRaw] = useState("");
   const [valueDomainMaxRaw, setValueDomainMaxRaw] = useState("");
   const [lockStarterBlocks, setLockStarterBlocks] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("Editor listo. Todo desactivado por defecto.");
+  const [statusMessage, setStatusMessage] = useState(t("editorShell.readyStatus"));
   const [isSaving, setIsSaving] = useState(false);
   const [isGoalPreview, setIsGoalPreview] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -412,7 +412,7 @@ export function EditorShell(_props: EditorShellProps) {
       { value: "circular-list", label: t("structures.circular-list") }
     ];
     const selectedKind = await dialog.requestSelectInput({
-      title: "Selecciona la estructura",
+      title: t("editorShell.selectStructure"),
       initialValue: "stack",
       options: structureKindOptions
     });
@@ -748,7 +748,7 @@ export function EditorShell(_props: EditorShellProps) {
   }>) => {
     if (!draftId) return;
     const previous = getEditorDraftRecord(draftId);
-    const nextName = patch?.name ?? draftName ?? previous?.name ?? "Nivel sin nombre";
+    const nextName = patch?.name ?? draftName ?? previous?.name ?? t("editorShell.untitledLevel");
     saveEditorDraftRecord({
       id: draftId,
       name: nextName,
@@ -765,34 +765,34 @@ export function EditorShell(_props: EditorShellProps) {
       return;
     }
     persistDraft();
-    setStatusMessage("Borrador guardado localmente.");
+    setStatusMessage(t("editorShell.savedLocally"));
   };
 
   const handlePublish = async () => {
     if (!canSave || isSaving || !draftId) return;
     persistDraft();
     if (!isDraftSolvedByCreator) {
-      const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, "Borrador de prueba");
+      const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, t("editorShell.testDraftName"));
       try {
         await levelRepository.importLevel(draftLevelToTest);
-        setStatusMessage("Debes resolver el nivel para publicarlo. Te llevo a Probar nivel.");
+        setStatusMessage(t("editorShell.mustSolveToPublish"));
         navigate(`${APP_ROUTES.play}/${draftTestLevelId}`, { state: { returnTo: buildEditorDraftRoute(draftId ?? "") } });
       } catch (error) {
-        setStatusMessage(error instanceof Error ? error.message : "No se pudo preparar el borrador para prueba.");
+        setStatusMessage(error instanceof Error ? error.message : t("editorShell.prepareDraftError"));
       }
       return;
     }
     const requestedName = await dialog.requestTextInput({
-      title: "Nombre del nivel",
+      title: t("drafts.newLevelPrompt"),
       initialValue: savedLevelTitle || draftName || "",
-      validate: (value) => (value.trim() ? null : "El nombre no puede estar vacío.")
+      validate: (value) => (value.trim() ? null : t("drafts.nameRequired"))
     });
     if (requestedName === null) {
       return;
     }
 
     const title = requestedName.trim();
-    const normalizedId = slugifyLevelId(title) || `nivel-${Date.now()}`;
+    const normalizedId = slugifyLevelId(title) || `level-${Date.now()}`;
     const levelToSave = createLevelFromCurrentDraft(normalizedId, title);
 
     setIsSaving(true);
@@ -805,9 +805,9 @@ export function EditorShell(_props: EditorShellProps) {
         publishedAt: new Date().toISOString(),
         publishedLevelId: levelToSave.id
       });
-      setStatusMessage(`Publicado: ${levelToSave.id}`);
+      setStatusMessage(t("editorShell.publishedStatus", { id: levelToSave.id }));
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "No se pudo publicar el nivel.");
+      setStatusMessage(error instanceof Error ? error.message : t("editorShell.publishError"));
     } finally {
       setIsSaving(false);
     }
@@ -818,28 +818,28 @@ export function EditorShell(_props: EditorShellProps) {
       return;
     }
     persistDraft();
-    const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, "Borrador de prueba");
+    const draftLevelToTest = createLevelFromCurrentDraft(draftTestLevelId, t("editorShell.testDraftName"));
     try {
       await levelRepository.importLevel(draftLevelToTest);
-      setStatusMessage("Borrador preparado. Resuélvelo para habilitar Publicar.");
+      setStatusMessage(t("editorShell.preparedToPublish"));
       navigate(`${APP_ROUTES.play}/${draftTestLevelId}`, { state: { returnTo: buildEditorDraftRoute(draftId ?? "") } });
     } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : "No se pudo preparar el borrador para prueba.");
+      setStatusMessage(error instanceof Error ? error.message : t("editorShell.prepareDraftError"));
     }
   };
 
   const handleCreateRoutine = async () => {
     if (!canCreateMoreRoutinesInEditor) {
-      setStatusMessage(`Límite de scripts alcanzado (${maxRoutineCount}).`);
+      setStatusMessage(t("editorShell.scriptLimitReached", { count: maxRoutineCount }));
       return;
     }
     const nextName = await dialog.requestTextInput({
-      title: "Nombre de viñeta",
-      initialValue: "viñeta"
+      title: t("editorShell.scriptNamePrompt"),
+      initialValue: t("editorShell.scriptDefaultName")
     });
     if (nextName === null) return;
     setDocument((previous) => {
-      const nextDocument = addRoutine(previous, nextName.trim() || "viñeta");
+      const nextDocument = addRoutine(previous, nextName.trim() || t("editorShell.scriptDefaultName"));
       const newestRoutine = nextDocument.routines[nextDocument.routines.length - 1];
       if (newestRoutine) {
         setMaxBlocksByRoutine((prev) =>
@@ -852,7 +852,7 @@ export function EditorShell(_props: EditorShellProps) {
 
   const handleRenameRoutine = async (routineId: string, currentName: string) => {
     const nextName = await dialog.requestTextInput({
-      title: "Renombrar viñeta",
+      title: t("editorShell.renameScript"),
       initialValue: currentName
     });
     if (nextName === null) return;
@@ -868,7 +868,7 @@ export function EditorShell(_props: EditorShellProps) {
   };
 
   const handleExportJson = () => {
-    const filenameBase = slugifyLevelId(draftName || "nivel") || "nivel";
+    const filenameBase = slugifyLevelId(draftName || "level") || "level";
     const payload = JSON.stringify(draftLevel, null, 2);
     const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -879,14 +879,14 @@ export function EditorShell(_props: EditorShellProps) {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-    setStatusMessage("Nivel exportado como JSON.");
+    setStatusMessage(t("editorShell.exportSuccess"));
   };
 
   return (
     <Screen mode="editor">
       <div className="editor-shell">
         {!isBootstrapped ? (
-          <p className="level-editor-status">Cargando borrador...</p>
+          <p className="level-editor-status">{t("editorShell.loadingDraft")}</p>
         ) : null}
         <div className="topbar primary-screen-topbar level-editor-actions">
           <div className="level-editor-actions-left">
@@ -894,8 +894,8 @@ export function EditorShell(_props: EditorShellProps) {
               type="button"
               className="back-link back-link--icon"
               onClick={() => navigate(returnTo)}
-              aria-label="Mis niveles"
-              title="Mis niveles"
+              aria-label={t("editorShell.backToDrafts")}
+              title={t("editorShell.backToDrafts")}
             >
               <ArrowLeft size={20} aria-hidden="true" />
             </button>
@@ -909,7 +909,7 @@ export function EditorShell(_props: EditorShellProps) {
             {...tutorialAnchorProps("editor-actions")}
           >
             <span className={`mini-tag ${savedLevelId ? "is-published" : "is-draft"}`}>
-              {savedLevelId ? "Publicado" : "Borrador"}
+              {savedLevelId ? t("drafts.publishedBadge") : t("drafts.draftBadge")}
             </span>
             <button type="button" disabled={!isBootstrapped} onClick={handleExportJson}>
               Exportar JSON
@@ -928,7 +928,7 @@ export function EditorShell(_props: EditorShellProps) {
               {t("editorShell.save")}
             </button>
             <button type="button" disabled={!canSave || isSaving} onClick={() => void handlePublish()}>
-              {isSaving ? "Publicando..." : "Publicar"}
+              {isSaving ? t("editorShell.publishing") : t("editorShell.publish")}
             </button>
           </div>
         </div>
@@ -970,25 +970,25 @@ export function EditorShell(_props: EditorShellProps) {
             disableCreateRoutine={!canCreateMoreRoutinesInEditor}
             hideRunActions
             disabledRunButtons
-            onRun={() => setStatusMessage("Modo editor: usa Probar para ejecutar la sesión de juego.")}
-            onStep={() => setStatusMessage("Modo editor: usa Probar para validación paso a paso.")}
-            onPause={() => setStatusMessage("Modo editor.")}
+            onRun={() => setStatusMessage(t("editorShell.runHint"))}
+            onStep={() => setStatusMessage(t("editorShell.stepHint"))}
+            onPause={() => setStatusMessage(t("editorShell.pauseHint"))}
             onReset={() => {
               setDocument(createEditorDocument());
               setBreakpointNodeIds([]);
-              setStatusMessage("Editor reiniciado.");
+              setStatusMessage(t("editorShell.resetStatus"));
             }}
             onClear={() => {
               setDocument(createEditorDocument());
               setBreakpointNodeIds([]);
-              setStatusMessage("Programa limpiado.");
+              setStatusMessage(t("editorShell.programCleared"));
             }}
             translateDiagnostic={(diagnostic) => diagnostic}
             hideOutputBlocksCounter
             topbarControls={
               <div className="script-limit-controls-inline">
                 <div className="script-limit-inline-toggle">
-                  <span>Scripts libres</span>
+                  <span>{t("editorShell.freeScripts")}</span>
                   <ToggleSwitch
                     ariaLabel={t("editorShell.allowAdditionalRoutinesAriaLabel")}
                     checked={allowAdditionalRoutines}
@@ -997,7 +997,7 @@ export function EditorShell(_props: EditorShellProps) {
                 </div>
                 {allowAdditionalRoutines ? (
                   <TextField className="script-limit-inline-field">
-                    <Label>Max scripts</Label>
+                    <Label>{t("editorShell.maxScripts")}</Label>
                     <Input
                       type="number"
                       min={1}
@@ -1009,7 +1009,7 @@ export function EditorShell(_props: EditorShellProps) {
                   </TextField>
                 ) : null}
                 <div className="script-limit-inline-toggle">
-                  <span>Bloques iniciales bloqueados</span>
+                  <span>{t("editorShell.lockStarterBlocks")}</span>
                   <ToggleSwitch
                     ariaLabel={t("editorShell.lockStarterBlocksAriaLabel")}
                     checked={lockStarterBlocks}
@@ -1021,7 +1021,7 @@ export function EditorShell(_props: EditorShellProps) {
             outputMetaControl={
               allowAdditionalRoutines ? (
                 <TextField className="script-limit-inline-field script-limit-output-field">
-                  <Label>Bloques global</Label>
+                  <Label>{t("editorShell.globalBlocks")}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -1033,7 +1033,7 @@ export function EditorShell(_props: EditorShellProps) {
                 </TextField>
               ) : (
                 <TextField className="script-limit-inline-field script-limit-output-field">
-                  <Label>Bloques script</Label>
+                  <Label>{t("editorShell.scriptBlocks")}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -1088,23 +1088,23 @@ export function EditorShell(_props: EditorShellProps) {
                 <div className="level-editor-config-body">
                   <div className="structure-draft-card">
                     <div className="structure-draft-header">
-                      <strong>{selectedStructureDraft.id || `Estructura ${selectedStructureIndex! + 1}`}</strong>
+                      <strong>{selectedStructureDraft.id || t("editorShell.structureDefaultName", { index: selectedStructureIndex! + 1 })}</strong>
                       <div className="level-editor-inline-actions">
                         <TooltipTrigger delay={200} closeDelay={80}>
                           <Button
                             className="icon-only-button icon-only-button-danger"
-                            aria-label="Eliminar estructura"
+                            aria-label={t("editorShell.deleteStructure")}
                             onPress={() => removeStructure(selectedStructureIndex!)}
                           >
                             🗑
                           </Button>
-                          <Tooltip className="app-tooltip">Eliminar estructura</Tooltip>
+                          <Tooltip className="app-tooltip">{t("editorShell.deleteStructure")}</Tooltip>
                         </TooltipTrigger>
                       </div>
                     </div>
                     <div className="structure-draft-fields">
                       <label>
-                        Nombre
+                        {t("editorShell.name")}
                         <input
                           value={selectedStructureDraft.id}
                           onChange={(event) =>
@@ -1113,7 +1113,7 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </label>
                       <label>
-                        Inicial
+                        {t("editorShell.initial")}
                         <input
                           value={selectedStructureDraft.initialValues}
                           onChange={(event) =>
@@ -1125,7 +1125,7 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </label>
                       <label>
-                        Objetivo
+                        {t("editorShell.goal")}
                         <input
                           value={selectedStructureDraft.goalValues}
                           onChange={(event) =>
@@ -1137,9 +1137,9 @@ export function EditorShell(_props: EditorShellProps) {
                     </div>
                     <div className="permissions-block-list">
                       <div className="switch-line">
-                        <span>Override rules</span>
+                        <span>{t("editorShell.overrideRules")}</span>
                         <ToggleSwitch
-                          ariaLabel="Override rules"
+                          ariaLabel={t("editorShell.overrideRules")}
                           checked={hasSelectedStructureOverrides}
                           onChange={(isSelected) =>
                             updateStructure(selectedStructureIndex!, {
@@ -1154,7 +1154,7 @@ export function EditorShell(_props: EditorShellProps) {
                       {hasSelectedStructureOverrides ? (
                         <>
                           <div className="switch-line">
-                            <span>Override: no larger on smaller</span>
+                            <span>{t("editorShell.overrideNoLarger")}</span>
                             <ToggleSwitch
                               ariaLabel={t("editorShell.overrideNoLargerAriaLabel")}
                               checked={selectedStructureDraft.overrideNoLargerOnSmaller}
@@ -1167,9 +1167,9 @@ export function EditorShell(_props: EditorShellProps) {
                           </div>
                           {selectedStructureDraft.overrideNoLargerOnSmaller ? (
                             <div className="switch-line">
-                              <span>Regla activa en esta estructura</span>
+                              <span>{t("editorShell.structureRuleActive")}</span>
                               <ToggleSwitch
-                                ariaLabel="Regla activa en esta estructura"
+                                ariaLabel={t("editorShell.structureRuleActive")}
                                 checked={selectedStructureDraft.noLargerOnSmallerEnabled}
                                 onChange={(isSelected) =>
                                   updateStructure(selectedStructureIndex!, {
@@ -1180,7 +1180,7 @@ export function EditorShell(_props: EditorShellProps) {
                             </div>
                           ) : null}
                           <div className="switch-line">
-                            <span>Override: dominio de valores</span>
+                            <span>{t("editorShell.overrideValueDomain")}</span>
                             <ToggleSwitch
                               ariaLabel={t("editorShell.overrideValueDomainAriaLabel")}
                               checked={selectedStructureDraft.overrideValueDomain}
@@ -1194,7 +1194,7 @@ export function EditorShell(_props: EditorShellProps) {
                           {selectedStructureDraft.overrideValueDomain ? (
                             <>
                               <div className="switch-line">
-                                <span>Solo valores numéricos</span>
+                                <span>{t("editorShell.numericOnly")}</span>
                                 <ToggleSwitch
                                   ariaLabel={t("editorShell.numericOnlyLocal")}
                                   checked={selectedStructureDraft.valueDomainNumericOnly}
@@ -1206,7 +1206,7 @@ export function EditorShell(_props: EditorShellProps) {
                                 />
                               </div>
                               <label>
-                                Min local
+                                {t("editorShell.localMin")}
                                 <input
                                   type="number"
                                   value={selectedStructureDraft.valueDomainMinRaw}
@@ -1215,11 +1215,11 @@ export function EditorShell(_props: EditorShellProps) {
                                       valueDomainMinRaw: event.target.value
                                     })
                                   }
-                                  placeholder="Sin mínimo"
+                                  placeholder={t("editorShell.noMin")}
                                 />
                               </label>
                               <label>
-                                Max local
+                                {t("editorShell.localMax")}
                                 <input
                                   type="number"
                                   value={selectedStructureDraft.valueDomainMaxRaw}
@@ -1228,7 +1228,7 @@ export function EditorShell(_props: EditorShellProps) {
                                       valueDomainMaxRaw: event.target.value
                                     })
                                   }
-                                  placeholder="Sin máximo"
+                                  placeholder={t("editorShell.noMax")}
                                 />
                               </label>
                             </>
@@ -1247,7 +1247,7 @@ export function EditorShell(_props: EditorShellProps) {
               >
                 <div className="level-editor-config-body">
                   <details className="level-editor-details">
-                    <summary>Política de operaciones</summary>
+                    <summary>{t("editorShell.operationsPolicy")}</summary>
                     <div className="operation-policy-list">
                       {LEVEL_OPERATIONS.map((operation) => {
                         const currentState = operationPolicy[operation];
@@ -1263,10 +1263,10 @@ export function EditorShell(_props: EditorShellProps) {
                                   onClick={() => setOperationState(operation, state)}
                                 >
                                   {state === "forbidden"
-                                    ? "Prohibida"
+                                    ? t("editorShell.policyForbidden")
                                     : state === "permitted"
-                                      ? "Permitida"
-                                      : "Requerida"}
+                                      ? t("editorShell.policyPermitted")
+                                      : t("editorShell.policyRequired")}
                                 </button>
                               ))}
                             </div>
@@ -1277,10 +1277,10 @@ export function EditorShell(_props: EditorShellProps) {
                   </details>
 
                   <details className="level-editor-details">
-                    <summary>Constraints de ejecución</summary>
+                    <summary>{t("editorShell.executionConstraints")}</summary>
                     <div className="permissions-block-list">
                       <div className="switch-line">
-                        <span>No larger on smaller (Hanoi)</span>
+                        <span>{t("editorShell.noLargerOnSmaller")}</span>
                         <ToggleSwitch
                           ariaLabel={t("editorShell.noLargerGlobal")}
                           checked={noLargerOnSmallerEnabled}
@@ -1288,7 +1288,7 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </div>
                       <div className="switch-line">
-                        <span>Solo valores numéricos</span>
+                        <span>{t("editorShell.numericOnly")}</span>
                         <ToggleSwitch
                           ariaLabel={t("editorShell.numericOnlyGlobal")}
                           checked={valueDomainNumericOnly}
@@ -1296,31 +1296,31 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </div>
                       <label>
-                        Valor mínimo permitido
+                        {t("editorShell.minValueAllowed")}
                         <input
                           type="number"
                           value={valueDomainMinRaw}
                           onChange={(event) => setValueDomainMinRaw(event.target.value)}
-                          placeholder="Sin mínimo"
+                          placeholder={t("editorShell.noMin")}
                         />
                       </label>
                       <label>
-                        Valor máximo permitido
+                        {t("editorShell.maxValueAllowed")}
                         <input
                           type="number"
                           value={valueDomainMaxRaw}
                           onChange={(event) => setValueDomainMaxRaw(event.target.value)}
-                          placeholder="Sin máximo"
+                          placeholder={t("editorShell.noMax")}
                         />
                       </label>
                     </div>
                   </details>
 
                   <details className="level-editor-details">
-                    <summary>Metadatos</summary>
+                    <summary>{t("editorShell.metadata")}</summary>
                     <div className="details-grid">
                       <label>
-                        Autor
+                        {t("editorShell.author")}
                         <input value={author} onChange={(event) => setAuthor(event.target.value)} />
                       </label>
                       <label>
@@ -1339,7 +1339,7 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </label>
                       <label>
-                        Max steps
+                        {t("editorShell.maxSteps")}
                         <input
                           type="number"
                           min={0}
@@ -1348,7 +1348,7 @@ export function EditorShell(_props: EditorShellProps) {
                         />
                       </label>
                       <label>
-                        Descripción
+                        {t("editorShell.description")}
                         <textarea value={description} onChange={(event) => setDescription(event.target.value)} />
                       </label>
                     </div>

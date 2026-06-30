@@ -1,6 +1,6 @@
 {
   "id": "campaign-w0-l4-onboarding-checkpoint",
-  "title": "W1-L4 · Onboarding Checkpoint",
+  "title": "W1-L4 · Punto de control inicial",
   "initialState": [
     {
       "id": "A",
@@ -93,7 +93,7 @@
     "structuresUsed": ["stack"],
     "difficulty": 1.8,
     "author": "Core Team",
-    "description": "A short autonomous checkpoint: compare the boards, choose the correct move order, and solve the full mini challenge by yourself.",
+    "description": "Un punto de control corto y autónomo: compara los tableros, elige el orden correcto de movimientos y resuelve el mini reto completo por tu cuenta.",
     "catalog": "campaign"
   },
   "tooling": {
@@ -106,20 +106,20 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Time for a small independent challenge",
-        "body": "This level combines the workflow from the previous onboarding levels. Read both boards, decide the correct order of moves, then solve it without step-by-step guidance.",
+        "title": "Hora de un pequeño reto independiente",
+        "body": "Este nivel combina el flujo de trabajo de los niveles anteriores de introducción. Lee ambos tableros, decide el orden correcto de los movimientos y luego resuélvelo sin guía paso a paso.",
         "concepts": ["independent solve", "workflow integration"]
       },
       {
         "trigger": "first_failure",
-        "title": "Order matters now",
-        "body": "The target stack C must receive values in the right order. If the result is reversed, check which transfer should happen first.",
+        "title": "Ahora el orden importa",
+        "body": "La pila objetivo C debe recibir los valores en el orden correcto. Si el resultado quedó invertido, revisa qué transferencia debía ocurrir primero.",
         "concepts": ["move order", "target order"]
       },
       {
         "trigger": "repeated_failure",
-        "title": "Use the whole routine you learned",
-        "body": "Compare, plan, run, and correct. This checkpoint is not introducing a new tool; it is checking that you can use the editor flow on your own.",
+        "title": "Usa todo el proceso que aprendiste",
+        "body": "Compara, planifica, juega y corrige. Este punto de control no introduce una herramienta nueva; comprueba que ya puedes usar por tu cuenta el flujo del editor.",
         "concepts": ["compare-plan-run-correct", "editor autonomy"]
       }
     ]
@@ -130,20 +130,20 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Time for a small independent challenge",
-        "body": "This level combines the workflow from the previous onboarding levels. Read both boards, decide the correct order of moves, then solve it without step-by-step guidance.",
+        "title": "Hora de un pequeño reto independiente",
+        "body": "Este nivel combina el flujo de trabajo de los niveles anteriores de introducción. Lee ambos tableros, decide el orden correcto de los movimientos y luego resuélvelo sin guía paso a paso.",
         "concepts": ["independent solve", "workflow integration"]
       },
       {
         "trigger": "first_failure",
-        "title": "Order matters now",
-        "body": "The target stack C must receive values in the right order. If the result is reversed, check which transfer should happen first.",
+        "title": "Ahora el orden importa",
+        "body": "La pila objetivo C debe recibir los valores en el orden correcto. Si el resultado quedó invertido, revisa qué transferencia debía ocurrir primero.",
         "concepts": ["move order", "target order"]
       },
       {
         "trigger": "repeated_failure",
-        "title": "Use the whole routine you learned",
-        "body": "Compare, plan, run, and correct. This checkpoint is not introducing a new tool; it is checking that you can use the editor flow on your own.",
+        "title": "Usa todo el proceso que aprendiste",
+        "body": "Compara, planifica, juega y corrige. Este punto de control no introduce una herramienta nueva; comprueba que ya puedes usar por tu cuenta el flujo del editor.",
         "concepts": ["compare-plan-run-correct", "editor autonomy"]
       }
     ]

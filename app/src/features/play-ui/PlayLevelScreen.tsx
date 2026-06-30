@@ -1025,6 +1025,7 @@ export function PlayLevelScreen() {
               onClick={() => handleBack(APP_ROUTES.campaign)}
               aria-label={t("common.levels")}
               title={t("common.levels")}
+              {...tutorialAnchorProps("play-back-button")}
             >
               <ArrowLeft size={20} aria-hidden="true" />
             </button>

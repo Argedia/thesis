@@ -424,7 +424,7 @@ export class PlayEditorEngine {
 			[
 				{
 					id: "duplicate",
-					label: selectedBlocks.length > 1 ? `Duplicar (${selectedBlocks.length})` : "Duplicar",
+					label: selectedBlocks.length > 1 ? `${t("common.duplicate")} (${selectedBlocks.length})` : t("common.duplicate"),
 					enabled: () => true,
 					execute: () => {
 						this.selectionService.duplicateSelection();
@@ -433,7 +433,7 @@ export class PlayEditorEngine {
 				},
 				{
 					id: "delete",
-					label: selectedBlocks.length > 1 ? `Eliminar (${selectedBlocks.length})` : "Eliminar",
+					label: selectedBlocks.length > 1 ? `${t("common.delete")} (${selectedBlocks.length})` : t("common.delete"),
 					enabled: () => true,
 					execute: () => {
 						this.selectionService.deleteSelection();

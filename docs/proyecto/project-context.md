@@ -632,6 +632,7 @@ Documentos técnicos y de tesis ya presentes:
 
 - [docs/proyecto/play-editor-architecture.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\play-editor-architecture.md)
 - [docs/proyecto/editor-tree-architecture.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\editor-tree-architecture.md)
+- [docs/proyecto/system-gamification-overview.md](C:\Users\aguerra\Documents\thesis\docs\proyecto\system-gamification-overview.md)
 - [docs/tesis/documento-diseno-proyecto.md](C:\Users\aguerra\Documents\thesis\docs\tesis\documento-diseno-proyecto.md)
 - [docs/tesis/documento-pruebas-funcionales.md](C:\Users\aguerra\Documents\thesis\docs\tesis\documento-pruebas-funcionales.md)
 - [docs/tesis/cobertura-curricular-integral-inf261.md](C:\Users\aguerra\Documents\thesis\docs\tesis\cobertura-curricular-integral-inf261.md)

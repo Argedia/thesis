@@ -211,6 +211,37 @@ const resolveWorldRightmostAvailablePlayableNodeId = (
   return playableNodes[availableCount - 1]?.id ?? playableNodes[0]?.id ?? null;
 };
 
+const getSelectableNodeIds = (
+  world: CampaignWorldDefinition,
+  completedLevelIds: string[]
+): Set<string> => {
+  const selectable = new Set<string>();
+  const startNodeId = resolveWorldEntryNodeId(world);
+  if (startNodeId) {
+    selectable.add(startNodeId);
+  }
+
+  const playableNodes = world.nodes.filter(isPlayableNode);
+  if (playableNodes.length === 0) {
+    return selectable;
+  }
+
+  const completedLevelSet = new Set(completedLevelIds);
+  const completedCount = playableNodes.filter(
+    (node) => node.levelId && completedLevelSet.has(node.levelId)
+  ).length;
+  const lastUnlockedIndex = Math.min(playableNodes.length - 1, completedCount);
+
+  for (let index = 0; index <= lastUnlockedIndex; index += 1) {
+    const node = playableNodes[index];
+    if (node) {
+      selectable.add(node.id);
+    }
+  }
+
+  return selectable;
+};
+
 const isPlayableNode = (node: CampaignWorldDefinition["nodes"][number]): boolean =>
   typeof node.levelId === "string" && node.levelId.length > 0;
 
@@ -352,6 +383,11 @@ export function CampaignScreen() {
         .map((node) => node.id)
     );
   }, [activeWorld, completedLevelIds]);
+
+  const selectableNodeIds = useMemo(
+    () => (activeWorld ? getSelectableNodeIds(activeWorld, completedLevelIds) : new Set<string>()),
+    [activeWorld, completedLevelIds]
+  );
 
   const pendingCompletion = useMemo(() => loadPendingCampaignCompletion(), [activeWorldId, completedLevelIds]);
 
@@ -630,6 +666,7 @@ export function CampaignScreen() {
   const handleNodeClick = (nodeId: string) => {
     const node = nodesById.get(nodeId);
     if (!node || isAnimating) return;
+    if (!selectableNodeIds.has(node.id)) return;
     const level = node.levelId ? levelsById[node.levelId] : null;
     setSelectedNodeId(node.id);
     setIsMobilePanelOpen(true);
@@ -767,15 +804,16 @@ export function CampaignScreen() {
                   const isInvalid = typeof node.levelId === "string" && !levelsById[node.levelId];
                   const isStartNode = activeWorld?.startNodeId === node.id;
                   const isEntryNode = isStartNode && !isPlayableNode(node);
+                  const isSelectable = selectableNodeIds.has(node.id);
                   const playableIndex = activeWorld?.nodes.filter(isPlayableNode).findIndex((candidate) => candidate.id === node.id) ?? -1;
                   return (
                     <button
                       key={node.id}
                       type="button"
-                      className={`campaign-map-node unlocked${completed ? " completed" : ""}${isCurrent ? " current" : ""}${isInvalid ? " invalid" : ""}${isStartNode ? " start" : ""}${isEntryNode ? " entry" : ""}`}
+                      className={`campaign-map-node${isSelectable ? " unlocked" : " locked"}${completed ? " completed" : ""}${isCurrent ? " current" : ""}${isInvalid ? " invalid" : ""}${isStartNode ? " start" : ""}${isEntryNode ? " entry" : ""}`}
                       style={{ left: `${node.x}%`, top: `${node.y}%` }}
                       onClick={() => handleNodeClick(node.id)}
-                      disabled={isAnimating}
+                      disabled={isAnimating || !isSelectable}
                     >
                       {isStartNode ? <span className="campaign-map-node-badge">{campaignCopy.startBadge}</span> : null}
                       {isPlayableNode(node) ? (

@@ -21,6 +21,17 @@ const resources = {
 				editorDesc: "Create and publish your own exercises",
 				settings: "Settings",
 				settingsDesc: "Language, speed, and preferences",
+				info: "What is this?",
+				infoDesc: "Quick explanation of the software and its modes",
+				aboutTitle: "About this software",
+				aboutBody: "This software is a visual learning environment for linear data structures. Instead of working only with code, you compare initial and goal states, assemble small programs with blocks, and immediately see how stacks, queues, and lists change when each operation runs.",
+				aboutBodySecondary: "It supports both guided practice and open exploration: you can follow a campaign, try community levels, or create your own exercises in the editor. The aim is to make the behavior of each structure easier to observe, reason about, and teach.",
+				aboutPoints: {
+					campaign: "Campaign teaches step by step with guided levels.",
+					community: "Community Levels let you explore and play more freely.",
+					editor: "Level Editor lets you create, test, and publish your own exercises.",
+					execution: "Step-by-step execution, previews, and feedback help you understand both the result and the process."
+				},
 				tagline: "Visual tool for learning linear data structures",
 				features: {
 					structures: "Stacks · Queues · Lists",
@@ -110,7 +121,9 @@ const resources = {
 				common: {
 					next: "Next",
 					back: "Back",
-					close: "Close"
+					close: "Close",
+					duplicate: "Duplicate",
+					delete: "Delete"
 				},
 				editorBasics: {
 					label: "Editor basics",
@@ -311,7 +324,11 @@ const resources = {
 				emptyBody: "Create a level to get started.",
 				lastEdited: "Last edited: {{date}}",
 				publishedAt: "Published: {{date}}",
-				openEditor: "Open editor"
+				openEditor: "Open editor",
+				draftBadge: "Draft",
+				publishedBadge: "Published",
+				deleteLevel: "Delete {{name}}",
+				deleteAction: "Delete"
 			},
 			editor: {
 				blocks: "",
@@ -394,6 +411,7 @@ const resources = {
 				runHint: "Editor mode: use Test to run the play session.",
 				stepHint: "Editor mode: use Test for step-by-step validation.",
 				pauseHint: "Editor mode.",
+				resetStatus: "Editor reset.",
 				programCleared: "Program cleared.",
 				exportSuccess: "Level exported as JSON.",
 				tutorial: "Tutorial",
@@ -424,6 +442,8 @@ const resources = {
 				minValueAllowed: "Minimum allowed value",
 				maxValueAllowed: "Maximum allowed value",
 				metadata: "Metadata",
+				author: "Author",
+				description: "Description",
 				maxSteps: "Max steps",
 				policyForbidden: "Forbidden",
 				policyPermitted: "Permitted",
@@ -435,7 +455,16 @@ const resources = {
 				overrideValueDomainAriaLabel: "Override value domain",
 				numericOnlyLocal: "Numeric values only (local)",
 				noLargerGlobal: "No larger on smaller (global)",
-				numericOnlyGlobal: "Numeric values only (global)"
+				numericOnlyGlobal: "Numeric values only (global)",
+				selectStructure: "Select structure",
+				scriptNamePrompt: "Script name",
+				scriptDefaultName: "script",
+				renameScript: "Rename script",
+				name: "Name",
+				initial: "Initial",
+				goal: "Goal",
+				overrideRules: "Override rules",
+				backToDrafts: "My levels"
 			},
 			structures: {
 				stack: "Stack",
@@ -601,6 +630,17 @@ const resources = {
 				editorDesc: "Crea y publica tus propios ejercicios",
 				settings: "Ajustes",
 				settingsDesc: "Idioma, velocidad y preferencias",
+				info: "¿Qué es esto?",
+				infoDesc: "Explicación breve del software y sus modos",
+				aboutTitle: "Sobre este software",
+				aboutBody: "Este software es un entorno visual de aprendizaje para estructuras de datos lineales. En lugar de trabajar solo con código, comparas estados iniciales y objetivo, armas programas pequeños con bloques y ves de inmediato cómo cambian pilas, colas y listas cuando se ejecuta cada operación.",
+				aboutBodySecondary: "Está pensado tanto para práctica guiada como para exploración abierta: puedes seguir una campaña, probar niveles de la comunidad o crear tus propios ejercicios en el editor. La idea es volver más fácil de observar, razonar y enseñar el comportamiento de cada estructura.",
+				aboutPoints: {
+					campaign: "Campaña enseña paso a paso con niveles guiados.",
+					community: "Niveles de la comunidad te deja explorar y jugar con más libertad.",
+					editor: "Editor de niveles te permite crear, probar y publicar tus propios ejercicios.",
+					execution: "La ejecución paso a paso, las vistas previas y la retroalimentación te ayudan a entender tanto el resultado como el proceso."
+				},
 				tagline: "Herramienta visual para aprender estructuras de datos lineales",
 				features: {
 					structures: "Pilas · Colas · Listas",
@@ -690,7 +730,9 @@ const resources = {
 				common: {
 					next: "Siguiente",
 					back: "Atrás",
-					close: "Cerrar"
+					close: "Cerrar",
+					duplicate: "Duplicar",
+					delete: "Eliminar"
 				},
 				editorBasics: {
 					label: "Conceptos básicos del editor",
@@ -891,7 +933,11 @@ const resources = {
 				emptyBody: "Crea un nivel para comenzar.",
 				lastEdited: "Última edición: {{date}}",
 				publishedAt: "Publicado: {{date}}",
-				openEditor: "Abrir editor"
+				openEditor: "Abrir editor",
+				draftBadge: "Borrador",
+				publishedBadge: "Publicado",
+				deleteLevel: "Eliminar {{name}}",
+				deleteAction: "Eliminar"
 			},
 			editor: {
 				blocks: "",
@@ -974,6 +1020,7 @@ const resources = {
 				runHint: "Modo editor: usa Probar para ejecutar la sesión de juego.",
 				stepHint: "Modo editor: usa Probar para validación paso a paso.",
 				pauseHint: "Modo editor.",
+				resetStatus: "Editor reiniciado.",
 				programCleared: "Programa limpiado.",
 				exportSuccess: "Nivel exportado como JSON.",
 				tutorial: "Tutorial",
@@ -1004,6 +1051,8 @@ const resources = {
 				minValueAllowed: "Valor mínimo permitido",
 				maxValueAllowed: "Valor máximo permitido",
 				metadata: "Metadatos",
+				author: "Autor",
+				description: "Descripción",
 				maxSteps: "Máx. pasos",
 				policyForbidden: "Prohibida",
 				policyPermitted: "Permitida",
@@ -1015,7 +1064,16 @@ const resources = {
 				overrideValueDomainAriaLabel: "Override dominio de valores",
 				numericOnlyLocal: "Solo valores numéricos (local)",
 				noLargerGlobal: "No larger on smaller (global)",
-				numericOnlyGlobal: "Solo valores numéricos (global)"
+				numericOnlyGlobal: "Solo valores numéricos (global)",
+				selectStructure: "Selecciona la estructura",
+				scriptNamePrompt: "Nombre del script",
+				scriptDefaultName: "script",
+				renameScript: "Renombrar script",
+				name: "Nombre",
+				initial: "Inicial",
+				goal: "Objetivo",
+				overrideRules: "Override rules",
+				backToDrafts: "Mis niveles"
 			},
 			structures: {
 				stack: "Pila",

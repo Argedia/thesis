@@ -3,6 +3,26 @@ import type { PaletteGroupId } from "../BlockMetadata";
 import { getLabelI18nKey, getPaletteGroup, getStaticChip } from "../BlockMetadata";
 
 export class PaletteDescriptorService {
+  private getExpressionChipIcon(block: Pick<PaletteBlock, "variableOperationMode">): string {
+    const mode = block.variableOperationMode ?? "add";
+    const isLogical = mode === "and" || mode === "or" || mode === "not";
+    const isComparison =
+      mode === "equals" ||
+      mode === "not_equals" ||
+      mode === "greater_than" ||
+      mode === "greater_or_equal" ||
+      mode === "less_than" ||
+      mode === "less_or_equal";
+
+    if (isLogical) {
+      return "operation-logical";
+    }
+    if (isComparison) {
+      return "operation-comparison";
+    }
+    return "operation-arithmetic";
+  }
+
   private getVariableChipIcon(block: Pick<PaletteBlock, "declaredTypeRef">): string {
     if (block.declaredTypeRef?.kind === "structure") {
       return this.getStructureChip(block.declaredTypeRef.structureKind);
@@ -120,7 +140,7 @@ export class PaletteDescriptorService {
         mode === "less_or_equal";
       return {
         chip: "OP",
-        chipIcon: "operation",
+        chipIcon: this.getExpressionChipIcon(block),
         label: isLogical
           ? translate("blocks.logicalOperator")
           : isComparison
@@ -170,7 +190,7 @@ export class PaletteDescriptorService {
       else: "else",
       while: "while",
       break: "break",
-      var_declaration: "declaration",
+      var_declaration: "declaration-variable",
       var_assign: "assign",
       var_reference: "reference",
       return: "return"

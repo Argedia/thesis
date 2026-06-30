@@ -130,6 +130,24 @@ export class PaletteRenderer {
         makePath("M7 12h10");
         makePath("M12 7v10");
         break;
+      case "operation-arithmetic":
+        makePath("M12 6v12");
+        makePath("M6 12h12");
+        makePath("M8 8h0");
+        makePath("M16 16h0");
+        break;
+      case "operation-logical":
+        makePath("M6 8h5");
+        makePath("M6 16h5");
+        makePath("M11 8c4 0 4 8 7 8");
+        makePath("M11 16c4 0 4-8 7-8");
+        break;
+      case "operation-comparison":
+        makePath("M7 9l-3 3 3 3");
+        makePath("M17 9l3 3-3 3");
+        makePath("M10 9h4");
+        makePath("M10 15h4");
+        break;
       case "for-each":
         makePath("M8 7h8");
         makePath("M8 12h6");
@@ -171,6 +189,13 @@ export class PaletteRenderer {
         makePath("M12 5v14");
         makePath("M5 12h14");
         makePath("M7 8h0");
+        break;
+      case "declaration-variable":
+        makePath("M7 7h10");
+        makePath("M7 12h10");
+        makePath("M7 17h6");
+        makePath("M16.5 15.5v3");
+        makePath("M15 17h3");
         break;
       case "assign":
         makePath("M6 9h12");

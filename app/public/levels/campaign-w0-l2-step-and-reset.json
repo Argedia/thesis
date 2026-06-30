@@ -111,8 +111,8 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Use Step and Reset with one stack",
-        "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+        "title": "Usa Paso y Reiniciar con una sola pila",
+        "body": "Este nivel usa solo la pila A. La meta es vaciarla aplicando la misma acción dos veces. Construye esa solución corta y luego usa Paso para ver cómo cambia la pila un movimiento a la vez, y Reiniciar para volver al inicio.",
         "concepts": [
           "step",
           "reset",
@@ -122,8 +122,8 @@
       },
       {
         "trigger": "first_failure",
-        "title": "Check the stack after the first move",
-        "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+        "title": "Revisa la pila después del primer movimiento",
+        "body": "Después de un Paso, la pila A todavía debería tener un elemento. Usa ese estado intermedio para confirmar si tu primera acción es correcta antes de terminar el nivel.",
         "concepts": [
           "step",
           "intermediate state",
@@ -132,8 +132,8 @@
       },
       {
         "trigger": "repeated_failure",
-        "title": "This level repeats the same move twice",
-        "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+        "title": "Este nivel repite el mismo movimiento dos veces",
+        "body": "Aquí no necesitas una segunda estructura. Coloca la acción de pila dos veces, inspecciona el tablero después de cada Paso y usa Reiniciar cuando quieras volver al estado original.",
         "concepts": [
           "repeatable move",
           "single structure",
@@ -154,8 +154,8 @@
     "messages": [
       {
         "trigger": "level_start",
-        "title": "Use Step and Reset with one stack",
-        "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+        "title": "Usa Paso y Reiniciar con una sola pila",
+        "body": "Este nivel usa solo la pila A. La meta es vaciarla aplicando la misma acción dos veces. Construye esa solución corta y luego usa Paso para ver cómo cambia la pila un movimiento a la vez, y Reiniciar para volver al inicio.",
         "concepts": [
           "step",
           "reset",
@@ -165,8 +165,8 @@
       },
       {
         "trigger": "first_failure",
-        "title": "Check the stack after the first move",
-        "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+        "title": "Revisa la pila después del primer movimiento",
+        "body": "Después de un Paso, la pila A todavía debería tener un elemento. Usa ese estado intermedio para confirmar si tu primera acción es correcta antes de terminar el nivel.",
         "concepts": [
           "step",
           "intermediate state",
@@ -175,8 +175,8 @@
       },
       {
         "trigger": "repeated_failure",
-        "title": "This level repeats the same move twice",
-        "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+        "title": "Este nivel repite el mismo movimiento dos veces",
+        "body": "Aquí no necesitas una segunda estructura. Coloca la acción de pila dos veces, inspecciona el tablero después de cada Paso y usa Reiniciar cuando quieras volver al estado original.",
         "concepts": [
           "repeatable move",
           "single structure",

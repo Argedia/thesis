@@ -84,7 +84,7 @@
   },
   {
     "id": "world-thesis-stack",
-    "name": "W2 · Pila",
+    "name": "W2 · Las torres de pila",
     "theme": "stack",
     "mapStyle": "grid",
     "requiredCompletions": 4,
@@ -179,7 +179,7 @@
   },
   {
     "id": "world-thesis-queue",
-    "name": "W3 · Cola + un poco de pila",
+    "name": "W3 · Las rutas de cola",
     "theme": "queue",
     "mapStyle": "grid",
     "requiredCompletions": 4,
@@ -274,7 +274,7 @@
   },
   {
     "id": "world-thesis-list",
-    "name": "W4 · Lista + funciones sencillas",
+    "name": "W4 · El taller de listas",
     "theme": "list",
     "mapStyle": "grid",
     "requiredCompletions": 4,
@@ -369,7 +369,7 @@
   },
   {
     "id": "world-thesis-integration",
-    "name": "W5 · Final boss",
+    "name": "W5 · La prueba final de estructuras",
     "theme": "integration",
     "mapStyle": "grid",
     "requiredCompletions": 1,

@@ -1,5 +1,6 @@
 import {
   createContext,
+  type MouseEvent as ReactMouseEvent,
   useCallback,
   useContext,
   useEffect,
@@ -15,7 +16,11 @@ import {
 import { useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { driver, type AllowedButtons, type DriveStep, type Driver } from "driver.js";
-import { resolveTutorialTarget, waitForTutorialTarget } from "./anchors";
+import {
+  TUTORIAL_ANCHOR_ATTRIBUTE,
+  resolveTutorialTarget,
+  waitForTutorialTarget
+} from "./anchors";
 import { getTutorial, type TutorialId } from "./tutorials";
 import type {
   TutorialDefinition,
@@ -63,6 +68,8 @@ interface InlineTutorialRenderState {
   nextLabel?: string;
   previousLabel?: string;
 }
+
+const GLOBAL_INLINE_TUTORIAL_EXIT_ANCHORS = ["play-back-button"] as const;
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -261,6 +268,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         state={inlineState}
         onNext={() => void goToInlineStep("next")}
         onPrevious={() => void goToInlineStep("previous")}
+        onStop={stopTutorial}
       />
     </TutorialContext.Provider>
   );
@@ -898,15 +906,36 @@ const computeInlineTutorialCardStyle = (
 const InlineTutorialCoach = ({
   state,
   onNext,
-  onPrevious
+  onPrevious,
+  onStop
 }: {
   state: InlineTutorialRenderState | null;
   onNext: () => void;
   onPrevious: () => void;
+  onStop: () => void;
 }) => {
   if (!state) {
     return null;
   }
+
+  const handleOverlayClick = (event: ReactMouseEvent<HTMLElement>) => {
+    const allowedTarget = findInlineTutorialExitTarget(event.clientX, event.clientY);
+    if (allowedTarget) {
+      onStop();
+      window.requestAnimationFrame(() => {
+        allowedTarget.dispatchEvent(new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          view: window
+        }));
+      });
+      return;
+    }
+
+    if (state.captureAnywhereClick) {
+      onNext();
+    }
+  };
 
   const highlightStyle: CSSProperties = {
     top: state.targetRect.top - state.highlightPadding,
@@ -927,16 +956,16 @@ const InlineTutorialCoach = ({
         <button
           type="button"
           className="inline-tutorial-overlay-capture"
-          onClick={onNext}
+          onClick={handleOverlayClick}
           aria-label={state.nextLabel ?? "Continue"}
         />
       ) : null}
       {blockerStyles ? (
         <>
-          <div className="inline-tutorial-blocker" style={blockerStyles.top} onClick={state.captureAnywhereClick ? onNext : undefined} />
-          <div className="inline-tutorial-blocker" style={blockerStyles.left} onClick={state.captureAnywhereClick ? onNext : undefined} />
-          <div className="inline-tutorial-blocker" style={blockerStyles.right} onClick={state.captureAnywhereClick ? onNext : undefined} />
-          <div className="inline-tutorial-blocker" style={blockerStyles.bottom} onClick={state.captureAnywhereClick ? onNext : undefined} />
+          <div className="inline-tutorial-blocker" style={blockerStyles.top} onClick={handleOverlayClick} />
+          <div className="inline-tutorial-blocker" style={blockerStyles.left} onClick={handleOverlayClick} />
+          <div className="inline-tutorial-blocker" style={blockerStyles.right} onClick={handleOverlayClick} />
+          <div className="inline-tutorial-blocker" style={blockerStyles.bottom} onClick={handleOverlayClick} />
         </>
       ) : null}
       <div
@@ -996,6 +1025,28 @@ const InlineTutorialCoach = ({
       )}
     </div>
   );
+};
+
+const findInlineTutorialExitTarget = (clientX: number, clientY: number): HTMLElement | null => {
+  for (const anchorId of GLOBAL_INLINE_TUTORIAL_EXIT_ANCHORS) {
+    const element = document.querySelector<HTMLElement>(`[${TUTORIAL_ANCHOR_ATTRIBUTE}="${anchorId}"]`);
+    if (!element) {
+      continue;
+    }
+
+    const rect = element.getBoundingClientRect();
+    const isInside =
+      clientX >= rect.left &&
+      clientX <= rect.right &&
+      clientY >= rect.top &&
+      clientY <= rect.bottom;
+
+    if (isInside) {
+      return element;
+    }
+  }
+
+  return null;
 };
 
 const navigateToStep = async (options: {

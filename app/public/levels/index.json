@@ -377,8 +377,8 @@
       "messages": [
         {
           "trigger": "level_start",
-          "title": "Place the stack block and use its operation",
-          "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+          "title": "Coloca el bloque de pila y usa su operación",
+          "body": "Primero mira el tablero inicial y el objetivo. La pila A tiene un solo elemento y la meta es quitarlo. Arrastra la estructura A al programa, abre su menú de acciones, elige la única operación disponible y luego presiona Jugar para ver qué ocurre. Así es como el software aplica acciones sobre estructuras de datos.",
           "concepts": [
             "structure block",
             "structure operation",
@@ -388,8 +388,8 @@
         },
         {
           "trigger": "first_failure",
-          "title": "Open the action menu and run the stack operation",
-          "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+          "title": "Abre el menú de acciones y ejecuta la operación de pila",
+          "body": "Este primer nivel solo usa una acción de pila. Coloca A, abre su menú, selecciona la operación disponible y juega el programa para quitar el único elemento.",
           "concepts": [
             "POP",
             "structure operation",
@@ -398,8 +398,8 @@
         },
         {
           "trigger": "repeated_failure",
-          "title": "Match the exact visible difference",
-          "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+          "title": "Haz coincidir la diferencia visible exacta",
+          "body": "El tablero objetivo muestra una pila vacía. Usa la acción de pila disponible en el bloque, vuelve a jugar y observa el tablero.",
           "concepts": [
             "goal comparison",
             "top element",
@@ -420,8 +420,8 @@
       "messages": [
         {
           "trigger": "level_start",
-          "title": "Place the stack block and use its operation",
-          "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+          "title": "Coloca el bloque de pila y usa su operación",
+          "body": "Primero mira el tablero inicial y el objetivo. La pila A tiene un solo elemento y la meta es quitarlo. Arrastra la estructura A al programa, abre su menú de acciones, elige la única operación disponible y luego presiona Jugar para ver qué ocurre. Así es como el software aplica acciones sobre estructuras de datos.",
           "concepts": [
             "structure block",
             "structure operation",
@@ -431,8 +431,8 @@
         },
         {
           "trigger": "first_failure",
-          "title": "Open the action menu and run the stack operation",
-          "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+          "title": "Abre el menú de acciones y ejecuta la operación de pila",
+          "body": "Este primer nivel solo usa una acción de pila. Coloca A, abre su menú, selecciona la operación disponible y juega el programa para quitar el único elemento.",
           "concepts": [
             "POP",
             "structure operation",
@@ -441,8 +441,8 @@
         },
         {
           "trigger": "repeated_failure",
-          "title": "Match the exact visible difference",
-          "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+          "title": "Haz coincidir la diferencia visible exacta",
+          "body": "El tablero objetivo muestra una pila vacía. Usa la acción de pila disponible en el bloque, vuelve a jugar y observa el tablero.",
           "concepts": [
             "goal comparison",
             "top element",
@@ -565,8 +565,8 @@
       "messages": [
         {
           "trigger": "level_start",
-          "title": "Use Step and Reset with one stack",
-          "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+          "title": "Usa Paso y Reiniciar con una sola pila",
+          "body": "Este nivel usa solo la pila A. La meta es vaciarla aplicando la misma acción dos veces. Construye esa solución corta y luego usa Paso para ver cómo cambia la pila un movimiento a la vez, y Reiniciar para volver al inicio.",
           "concepts": [
             "step",
             "reset",
@@ -576,8 +576,8 @@
         },
         {
           "trigger": "first_failure",
-          "title": "Check the stack after the first move",
-          "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+          "title": "Revisa la pila después del primer movimiento",
+          "body": "Después de un Paso, la pila A todavía debería tener un elemento. Usa ese estado intermedio para confirmar si tu primera acción es correcta antes de terminar el nivel.",
           "concepts": [
             "step",
             "intermediate state",
@@ -586,8 +586,8 @@
         },
         {
           "trigger": "repeated_failure",
-          "title": "This level repeats the same move twice",
-          "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+          "title": "Este nivel repite el mismo movimiento dos veces",
+          "body": "Aquí no necesitas una segunda estructura. Coloca la acción de pila dos veces, inspecciona el tablero después de cada Paso y usa Reiniciar cuando quieras volver al estado original.",
           "concepts": [
             "repeatable move",
             "single structure",
@@ -608,8 +608,8 @@
       "messages": [
         {
           "trigger": "level_start",
-          "title": "Use Step and Reset with one stack",
-          "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
+          "title": "Usa Paso y Reiniciar con una sola pila",
+          "body": "Este nivel usa solo la pila A. La meta es vaciarla aplicando la misma acción dos veces. Construye esa solución corta y luego usa Paso para ver cómo cambia la pila un movimiento a la vez, y Reiniciar para volver al inicio.",
           "concepts": [
             "step",
             "reset",
@@ -619,8 +619,8 @@
         },
         {
           "trigger": "first_failure",
-          "title": "Check the stack after the first move",
-          "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
+          "title": "Revisa la pila después del primer movimiento",
+          "body": "Después de un Paso, la pila A todavía debería tener un elemento. Usa ese estado intermedio para confirmar si tu primera acción es correcta antes de terminar el nivel.",
           "concepts": [
             "step",
             "intermediate state",
@@ -629,8 +629,8 @@
         },
         {
           "trigger": "repeated_failure",
-          "title": "This level repeats the same move twice",
-          "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
+          "title": "Este nivel repite el mismo movimiento dos veces",
+          "body": "Aquí no necesitas una segunda estructura. Coloca la acción de pila dos veces, inspecciona el tablero después de cada Paso y usa Reiniciar cuando quieras volver al estado original.",
           "concepts": [
             "repeatable move",
             "single structure",
@@ -760,8 +760,8 @@
       "messages": [
         {
           "trigger": "level_start",
-          "title": "Use the description, blocks, and output",
-          "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+          "title": "Usa la descripción, los bloques y la salida",
+          "body": "Este nivel cierra la introducción. Lee primero la descripción, coloca la cola A, elige encolar y usa el bloque literal de la paleta izquierda para insertar item. Si falta algo, el área de salida te lo dirá.",
           "concepts": [
             "description",
             "left palette",
@@ -772,8 +772,8 @@
         },
         {
           "trigger": "first_failure",
-          "title": "The output tells you what is missing",
-          "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+          "title": "La salida te dice qué falta",
+          "body": "Si la cola no cambió, lee el área de salida antes de probar cambios al azar. En este nivel, lo más probable es que encolar todavía necesite su valor.",
           "concepts": [
             "output feedback",
             "missing value",
@@ -782,8 +782,8 @@
         },
         {
           "trigger": "repeated_failure",
-          "title": "Use the literal the level asked for",
-          "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+          "title": "Usa el literal que pide el nivel",
+          "body": "La descripción del nivel ya te dice el valor exacto que debes insertar. Arrastra el bloque literal desde la paleta izquierda al espacio vacío de la acción de la cola y vuelve a jugar.",
           "concepts": [
             "literal block",
             "description",
@@ -804,8 +804,8 @@
       "messages": [
         {
           "trigger": "level_start",
-          "title": "Use the description, blocks, and output",
-          "body": "This level closes the onboarding. Read the description first, place queue A, choose enqueue, and use the literal block from the left palette to insert item. If something is missing, the output area will tell you.",
+          "title": "Usa la descripción, los bloques y la salida",
+          "body": "Este nivel cierra la introducción. Lee primero la descripción, coloca la cola A, elige encolar y usa el bloque literal de la paleta izquierda para insertar item. Si falta algo, el área de salida te lo dirá.",
           "concepts": [
             "description",
             "left palette",
@@ -816,8 +816,8 @@
         },
         {
           "trigger": "first_failure",
-          "title": "The output tells you what is missing",
-          "body": "If the queue did not change, read the output area before trying random edits. In this level, the most likely issue is that enqueue still needs its value.",
+          "title": "La salida te dice qué falta",
+          "body": "Si la cola no cambió, lee el área de salida antes de probar cambios al azar. En este nivel, lo más probable es que encolar todavía necesite su valor.",
           "concepts": [
             "output feedback",
             "missing value",
@@ -826,8 +826,8 @@
         },
         {
           "trigger": "repeated_failure",
-          "title": "Use the literal the level asked for",
-          "body": "The level description already tells you the exact value to insert. Drag the literal block from the left palette into the empty slot of the queue action, then run again.",
+          "title": "Usa el literal que pide el nivel",
+          "body": "La descripción del nivel ya te dice el valor exacto que debes insertar. Arrastra el bloque literal desde la paleta izquierda al espacio vacío de la acción de la cola y vuelve a jugar.",
           "concepts": [
             "literal block",
             "description",
@@ -3553,3 +3553,4 @@
     }
   }
 ]
+

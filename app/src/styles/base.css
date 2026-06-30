@@ -76,6 +76,28 @@ button:disabled {
 	box-shadow: 0 20px 36px rgba(53, 80, 112, 0.24);
 }
 
+.app-info-fab {
+	position: fixed;
+	right: 1rem;
+	bottom: 1rem;
+	z-index: 55;
+	width: 60px;
+	height: 60px;
+	padding: 0;
+	border: 2px solid #b9d4ea;
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.96);
+	color: #355070;
+	box-shadow: 0 16px 32px rgba(53, 80, 112, 0.18);
+	backdrop-filter: blur(10px);
+	transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.app-info-fab:hover {
+	transform: translateY(-2px) scale(1.03);
+	box-shadow: 0 20px 36px rgba(53, 80, 112, 0.24);
+}
+
 .app-language-dock {
 	position: fixed;
 	top: 1rem;
@@ -180,6 +202,16 @@ button:disabled {
 	display: flex;
 	justify-content: end;
 	gap: 0.75rem;
+}
+
+.app-dialog-list {
+	margin: 0;
+	padding-left: 1.2rem;
+	display: grid;
+	gap: 0.45rem;
+	color: #55748b;
+	font-weight: 700;
+	line-height: 1.45;
 }
 
 .level-teaching-concepts {
