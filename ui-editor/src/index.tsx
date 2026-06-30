@@ -656,7 +656,7 @@ export function StructuresBoard({
 				ctx.stroke();
 			};
 
-			const newHitboxes: Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number }> = [];
+			const newHitboxes: Array<{ id: string; x: number; y: number; w: number; h: number; minW: number; minH: number; tooltip?: string }> = [];
 
 			// Compute ideal sizes for all structures (used for bin-pack and getCardSize defaults)
 			const HEADER_H = 56;
