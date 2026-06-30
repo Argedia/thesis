@@ -4,6 +4,7 @@ import { getActiveRoutine, setActiveRoutineId } from "./tree";
 import type {
 	CompileResult,
 	CompiledRoutine,
+	CompilerDiagnostic,
 	EditorDocument,
 	RoutineNode,
 	RoutineSignature,
@@ -12,6 +13,31 @@ import type {
 } from "./types";
 import { collectRoutineDeclarationTypes, type CompileContext, compileStatement } from "./compiler-statement";
 import { t } from "../../i18n-helpers";
+
+const createDiagnostic = (
+	message: string,
+	nodeId?: string,
+	code = message,
+	severity: CompilerDiagnostic["severity"] = "error"
+): CompilerDiagnostic => ({
+	code,
+	message,
+	severity,
+	nodeId
+});
+
+const dedupeDiagnosticDetails = (diagnostics: CompilerDiagnostic[]): CompilerDiagnostic[] =>
+	diagnostics.filter(
+		(diagnostic, index, list) =>
+			list.findIndex(
+				(candidate) =>
+					candidate.code === diagnostic.code &&
+					candidate.message === diagnostic.message &&
+					candidate.nodeId === diagnostic.nodeId &&
+					candidate.slotId === diagnostic.slotId &&
+					candidate.severity === diagnostic.severity
+			) === index
+	);
 
 // Merges standalone `mode: "else"` statements into the elseBody of the preceding if-statement.
 // This normalizes the editor's standalone else representation into proper if-else AST for compilation.
@@ -94,6 +120,12 @@ const compileRoutine = (
 		operations: [],
 		operationNodeIds: [],
 		diagnostics: [...signature.diagnostics],
+		diagnosticDetails:
+			signature.diagnosticDetails && signature.diagnosticDetails.length > 0
+				? [...signature.diagnosticDetails]
+				: signature.diagnostics.map((diagnostic) =>
+					createDiagnostic(diagnostic, signature.definitionNodeId)
+				  ),
 		unsupportedFeatures: new Set<string>(),
 		nodeInstructionMap: {},
 		nodeRowMap: {},
@@ -109,17 +141,50 @@ const compileRoutine = (
 	);
 	const returnStatements = collectReturnStatements(routine.program.statements);
 
-	if (functionDefinitionStatements.length > 1) context.diagnostics.push("function_definition_duplicate");
-	if (typeDefinitionStatements.length > 1) context.diagnostics.push("type_definition_duplicate");
-	if (functionDefinitionStatements.length > 0 && typeDefinitionStatements.length > 0) context.diagnostics.push("function_type_conflict");
-	if (typeDefinitionStatements.length > 0 && returnStatements.length > 0) context.diagnostics.push("return_in_type_routine");
-	if (functionDefinitionStatements.length === 0 && typeDefinitionStatements.length === 0 && returnStatements.length > 0) context.diagnostics.push("return_without_definition");
+	if (functionDefinitionStatements.length > 1) {
+		context.diagnostics.push("function_definition_duplicate");
+		functionDefinitionStatements.forEach((statement) =>
+			context.diagnosticDetails.push(
+				createDiagnostic("function_definition_duplicate", statement.id)
+			)
+		);
+	}
+	if (typeDefinitionStatements.length > 1) {
+		context.diagnostics.push("type_definition_duplicate");
+		typeDefinitionStatements.forEach((statement) =>
+			context.diagnosticDetails.push(
+				createDiagnostic("type_definition_duplicate", statement.id)
+			)
+		);
+	}
+	if (functionDefinitionStatements.length > 0 && typeDefinitionStatements.length > 0) {
+		context.diagnostics.push("function_type_conflict");
+		functionDefinitionStatements.forEach((statement) =>
+			context.diagnosticDetails.push(createDiagnostic("function_type_conflict", statement.id))
+		);
+		typeDefinitionStatements.forEach((statement) =>
+			context.diagnosticDetails.push(createDiagnostic("function_type_conflict", statement.id))
+		);
+	}
+	if (typeDefinitionStatements.length > 0 && returnStatements.length > 0) {
+		context.diagnostics.push("return_in_type_routine");
+		returnStatements.forEach((statement) =>
+			context.diagnosticDetails.push(createDiagnostic("return_in_type_routine", statement.id))
+		);
+	}
+	if (functionDefinitionStatements.length === 0 && typeDefinitionStatements.length === 0 && returnStatements.length > 0) {
+		context.diagnostics.push("return_without_definition");
+		returnStatements.forEach((statement) =>
+			context.diagnosticDetails.push(createDiagnostic("return_without_definition", statement.id))
+		);
+	}
 
 	routine.program.statements.forEach((statement) =>
 		compileStatement(statement, rowMap, signatures, typeSignatures, declarationTypes, context, [])
 	);
 
 	const uniqueDiagnostics = Array.from(new Set(context.diagnostics));
+	const uniqueDiagnosticDetails = dedupeDiagnosticDetails(context.diagnosticDetails);
 	return {
 		routineId: routine.id,
 		routineName: routine.name,
@@ -132,6 +197,7 @@ const compileRoutine = (
 			context.unsupportedFeatures.size === 0,
 		unsupportedFeatures: Array.from(context.unsupportedFeatures),
 		diagnostics: uniqueDiagnostics,
+		diagnosticDetails: uniqueDiagnosticDetails,
 		nodeInstructionMap: context.nodeInstructionMap,
 		nodeRowMap: rowMap.nodeRowMap,
 		nodeRowNumberMap: context.nodeRowNumberMap
@@ -151,6 +217,7 @@ export const compileEditorDocument = (document: EditorDocument): CompileResult =
 
 	Object.values(routines).forEach((routine) => {
 		const extraDiagnostics: string[] = [];
+		const extraDiagnosticDetails: CompilerDiagnostic[] = [];
 		routine.instructions.forEach((instruction) => {
 			if (
 				(instruction.kind !== "call-routine" && instruction.kind !== "call-member") ||
@@ -158,15 +225,23 @@ export const compileEditorDocument = (document: EditorDocument): CompileResult =
 			) return;
 			const targetRoutine = routines[instruction.routineId];
 			if (!targetRoutine) {
-				extraDiagnostics.push(t("diagnostics.missingRoutineCallTarget"));
+				const message = t("diagnostics.missingRoutineCallTarget");
+				extraDiagnostics.push(message);
+				extraDiagnosticDetails.push(createDiagnostic(message, instruction.nodeId, "missingRoutineCallTarget"));
 				return;
 			}
 			if (!targetRoutine.isComplete) {
-				extraDiagnostics.push(t("diagnostics.routineNotExecutable", { name: targetRoutine.routineName }));
+				const message = t("diagnostics.routineNotExecutable", { name: targetRoutine.routineName });
+				extraDiagnostics.push(message);
+				extraDiagnosticDetails.push(createDiagnostic(message, instruction.nodeId, "routineNotExecutable"));
 			}
 		});
 		if (extraDiagnostics.length > 0) {
 			routine.diagnostics = Array.from(new Set([...routine.diagnostics, ...extraDiagnostics]));
+			routine.diagnosticDetails = dedupeDiagnosticDetails([
+				...(routine.diagnosticDetails ?? []),
+				...extraDiagnosticDetails
+			]);
 			routine.isComplete = false;
 		}
 	});

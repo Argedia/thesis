@@ -16,7 +16,7 @@ Definir una campaña suficientemente pequeña para:
 No se busca construir un curso completo ni una capa de meta-juego extensa.
 
 ## Scope de la campaña
-La campaña cubre exactamente cuatro bloques:
+La campaña cubre exactamente cinco bloques:
 
 1. Familiarización con el editor.
 2. Mundo de pila.
@@ -58,12 +58,11 @@ El contenido principal de la campaña corresponde a:
 Esto alinea la implementación con el alcance declarado de la tesis: `estructuras de datos lineales`.
 
 ## Funciones y múltiples scripts
-`Funciones` y `múltiples scripts/routines` no deben presentarse como mundo propio ni como bloque central de contenido.
+`Funciones` y `múltiples scripts/routines` no deben presentarse como mundo propio.
 
 Su tratamiento correcto es como **conocimiento transversal del editor**:
 
-- pueden introducirse en el bloque de familiarización;
-- pueden habilitarse en niveles donde ayuden a organizar la solución;
+- pueden introducirse tardíamente cuando ayuden a organizar la solución;
 - pueden aparecer en niveles de integración como herramienta de estructuración;
 - no deben desplazar al concepto principal de estructura de datos del nivel.
 
@@ -121,6 +120,8 @@ Los niveles implementados validan la propuesta, pero no constituyen un currícul
 ### 3. Sin motivación extrínseca
 La gamificación no depende de puntos, insignias ni rankings. La motivación se apoya en reto, restricciones, claridad de objetivo y retroalimentación inmediata.
 
+Eso no impide usar cierres visuales breves al completar niveles o mundos, siempre que funcionen como refuerzo de progreso visible y desbloqueo, no como economía de recompensas.
+
 ### 4. Sin validación de impacto pedagógico en esta entrega
 La validación de esta entrega cubre usabilidad, no aprendizaje medible durante un ciclo académico.
 
@@ -131,7 +132,8 @@ El modelo de gamificación debe justificarse con lo ya implementado:
 - objetivos explícitos;
 - restricciones como reto;
 - retroalimentación inmediata;
-- visibilidad del progreso.
+- visibilidad del progreso;
+- cierres visuales breves al completar niveles o mundos.
 
 En cambio, estas piezas deben presentarse como capacidades de plataforma complementarias, no como gamificación:
 

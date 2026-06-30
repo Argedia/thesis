@@ -1,0 +1,213 @@
+{
+  "id": "campaign-w2-2",
+  "title": "W2-L4 · Verificar antes de mover",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [
+        9
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "stack",
+      "values": [
+        9
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "required",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden",
+      "PEEK": "required",
+      "IS_EMPTY": "forbidden",
+      "GET_AT": "forbidden",
+      "INSERT_AT": "forbidden",
+      "REMOVE_AT": "forbidden",
+      "CONTAINS": "forbidden",
+      "FIND": "forbidden",
+      "REVERSE": "forbidden",
+      "CLEAR": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "requiredBlockKinds": [
+      "conditional"
+    ],
+    "blockLimits": {
+      "value": 1,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 1,
+      "conditional": 1,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 8,
+    "maxBlocksGlobal": 6,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": [
+      "A",
+      "B"
+    ],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": [
+      "stack"
+    ],
+    "difficulty": 3.2,
+    "author": "Core Team",
+    "description": "Antes de mover el valor, hay que verificarlo. Observa el tope de la pila y solo transfiérelo a la pila destino si pasa la comprobación.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": [
+      "stack"
+    ],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": [
+      "Uso de un condicional simple para verificar una condición antes de mover desde una pila"
+    ],
+    "reinforces": [
+      "PEEK como lectura sin extraer",
+      "comparación simple",
+      "decisión antes de actuar"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Primero verifica, luego mueve",
+        "body": "Imagina que B solo acepta valores aprobados. Antes de transferir el tope de A, primero debes revisarlo y moverlo únicamente si pasa la comprobación.",
+        "concepts": [
+          "if",
+          "PEEK",
+          "verificación"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Mirar evita mover a ciegas",
+        "body": "PEEK te deja revisar el tope sin sacar nada. Úsalo para decidir si el traslado a B debe ocurrir o no.",
+        "concepts": [
+          "PEEK",
+          "chequeo previo"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "El traslado debe estar justificado",
+        "body": "La meta no es mover por mover. La idea de este nivel es que la acción suceda como resultado de una verificación simple sobre el valor visible.",
+        "concepts": [
+          "condición útil",
+          "acción verificada"
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "Uso de un condicional simple para verificar una condición antes de mover desde una pila"
+    ],
+    "reinforces": [
+      "PEEK como lectura sin extraer",
+      "comparación simple",
+      "decisión antes de actuar"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Primero verifica, luego mueve",
+        "body": "Imagina que B solo acepta valores aprobados. Antes de transferir el tope de A, primero debes revisarlo y moverlo únicamente si pasa la comprobación.",
+        "concepts": [
+          "if",
+          "PEEK",
+          "verificación"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Mirar evita mover a ciegas",
+        "body": "PEEK te deja revisar el tope sin sacar nada. Úsalo para decidir si el traslado a B debe ocurrir o no.",
+        "concepts": [
+          "PEEK",
+          "chequeo previo"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "El traslado debe estar justificado",
+        "body": "La meta no es mover por mover. La idea de este nivel es que la acción suceda como resultado de una verificación simple sobre el valor visible.",
+        "concepts": [
+          "condición útil",
+          "acción verificada"
+        ]
+      }
+    ]
+  }
+}

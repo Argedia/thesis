@@ -9,6 +9,14 @@ import type {
 	DeclaredTypeRef
 } from "./ast";
 
+export interface CompilerDiagnostic {
+	code: string;
+	message: string;
+	severity: "error" | "warning";
+	nodeId?: string;
+	slotId?: string;
+}
+
 export interface RoutineSignatureParam {
 	declarationId: string;
 	name: string;
@@ -39,6 +47,7 @@ export interface RoutineSignature {
 	exportKind: RoutineExportKind;
 	members: RoutineMemberSignature[];
 	diagnostics: string[];
+	diagnosticDetails?: CompilerDiagnostic[];
 }
 
 export interface TypeFieldSignature {
@@ -51,6 +60,7 @@ export interface TypeSignature {
 	typeName: string;
 	fieldDeclarations: TypeFieldSignature[];
 	diagnostics: string[];
+	diagnosticDetails?: CompilerDiagnostic[];
 }
 
 export interface CompiledInstruction {
@@ -100,6 +110,7 @@ export interface CompiledRoutine {
 	isComplete: boolean;
 	unsupportedFeatures: string[];
 	diagnostics: string[];
+	diagnosticDetails?: CompilerDiagnostic[];
 	nodeInstructionMap: Record<string, number[]>;
 	nodeRowMap: Record<string, string[]>;
 	nodeRowNumberMap: Record<string, number[]>;

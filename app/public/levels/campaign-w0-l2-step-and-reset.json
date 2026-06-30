@@ -1,12 +1,18 @@
 {
   "id": "campaign-w0-l2-step-and-reset",
-  "title": "W1-L2 · Step and Reset",
+  "title": "W1-L2 · Step y reset",
   "initialState": [
     {
       "id": "A",
       "kind": "stack",
-      "values": [1, 2],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1,
+        2
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -14,7 +20,10 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -55,73 +64,124 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A"],
+    "structureOrder": [
+      "A"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
+    "structuresUsed": [
+      "stack"
+    ],
     "difficulty": 1.2,
     "author": "Core Team",
-    "description": "Use Step to watch two pop actions one by one, and use Reset to return to the initial stack and try again.",
+    "description": "Aprende a seguir la ejecución paso a paso y a reiniciar el tablero cuando necesites reintentar.",
     "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   },
   "teachingPlan": {
-    "introduces": ["ejecución paso a paso y reinicio mientras repites una acción de pila"],
-    "reinforces": ["observe intermediate states", "repeat the same operation twice", "watch execution timeline"],
+    "introduces": [
+      "ejecución paso a paso y reinicio mientras repites una acción de pila"
+    ],
+    "reinforces": [
+      "observe intermediate states",
+      "repeat the same operation twice",
+      "watch execution timeline"
+    ],
     "messages": [
       {
         "trigger": "level_start",
         "title": "Use Step and Reset with one stack",
         "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
-        "concepts": ["step", "reset", "intermediate state", "repeated action"]
+        "concepts": [
+          "step",
+          "reset",
+          "intermediate state",
+          "repeated action"
+        ]
       },
       {
         "trigger": "first_failure",
         "title": "Check the stack after the first move",
         "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
-        "concepts": ["step", "intermediate state", "one remaining element"]
+        "concepts": [
+          "step",
+          "intermediate state",
+          "one remaining element"
+        ]
       },
       {
         "trigger": "repeated_failure",
         "title": "This level repeats the same move twice",
         "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
-        "concepts": ["repeatable move", "single structure", "reset"]
+        "concepts": [
+          "repeatable move",
+          "single structure",
+          "reset"
+        ]
       }
     ]
   },
   "teaching": {
-    "introduces": ["ejecución paso a paso y reinicio mientras repites una acción de pila"],
-    "reinforces": ["observe intermediate states", "repeat the same operation twice", "watch execution timeline"],
+    "introduces": [
+      "ejecución paso a paso y reinicio mientras repites una acción de pila"
+    ],
+    "reinforces": [
+      "observe intermediate states",
+      "repeat the same operation twice",
+      "watch execution timeline"
+    ],
     "messages": [
       {
         "trigger": "level_start",
         "title": "Use Step and Reset with one stack",
         "body": "This level uses only stack A. The goal is to empty it by applying the same action twice. Build that short solution, then use Step to watch the stack change one move at a time and Reset to return to the beginning.",
-        "concepts": ["step", "reset", "intermediate state", "repeated action"]
+        "concepts": [
+          "step",
+          "reset",
+          "intermediate state",
+          "repeated action"
+        ]
       },
       {
         "trigger": "first_failure",
         "title": "Check the stack after the first move",
         "body": "After one Step, stack A should still contain one element. Use that intermediate state to confirm whether your first action is correct before finishing the level.",
-        "concepts": ["step", "intermediate state", "one remaining element"]
+        "concepts": [
+          "step",
+          "intermediate state",
+          "one remaining element"
+        ]
       },
       {
         "trigger": "repeated_failure",
         "title": "This level repeats the same move twice",
         "body": "You do not need a second structure here. Place the stack action twice, inspect the board after each Step, and use Reset whenever you want to retry from the original state.",
-        "concepts": ["repeatable move", "single structure", "reset"]
+        "concepts": [
+          "repeatable move",
+          "single structure",
+          "reset"
+        ]
       }
     ]
   }

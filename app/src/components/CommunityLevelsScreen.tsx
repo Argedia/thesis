@@ -488,6 +488,7 @@ export function CommunityLevelsScreen() {
                 <Link
                   className="menu-link preview-play-link"
                   to={`${APP_ROUTES.play}/${selectedLevel.id}`}
+                  state={{ returnTo: APP_ROUTES.play }}
                   {...tutorialAnchorProps("community-preview-play")}
                 >
                   {t("actions.play")}

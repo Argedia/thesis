@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Input, Label, TextField, Tooltip, TooltipTrigger } from "react-aria-components";
 import type { BuilderOperation } from "../features/program-editor-core/types";
 import {
@@ -28,13 +30,14 @@ import {
 import { Screen, type StructureConfigClickPayload } from "@thesis/ui-editor";
 import type { StructureSnapshot } from "@thesis/core-engine";
 import type { RuntimeVariableSnapshot } from "../features/play-session/types";
-import { APP_ROUTES } from "../types/routes";
+import { APP_ROUTES, buildEditorDraftRoute } from "../types/routes";
 import { translateOperationName } from "../i18n-helpers";
 import { IdePanel } from "../features/play-ui/IdePanel";
 import { BoardPanel } from "../features/play-ui/BoardPanel";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
 import { AppDialogs } from "../features/play-ui/AppDialogs";
 import { usePanelResize } from "../features/play-ui/usePanelResize";
+import { tutorialAnchorProps } from "../features/tutorial/anchors";
 import {
   createDefaultBlockLimits,
   toLegacyForbiddenBlocks,
@@ -287,9 +290,15 @@ function ToggleSwitch({ checked, onChange, ariaLabel }: ToggleSwitchProps) {
 }
 
 export function EditorShell(_props: EditorShellProps) {
+  const { t } = useTranslation();
   const { draftId } = useParams<{ draftId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const dialog = useDialogManager();
+  const returnTo =
+    typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string"
+      ? (location.state as { returnTo: string }).returnTo
+      : APP_ROUTES.editor;
   const [draftName, setDraftName] = useState("Nivel sin nombre");
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [description, setDescription] = useState("");
@@ -317,7 +326,7 @@ export function EditorShell(_props: EditorShellProps) {
   const [statusMessage, setStatusMessage] = useState("Editor listo. Todo desactivado por defecto.");
   const [isSaving, setIsSaving] = useState(false);
   const [isGoalPreview, setIsGoalPreview] = useState(false);
-  const [isConfigOpen, setIsConfigOpen] = useState(true);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedStructureIndex, setSelectedStructureIndex] = useState<number | null>(null);
   const [document, setDocument] = useState(createEditorDocument());
   const [breakpointNodeIds, setBreakpointNodeIds] = useState<string[]>([]);
@@ -394,14 +403,30 @@ export function EditorShell(_props: EditorShellProps) {
     setOperationPolicy((previous) => ({ ...previous, [operation]: state }));
   };
 
-  const addStructure = () => {
+  const addStructure = async () => {
+    const structureKindOptions: Array<{ value: StructureTag; label: string }> = [
+      { value: "stack", label: t("structures.stack") },
+      { value: "queue", label: t("structures.queue") },
+      { value: "list", label: t("structures.list") },
+      { value: "doubly-linked-list", label: t("structures.doubly-linked-list") },
+      { value: "circular-list", label: t("structures.circular-list") }
+    ];
+    const selectedKind = await dialog.requestSelectInput({
+      title: "Selecciona la estructura",
+      initialValue: "stack",
+      options: structureKindOptions
+    });
+    if (!selectedKind) {
+      return;
+    }
     setStructureDrafts((previous) => {
+      const nextKind = selectedKind as StructureTag;
       const next = [
         ...previous,
         {
           id: `S${previous.length + 1}`,
-          kind: "stack" as const,
-          color: STRUCTURE_COLORS.stack,
+          kind: nextKind,
+          color: STRUCTURE_COLORS[nextKind],
           initialValues: "",
           goalValues: "",
           capacityLimit: "",
@@ -443,6 +468,9 @@ export function EditorShell(_props: EditorShellProps) {
 
   const selectedStructureDraft =
     selectedStructureIndex !== null ? structureDrafts[selectedStructureIndex] ?? null : null;
+  const hasSelectedStructureOverrides = selectedStructureDraft
+    ? selectedStructureDraft.overrideNoLargerOnSmaller || selectedStructureDraft.overrideValueDomain
+    : false;
 
   const createLevelFromCurrentDraft = (id: string, title: string): LevelDefinition =>
     buildLevelDefinition({
@@ -530,7 +558,7 @@ export function EditorShell(_props: EditorShellProps) {
     setStructureConfigOverlayPosition(nextPosition);
   };
 
-  const handleStructureConfigClick = (payload: StructureConfigClickPayload) => {
+  const handleStructureConfigClick = useCallback((payload: StructureConfigClickPayload) => {
     ignoreNextOutsideCloseRef.current = true;
     const structureId = payload.structureId;
     const targetIndex = structureDrafts.findIndex(
@@ -540,7 +568,7 @@ export function EditorShell(_props: EditorShellProps) {
       setSelectedStructureIndex((previous) => (previous === targetIndex ? null : targetIndex));
       setStructureConfigAnchor({ clientX: payload.clientX, clientY: payload.clientY });
     }
-  };
+  }, [structureDrafts]);
 
   useEffect(() => {
     if (selectedStructureIndex === null) {
@@ -748,7 +776,7 @@ export function EditorShell(_props: EditorShellProps) {
       try {
         await levelRepository.importLevel(draftLevelToTest);
         setStatusMessage("Debes resolver el nivel para publicarlo. Te llevo a Probar nivel.");
-        navigate(`${APP_ROUTES.play}/${draftTestLevelId}`);
+        navigate(`${APP_ROUTES.play}/${draftTestLevelId}`, { state: { returnTo: buildEditorDraftRoute(draftId ?? "") } });
       } catch (error) {
         setStatusMessage(error instanceof Error ? error.message : "No se pudo preparar el borrador para prueba.");
       }
@@ -794,7 +822,7 @@ export function EditorShell(_props: EditorShellProps) {
     try {
       await levelRepository.importLevel(draftLevelToTest);
       setStatusMessage("Borrador preparado. Resuélvelo para habilitar Publicar.");
-      navigate(`${APP_ROUTES.play}/${draftTestLevelId}`);
+      navigate(`${APP_ROUTES.play}/${draftTestLevelId}`, { state: { returnTo: buildEditorDraftRoute(draftId ?? "") } });
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "No se pudo preparar el borrador para prueba.");
     }
@@ -862,13 +890,24 @@ export function EditorShell(_props: EditorShellProps) {
         ) : null}
         <div className="topbar primary-screen-topbar level-editor-actions">
           <div className="level-editor-actions-left">
-            <Link className="back-link" to={APP_ROUTES.editor}>Mis niveles</Link>
+            <button
+              type="button"
+              className="back-link back-link--icon"
+              onClick={() => navigate(returnTo)}
+              aria-label="Mis niveles"
+              title="Mis niveles"
+            >
+              <ArrowLeft size={20} aria-hidden="true" />
+            </button>
             <div className="level-editor-title-group">
               <p className="eyebrow">Editor</p>
               <h1>{draftName}</h1>
             </div>
           </div>
-          <div className="level-editor-actions-right">
+          <div
+            className="level-editor-actions-right"
+            {...tutorialAnchorProps("editor-actions")}
+          >
             <span className={`mini-tag ${savedLevelId ? "is-published" : "is-draft"}`}>
               {savedLevelId ? "Publicado" : "Borrador"}
             </span>
@@ -1026,17 +1065,14 @@ export function EditorShell(_props: EditorShellProps) {
               levelId={draftLevel.id}
               isCompleted={false}
               isShowingGoalPreview={isGoalPreview}
-              onPreviewPointerDown={() => setIsGoalPreview(true)}
-              onPreviewPointerUp={() => setIsGoalPreview(false)}
-              onPreviewPointerLeave={() => setIsGoalPreview(false)}
-              onPreviewPointerCancel={() => setIsGoalPreview(false)}
+              onTogglePreview={() => setIsGoalPreview((previous) => !previous)}
               structures={draftLevel.initialState}
               goalState={draftLevel.goalState}
               variableSnapshots={isGoalPreview ? [] : previewVariables}
               heapSnapshots={[]}
               showStructureConfigActions
               onStructureConfigClick={handleStructureConfigClick}
-              onAddStructure={addStructure}
+              onAddStructure={() => void addStructure()}
               isConfigOpen={isConfigOpen}
               onToggleConfig={() => setIsConfigOpen((previous) => !previous)}
             />
@@ -1068,41 +1104,12 @@ export function EditorShell(_props: EditorShellProps) {
                     </div>
                     <div className="structure-draft-fields">
                       <label>
-                        ID
+                        Nombre
                         <input
                           value={selectedStructureDraft.id}
                           onChange={(event) =>
                             updateStructure(selectedStructureIndex!, { id: event.target.value })
                           }
-                        />
-                      </label>
-                      <label>
-                        Tipo
-                        <select
-                          value={selectedStructureDraft.kind}
-                          onChange={(event) =>
-                            updateStructure(selectedStructureIndex!, {
-                              kind: event.target.value as StructureTag
-                            })
-                          }
-                        >
-                          <option value="stack">stack</option>
-                          <option value="queue">queue</option>
-                          <option value="list">list</option>
-                        </select>
-                      </label>
-                      <label>
-                        Capacidad máx.
-                        <input
-                          type="number"
-                          min={0}
-                          value={selectedStructureDraft.capacityLimit}
-                          onChange={(event) =>
-                            updateStructure(selectedStructureIndex!, {
-                              capacityLimit: event.target.value
-                            })
-                          }
-                          placeholder="Sin límite"
                         />
                       </label>
                       <label>
@@ -1130,83 +1137,102 @@ export function EditorShell(_props: EditorShellProps) {
                     </div>
                     <div className="permissions-block-list">
                       <div className="switch-line">
-                        <span>Override: no larger on smaller</span>
+                        <span>Override rules</span>
                         <ToggleSwitch
-                          ariaLabel={t("editorShell.overrideNoLargerAriaLabel")}
-                          checked={selectedStructureDraft.overrideNoLargerOnSmaller}
+                          ariaLabel="Override rules"
+                          checked={hasSelectedStructureOverrides}
                           onChange={(isSelected) =>
                             updateStructure(selectedStructureIndex!, {
                               overrideNoLargerOnSmaller: isSelected
+                                ? selectedStructureDraft.overrideNoLargerOnSmaller || !selectedStructureDraft.overrideValueDomain
+                                : false,
+                              overrideValueDomain: isSelected ? selectedStructureDraft.overrideValueDomain : false
                             })
                           }
                         />
                       </div>
-                      {selectedStructureDraft.overrideNoLargerOnSmaller ? (
-                        <div className="switch-line">
-                          <span>Regla activa en esta estructura</span>
-                          <ToggleSwitch
-                            ariaLabel="Regla activa en esta estructura"
-                            checked={selectedStructureDraft.noLargerOnSmallerEnabled}
-                            onChange={(isSelected) =>
-                              updateStructure(selectedStructureIndex!, {
-                                noLargerOnSmallerEnabled: isSelected
-                              })
-                            }
-                          />
-                        </div>
-                      ) : null}
-                      <div className="switch-line">
-                        <span>Override: dominio de valores</span>
-                        <ToggleSwitch
-                          ariaLabel={t("editorShell.overrideValueDomainAriaLabel")}
-                          checked={selectedStructureDraft.overrideValueDomain}
-                          onChange={(isSelected) =>
-                            updateStructure(selectedStructureIndex!, {
-                              overrideValueDomain: isSelected
-                            })
-                          }
-                        />
-                      </div>
-                      {selectedStructureDraft.overrideValueDomain ? (
+                      {hasSelectedStructureOverrides ? (
                         <>
                           <div className="switch-line">
-                            <span>Solo valores numéricos</span>
+                            <span>Override: no larger on smaller</span>
                             <ToggleSwitch
-                              ariaLabel={t("editorShell.numericOnlyLocal")}
-                              checked={selectedStructureDraft.valueDomainNumericOnly}
+                              ariaLabel={t("editorShell.overrideNoLargerAriaLabel")}
+                              checked={selectedStructureDraft.overrideNoLargerOnSmaller}
                               onChange={(isSelected) =>
                                 updateStructure(selectedStructureIndex!, {
-                                  valueDomainNumericOnly: isSelected
+                                  overrideNoLargerOnSmaller: isSelected
                                 })
                               }
                             />
                           </div>
-                          <label>
-                            Min local
-                            <input
-                              type="number"
-                              value={selectedStructureDraft.valueDomainMinRaw}
-                              onChange={(event) =>
+                          {selectedStructureDraft.overrideNoLargerOnSmaller ? (
+                            <div className="switch-line">
+                              <span>Regla activa en esta estructura</span>
+                              <ToggleSwitch
+                                ariaLabel="Regla activa en esta estructura"
+                                checked={selectedStructureDraft.noLargerOnSmallerEnabled}
+                                onChange={(isSelected) =>
+                                  updateStructure(selectedStructureIndex!, {
+                                    noLargerOnSmallerEnabled: isSelected
+                                  })
+                                }
+                              />
+                            </div>
+                          ) : null}
+                          <div className="switch-line">
+                            <span>Override: dominio de valores</span>
+                            <ToggleSwitch
+                              ariaLabel={t("editorShell.overrideValueDomainAriaLabel")}
+                              checked={selectedStructureDraft.overrideValueDomain}
+                              onChange={(isSelected) =>
                                 updateStructure(selectedStructureIndex!, {
-                                  valueDomainMinRaw: event.target.value
+                                  overrideValueDomain: isSelected
                                 })
                               }
-                              placeholder="Sin mínimo"
                             />
-                          </label>
-                          <label>
-                            Max local
-                            <input
-                              type="number"
-                              value={selectedStructureDraft.valueDomainMaxRaw}
-                              onChange={(event) =>
-                                updateStructure(selectedStructureIndex!, {
-                                  valueDomainMaxRaw: event.target.value
-                                })
-                              }
-                              placeholder="Sin máximo"
-                            />
-                          </label>
+                          </div>
+                          {selectedStructureDraft.overrideValueDomain ? (
+                            <>
+                              <div className="switch-line">
+                                <span>Solo valores numéricos</span>
+                                <ToggleSwitch
+                                  ariaLabel={t("editorShell.numericOnlyLocal")}
+                                  checked={selectedStructureDraft.valueDomainNumericOnly}
+                                  onChange={(isSelected) =>
+                                    updateStructure(selectedStructureIndex!, {
+                                      valueDomainNumericOnly: isSelected
+                                    })
+                                  }
+                                />
+                              </div>
+                              <label>
+                                Min local
+                                <input
+                                  type="number"
+                                  value={selectedStructureDraft.valueDomainMinRaw}
+                                  onChange={(event) =>
+                                    updateStructure(selectedStructureIndex!, {
+                                      valueDomainMinRaw: event.target.value
+                                    })
+                                  }
+                                  placeholder="Sin mínimo"
+                                />
+                              </label>
+                              <label>
+                                Max local
+                                <input
+                                  type="number"
+                                  value={selectedStructureDraft.valueDomainMaxRaw}
+                                  onChange={(event) =>
+                                    updateStructure(selectedStructureIndex!, {
+                                      valueDomainMaxRaw: event.target.value
+                                    })
+                                  }
+                                  placeholder="Sin máximo"
+                                />
+                              </label>
+                            </>
+                          ) : null}
                         </>
                       ) : null}
                     </div>
@@ -1215,7 +1241,10 @@ export function EditorShell(_props: EditorShellProps) {
               </aside>
             ) : null}
             {isConfigOpen ? (
-              <aside className="level-editor-config-overlay">
+              <aside
+                className="level-editor-config-overlay"
+                {...tutorialAnchorProps("editor-board-config-panel")}
+              >
                 <div className="level-editor-config-body">
                   <details className="level-editor-details">
                     <summary>Política de operaciones</summary>

@@ -14,6 +14,9 @@ export type TutorialId =
   | "campaign-w1-l1-guided"
   | "campaign-w1-l2-guided"
   | "campaign-w1-l3-guided"
+  | "campaign-w2-l4-guided"
+  | "campaign-w3-l3-guided"
+  | "campaign-w4-l3-guided"
   | "campaign-world-basics";
 
 export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null => {
@@ -24,6 +27,9 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
   const campaignW1L1Guided = getTutorialText("campaign-w1-l1-guided");
   const campaignW1L2Guided = getTutorialText("campaign-w1-l2-guided");
   const campaignW1L3Guided = getTutorialText("campaign-w1-l3-guided");
+  const campaignW2L4Guided = getTutorialText("campaign-w2-l4-guided");
+  const campaignW3L3Guided = getTutorialText("campaign-w3-l3-guided");
+  const campaignW4L3Guided = getTutorialText("campaign-w4-l3-guided");
   const campaignWorldBasics = getTutorialText("campaign-world-basics");
 
   const tutorials: Record<TutorialId, TutorialDefinition> = {
@@ -698,6 +704,213 @@ export const getTutorial = (tutorialId: TutorialId): TutorialDefinition | null =
         align: "center",
         advanceOn: "event",
         advanceOnEvent: "campaign:w1-l3:level-solved"
+      }
+    ]
+  },
+  "campaign-w2-l4-guided": {
+    id: "campaign-w2-l4-guided",
+    label: campaignW2L4Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w2-l4-intro",
+        title: campaignW2L4Guided.steps["w2-l4-intro"].title,
+        description: campaignW2L4Guided.steps["w2-l4-intro"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w2-l4-place-if",
+        title: campaignW2L4Guided.steps["w2-l4-place-if"].title,
+        description: campaignW2L4Guided.steps["w2-l4-place-if"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w2-l4:conditional-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w2-l4-build-condition",
+        title: campaignW2L4Guided.steps["w2-l4-build-condition"].title,
+        description: campaignW2L4Guided.steps["w2-l4-build-condition"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w2-l4:comparison-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w2-l4-build-transfer",
+        title: campaignW2L4Guided.steps["w2-l4-build-transfer"].title,
+        description: campaignW2L4Guided.steps["w2-l4-build-transfer"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w2-l4:body-ready",
+        allowInteraction: true
+      }
+    ]
+  },
+  "campaign-w3-l3-guided": {
+    id: "campaign-w3-l3-guided",
+    label: campaignW3L3Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w3-l3-intro",
+        title: campaignW3L3Guided.steps["w3-l3-intro"].title,
+        description: campaignW3L3Guided.steps["w3-l3-intro"].description,
+        target: tutorialSelector("play-board-visual"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "right",
+        align: "start"
+      },
+      {
+        id: "w3-l3-place-while",
+        title: campaignW3L3Guided.steps["w3-l3-place-while"].title,
+        description: campaignW3L3Guided.steps["w3-l3-place-while"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w3-l3:while-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w3-l3-build-condition",
+        title: campaignW3L3Guided.steps["w3-l3-build-condition"].title,
+        description: campaignW3L3Guided.steps["w3-l3-build-condition"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w3-l3:condition-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w3-l3-build-loop-body",
+        title: campaignW3L3Guided.steps["w3-l3-build-loop-body"].title,
+        description: campaignW3L3Guided.steps["w3-l3-build-loop-body"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w3-l3:body-ready",
+        allowInteraction: true
+      }
+    ]
+  },
+  "campaign-w4-l3-guided": {
+    id: "campaign-w4-l3-guided",
+    label: campaignW4L3Guided.label,
+    route: `${APP_ROUTES.play}/:levelId`,
+    presentation: "inline",
+    dismissible: false,
+    stagePadding: 12,
+    stageRadius: 16,
+    closeButtonText: translate("tutorials.common.close"),
+    steps: [
+      {
+        id: "w4-l3-intro",
+        title: campaignW4L3Guided.steps["w4-l3-intro"].title,
+        description: campaignW4L3Guided.steps["w4-l3-intro"].description,
+        target: tutorialSelector("play-level-description"),
+        inlineMode: "showcase",
+        blockOutsideInteraction: true,
+        advanceOn: "anywhereClick",
+        side: "bottom",
+        align: "center"
+      },
+      {
+        id: "w4-l3-create-helper",
+        title: campaignW4L3Guided.steps["w4-l3-create-helper"].title,
+        description: campaignW4L3Guided.steps["w4-l3-create-helper"].description,
+        target: () => document.querySelector(".ide-topbar-tabs .routine-chip-add"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:helper-created",
+        allowInteraction: true
+      },
+      {
+        id: "w4-l3-place-definition",
+        title: campaignW4L3Guided.steps["w4-l3-place-definition"].title,
+        description: campaignW4L3Guided.steps["w4-l3-place-definition"].description,
+        target: tutorialSelector("editor-palette-base-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "right",
+        align: "center",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:definition-placed",
+        allowInteraction: true
+      },
+      {
+        id: "w4-l3-build-helper-body",
+        title: campaignW4L3Guided.steps["w4-l3-build-helper-body"].title,
+        description: campaignW4L3Guided.steps["w4-l3-build-helper-body"].description,
+        target: tutorialSelector("editor-palette-side-body"),
+        arrowTarget: tutorialSelector("editor-program-body"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "bottom",
+        align: "start",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:helper-logic-ready",
+        allowInteraction: true
+      },
+      {
+        id: "w4-l3-call-helper-from-main",
+        title: campaignW4L3Guided.steps["w4-l3-call-helper-from-main"].title,
+        description: campaignW4L3Guided.steps["w4-l3-call-helper-from-main"].description,
+        target: tutorialSelector("editor-ide-panel"),
+        inlineMode: "interactive",
+        blockOutsideInteraction: true,
+        side: "left",
+        align: "start",
+        advanceOn: "event",
+        advanceOnEvent: "campaign:w4-l3:main-call-ready",
+        allowInteraction: true
       }
     ]
   },

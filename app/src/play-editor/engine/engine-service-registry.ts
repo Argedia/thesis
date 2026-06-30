@@ -395,6 +395,7 @@ export class EngineServiceRegistry {
 				addBranchLineRef: (entry) => this.deps.getBranchLineRefs().push(entry),
 				blockContainsId: (block, blockId) => this.getTreeService().blockContainsId(block, blockId),
 				getHighlightedNodeId: () => this.deps.getProps().highlightedNodeId,
+				getDiagnosticNodeIds: () => this.deps.getProps().diagnosticNodeIds ?? [],
 				getBreakpointNodeIds: () => this.deps.getProps().breakpointNodeIds ?? [],
 				onToggleBreakpoint: (blockId) => this.deps.getProps().onToggleBreakpoint?.(blockId),
 				createBlockInstanceElement: (block, options) =>

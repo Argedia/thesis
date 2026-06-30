@@ -196,6 +196,7 @@ const structureSnapshotSchema = z.object({
 const levelConstraintsSchema = z.object({
   operationPolicy: operationPolicySchema,
   forbiddenBlocks: z.array(z.string()),
+  requiredBlockKinds: z.array(z.string().min(1)).optional(),
   blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
   maxSteps: z.number().int().nonnegative(),
   allowAdditionalRoutines: z.boolean().optional(),
@@ -277,6 +278,7 @@ const importedLevelConstraintsSchema = z
     requiredOperations: z.array(z.string()).optional(),
     forbiddenOperations: z.array(z.string()).optional(),
     forbiddenBlocks: z.array(z.string()).optional(),
+    requiredBlockKinds: z.array(z.string().min(1)).optional(),
     blockLimits: z.record(z.string(), z.number().int().nonnegative()).optional(),
     maxSteps: z.number().int().nonnegative().optional(),
     allowAdditionalRoutines: z.boolean().optional(),
@@ -515,6 +517,7 @@ const normalizeImportedLevel = (level: ImportedLevelCandidate): LevelDefinition 
   const normalizedConstraints: LevelDefinition["constraints"] = {
     operationPolicy: normalizeOperationPolicy(level.constraints),
     forbiddenBlocks: level.constraints.forbiddenBlocks ?? [],
+    requiredBlockKinds: level.constraints.requiredBlockKinds,
     blockLimits: level.constraints.blockLimits,
     maxSteps: level.constraints.maxSteps ?? 99,
     allowAdditionalRoutines: level.constraints.allowAdditionalRoutines ?? true,

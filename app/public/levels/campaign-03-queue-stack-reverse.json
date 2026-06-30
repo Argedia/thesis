@@ -1,6 +1,6 @@
 {
   "id": "campaign-03-queue-stack-reverse",
-  "title": "Campaign 03 · Reverse Queue With Stack",
+  "title": "W3-L4 · Invertir cola con pila auxiliar",
   "initialState": [
     {
       "id": "Q",
@@ -114,7 +114,7 @@
     ],
     "difficulty": 3,
     "author": "Core Team",
-    "description": "Mix default data structures: reverse queue Q using stack S as auxiliary memory.",
+    "description": "Usa una pila auxiliar para invertir una cola después de dominar FIFO puro y repetición con while.",
     "catalog": "campaign"
   },
   "tooling": {
@@ -125,25 +125,76 @@
     "advancedToolsEnabled": true
   },
   "teaching": {
-    "introduces": ["queue front behavior", "using a stack as auxiliary memory", "contrasting FIFO and LIFO"],
+    "introduces": [
+      "queue front behavior",
+      "using a stack as auxiliary memory",
+      "contrasting FIFO and LIFO"
+    ],
     "messages": [
       {
         "trigger": "level_start",
         "title": "This level introduces queue order",
         "body": "Queues and stacks do not release values the same way. A queue removes from the front, while a stack removes from the top. This level teaches how a stack can temporarily change the order of values coming from a queue.",
-        "concepts": ["queue front", "stack top", "FIFO vs LIFO"]
+        "concepts": [
+          "queue front",
+          "stack top",
+          "FIFO vs LIFO"
+        ]
       },
       {
         "trigger": "first_failure",
         "title": "Watch where values leave from",
         "body": "If the order is wrong, the mistake is usually assuming the queue behaves like a stack. Dequeue removes the oldest visible value, not the newest one.",
-        "concepts": ["DEQUEUE", "oldest first"]
+        "concepts": [
+          "DEQUEUE",
+          "oldest first"
+        ]
       },
       {
         "trigger": "repeated_failure",
         "title": "The helper structure changes order",
         "body": "The stack is not the final goal here; it is the mechanism that flips order while values pass through it. Think about what order values have after entering and leaving the helper stack.",
-        "concepts": ["auxiliary structure", "order reversal"]
+        "concepts": [
+          "auxiliary structure",
+          "order reversal"
+        ]
+      }
+    ]
+  },
+  "teachingPlan": {
+    "introduces": [
+      "queue front behavior",
+      "using a stack as auxiliary memory",
+      "contrasting FIFO and LIFO"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "This level introduces queue order",
+        "body": "Queues and stacks do not release values the same way. A queue removes from the front, while a stack removes from the top. This level teaches how a stack can temporarily change the order of values coming from a queue.",
+        "concepts": [
+          "queue front",
+          "stack top",
+          "FIFO vs LIFO"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Watch where values leave from",
+        "body": "If the order is wrong, the mistake is usually assuming the queue behaves like a stack. Dequeue removes the oldest visible value, not the newest one.",
+        "concepts": [
+          "DEQUEUE",
+          "oldest first"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "The helper structure changes order",
+        "body": "The stack is not the final goal here; it is the mechanism that flips order while values pass through it. Think about what order values have after entering and leaving the helper stack.",
+        "concepts": [
+          "auxiliary structure",
+          "order reversal"
+        ]
       }
     ]
   }

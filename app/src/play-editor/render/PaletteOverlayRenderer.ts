@@ -150,7 +150,7 @@ export class PaletteOverlayRenderer {
             item.addEventListener("pointerdown", (e) => {
               e.stopPropagation();
               option.onSelect();
-              this.close(container);
+              this.close();
             });
           }
 
@@ -183,7 +183,7 @@ export class PaletteOverlayRenderer {
         e.preventDefault();
         items[this.activeIndex]?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
       } else if (e.key === "Escape") {
-        this.close(container);
+        this.close();
       } else if (e.key === "Backspace") {
         e.preventDefault();
         this.query = this.query.slice(0, -1);
@@ -201,7 +201,7 @@ export class PaletteOverlayRenderer {
 
     const onOutside = (e: PointerEvent) => {
       if (!overlay.contains(e.target as Node)) {
-        this.close(container);
+        this.close();
         document.removeEventListener("pointerdown", onOutside, true);
       }
     };
@@ -210,7 +210,7 @@ export class PaletteOverlayRenderer {
       document.removeEventListener("pointerdown", onOutside, true);
     };
 
-    container.appendChild(overlay);
+    document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.focus());
   }
 
@@ -221,8 +221,8 @@ export class PaletteOverlayRenderer {
     });
   }
 
-  private close(container: HTMLElement): void {
+  private close(): void {
     this.onCloseExternal?.();
-    container.querySelector(".op-palette-overlay")?.remove();
+    document.querySelector(".op-palette-overlay")?.remove();
   }
 }

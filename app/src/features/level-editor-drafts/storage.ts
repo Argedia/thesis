@@ -1,6 +1,9 @@
-import { createOperationPolicy } from "@thesis/game-system";
+import { createOperationPolicy, type LevelOperation } from "@thesis/game-system";
 import { t } from "../../i18n-helpers";
 import {
+  createEditorBlock,
+  createEditorDocumentFromEditorBlocks,
+  createValueBlock,
   createEditorDocument,
   serializeProgramDocument
 } from "../program-editor-core";
@@ -12,6 +15,7 @@ import type {
 } from "./types";
 
 const STORAGE_KEY = "visual-data-structures-editor-drafts-v1";
+const INITIAL_EXAMPLES_SEEDED_KEY = "visual-data-structures-editor-drafts-initial-examples-seeded-v1";
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -45,6 +49,107 @@ const createDefaultSnapshot = (): LevelEditorDraftSnapshot => ({
   lockStarterBlocks: false,
   documentJson: JSON.stringify(serializeProgramDocument(createEditorDocument()))
 });
+
+const STRUCTURE_COLORS = {
+  stack: "#f6b457",
+  queue: "#7cc9b5"
+} as const;
+
+const createOperationPolicyFor = (...operations: LevelOperation[]) => {
+  const policy = createOperationPolicy("forbidden");
+  operations.forEach((operation) => {
+    policy[operation] = "permitted";
+  });
+  return policy;
+};
+
+const createSerializedExampleDocument = (blocks: ReturnType<typeof createEditorBlock>[]) =>
+  JSON.stringify(
+    serializeProgramDocument(
+      createEditorDocumentFromEditorBlocks(blocks)
+    )
+  );
+
+const createInitialExampleDraftRecords = (): LevelEditorDraftRecord[] => {
+  const emptyStackBlock = createEditorBlock("A", "stack", STRUCTURE_COLORS.stack);
+  emptyStackBlock.operation = "POP";
+
+  const emptyStackSecondBlock = createEditorBlock("A", "stack", STRUCTURE_COLORS.stack);
+  emptyStackSecondBlock.operation = "POP";
+
+  const enqueueBlock = createEditorBlock("A", "queue", STRUCTURE_COLORS.queue);
+  enqueueBlock.operation = "ENQUEUE";
+  enqueueBlock.inputBlock = createValueBlock(7);
+
+  return [
+    {
+      id: "example-empty-stack",
+      name: t("editor.examples.stack.name"),
+      updatedAt: nowIso(),
+      snapshot: {
+        ...createDefaultSnapshot(),
+        description: t("editor.examples.stack.description"),
+        author: t("editor.examples.author"),
+        difficulty: 1.2,
+        maxSteps: 2,
+        maxBlocksGlobal: 2,
+        structureDrafts: [
+          {
+            id: "A",
+            kind: "stack",
+            color: STRUCTURE_COLORS.stack,
+            initialValues: "1,2",
+            goalValues: "",
+            capacityLimit: "",
+            overrideNoLargerOnSmaller: false,
+            noLargerOnSmallerEnabled: true,
+            overrideValueDomain: false,
+            valueDomainNumericOnly: false,
+            valueDomainMinRaw: "",
+            valueDomainMaxRaw: ""
+          }
+        ],
+        operationPolicy: createOperationPolicyFor("POP"),
+        documentJson: createSerializedExampleDocument([emptyStackBlock, emptyStackSecondBlock])
+      }
+    },
+    {
+      id: "example-enqueue-value",
+      name: t("editor.examples.queue.name"),
+      updatedAt: nowIso(),
+      snapshot: {
+        ...createDefaultSnapshot(),
+        description: t("editor.examples.queue.description"),
+        author: t("editor.examples.author"),
+        difficulty: 1.4,
+        maxSteps: 1,
+        maxBlocksGlobal: 1,
+        structureDrafts: [
+          {
+            id: "A",
+            kind: "queue",
+            color: STRUCTURE_COLORS.queue,
+            initialValues: "",
+            goalValues: "7",
+            capacityLimit: "",
+            overrideNoLargerOnSmaller: false,
+            noLargerOnSmallerEnabled: true,
+            overrideValueDomain: false,
+            valueDomainNumericOnly: false,
+            valueDomainMinRaw: "",
+            valueDomainMaxRaw: ""
+          }
+        ],
+        operationPolicy: createOperationPolicyFor("ENQUEUE"),
+        blockLimits: {
+          ...createDefaultBlockLimits(0),
+          value: 1
+        },
+        documentJson: createSerializedExampleDocument([enqueueBlock])
+      }
+    }
+  ];
+};
 
 const safeParseRecords = (raw: string | null): LevelEditorDraftRecord[] => {
   if (!raw) return [];
@@ -146,5 +251,33 @@ export const seedCampaignPlanDraftRecords = (): {
     createdCount: created.length,
     totalTemplates: campaignPlanTemplates.length,
     createdIds: created.map((record) => record.id)
+  };
+};
+
+export const seedInitialExampleDraftRecords = (): {
+  createdCount: number;
+  createdIds: string[];
+} => {
+  const existing = safeParseRecords(window.localStorage.getItem(STORAGE_KEY));
+  const hasSeededInitialExamples = window.localStorage.getItem(INITIAL_EXAMPLES_SEEDED_KEY) === "1";
+
+  if (existing.length > 0) {
+    if (!hasSeededInitialExamples) {
+      window.localStorage.setItem(INITIAL_EXAMPLES_SEEDED_KEY, "1");
+    }
+    return { createdCount: 0, createdIds: [] };
+  }
+
+  if (hasSeededInitialExamples) {
+    return { createdCount: 0, createdIds: [] };
+  }
+
+  const examples = createInitialExampleDraftRecords();
+  writeRecords(examples);
+  window.localStorage.setItem(INITIAL_EXAMPLES_SEEDED_KEY, "1");
+
+  return {
+    createdCount: examples.length,
+    createdIds: examples.map((record) => record.id)
   };
 };

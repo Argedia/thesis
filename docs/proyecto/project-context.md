@@ -614,6 +614,18 @@ Regla práctica:
 cualquier texto nuevo visible al usuario debe pasar por i18n.  
 No meter strings hardcodeados si el comportamiento ya es bilingüe.
 
+## 15.1 Onboarding inicial del editor
+
+El editor no debería abrir por primera vez con una lista vacía.
+
+Comportamiento esperado actual:
+
+- si el almacenamiento local todavía no tiene borradores de editor, la pantalla `EditorDraftsScreen` siembra automáticamente un pequeño conjunto de borradores de ejemplo;
+- esos borradores sirven como referencia rápida de cómo se ve un nivel configurado dentro del editor;
+- la ayuda general del editor se apoya en el sistema de tutoriales reutilizable y debe poder reejecutarse desde el botón global `?`.
+
+Esto cumple una función de onboarding y reduce la fricción inicial sin aumentar complejidad conceptual.
+
 ## 16. Documentos ya existentes relevantes
 
 Documentos técnicos y de tesis ya presentes:

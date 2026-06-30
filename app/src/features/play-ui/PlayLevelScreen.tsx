@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "react-aria-components";
 import { ArrowLeft } from "lucide-react";
@@ -42,6 +42,7 @@ import {
   markTutorialSeen
 } from "../tutorial/storage";
 import { tutorialAnchorProps } from "../tutorial/anchors";
+import { savePendingCampaignCompletion } from "../campaign/completion-flow";
 
 const progressRepository = new LocalProgressRepository();
 const campaignWorldRepository = new JsonCampaignWorldRepository();
@@ -51,6 +52,12 @@ const GUIDED_W1_L2_LEVEL_ID = "campaign-w0-l2-step-and-reset";
 const GUIDED_W1_L2_TUTORIAL_ID = "campaign-w1-l2-guided";
 const GUIDED_W1_L3_LEVEL_ID = "campaign-w0-l3-read-before-run";
 const GUIDED_W1_L3_TUTORIAL_ID = "campaign-w1-l3-guided";
+const GUIDED_W2_L4_LEVEL_ID = "campaign-w2-2";
+const GUIDED_W2_L4_TUTORIAL_ID = "campaign-w2-l4-guided";
+const GUIDED_W3_L3_LEVEL_ID = "campaign-w3-3";
+const GUIDED_W3_L3_TUTORIAL_ID = "campaign-w3-l3-guided";
+const GUIDED_W4_L3_LEVEL_ID = "campaign-w4-2";
+const GUIDED_W4_L3_TUTORIAL_ID = "campaign-w4-l3-guided";
 const W1_L1_TUTORIAL_EVENTS = {
   structurePlaced: "campaign:w1-l1:structure-placed",
   operationSelected: "campaign:w1-l1:operation-selected",
@@ -74,6 +81,22 @@ const W1_L3_TUTORIAL_EVENTS = {
   finalRunPressed: "campaign:w1-l3:final-run-pressed",
   levelSolved: "campaign:w1-l3:level-solved"
 } as const;
+const W2_L4_TUTORIAL_EVENTS = {
+  conditionalPlaced: "campaign:w2-l4:conditional-placed",
+  comparisonReady: "campaign:w2-l4:comparison-ready",
+  bodyReady: "campaign:w2-l4:body-ready"
+} as const;
+const W3_L3_TUTORIAL_EVENTS = {
+  whilePlaced: "campaign:w3-l3:while-placed",
+  conditionReady: "campaign:w3-l3:condition-ready",
+  bodyReady: "campaign:w3-l3:body-ready"
+} as const;
+const W4_L3_TUTORIAL_EVENTS = {
+  helperCreated: "campaign:w4-l3:helper-created",
+  definitionPlaced: "campaign:w4-l3:definition-placed",
+  helperLogicReady: "campaign:w4-l3:helper-logic-ready",
+  mainCallReady: "campaign:w4-l3:main-call-ready"
+} as const;
 const W1_L1_FORCE_EXPANDED_SIDE_STEPS = new Set([
   "w1-l1-program-area",
   "w1-l1-palette-structure",
@@ -84,6 +107,16 @@ const W1_L2_FORCE_EXPANDED_SIDE_STEPS = new Set([
 ]);
 const W1_L3_FORCE_EXPANDED_SIDE_STEPS = new Set([
   "w1-l3-place-queue"
+]);
+const W2_L4_FORCE_EXPANDED_SIDE_STEPS = new Set([
+  "w2-l4-build-transfer"
+]);
+const W3_L3_FORCE_EXPANDED_SIDE_STEPS = new Set([
+  "w3-l3-build-loop-body"
+]);
+const W4_L3_FORCE_EXPANDED_SIDE_STEPS = new Set([
+  "w4-l3-build-helper-body",
+  "w4-l3-call-helper-from-main"
 ]);
 
 interface GuidedTutorialProgressState {
@@ -102,6 +135,20 @@ interface ActiveRoutineEditorMetrics {
   structureBlocksWithOperation: number;
   operationCounts: Record<string, number>;
   valueBlocks: number;
+}
+
+interface DocumentTutorialMetrics {
+  comparisonBlocks: number;
+  conditionalBlocks: number;
+  conditionalWithComparisonCondition: number;
+  conditionalTransferReady: number;
+  whileBlocks: number;
+  whileWithComparisonCondition: number;
+  whileTransferReady: number;
+  helperRoutineCount: number;
+  helperDefinitionCount: number;
+  helperTransferReadyCount: number;
+  mainRoutineCallCount: number;
 }
 
 const isStructureOperationBlock = (
@@ -147,6 +194,12 @@ const getGuidedCampaignTutorialId = (levelId: string | null | undefined) => {
       return GUIDED_W1_L2_TUTORIAL_ID;
     case GUIDED_W1_L3_LEVEL_ID:
       return GUIDED_W1_L3_TUTORIAL_ID;
+    case GUIDED_W2_L4_LEVEL_ID:
+      return GUIDED_W2_L4_TUTORIAL_ID;
+    case GUIDED_W3_L3_LEVEL_ID:
+      return GUIDED_W3_L3_TUTORIAL_ID;
+    case GUIDED_W4_L3_LEVEL_ID:
+      return GUIDED_W4_L3_TUTORIAL_ID;
     default:
       return null;
   }
@@ -173,6 +226,12 @@ const getGuidedTutorialForceExpandedSteps = (levelId: string): Set<string> | nul
       return W1_L2_FORCE_EXPANDED_SIDE_STEPS;
     case GUIDED_W1_L3_LEVEL_ID:
       return W1_L3_FORCE_EXPANDED_SIDE_STEPS;
+    case GUIDED_W2_L4_LEVEL_ID:
+      return W2_L4_FORCE_EXPANDED_SIDE_STEPS;
+    case GUIDED_W3_L3_LEVEL_ID:
+      return W3_L3_FORCE_EXPANDED_SIDE_STEPS;
+    case GUIDED_W4_L3_LEVEL_ID:
+      return W4_L3_FORCE_EXPANDED_SIDE_STEPS;
     default:
       return null;
   }
@@ -222,9 +281,129 @@ const analyzeActiveRoutineEditorMetrics = (document: EditorDocument): ActiveRout
   return metrics;
 };
 
+const isComparisonBlock = (block: { kind: string; expressionFamily?: string | null } | null | undefined): boolean =>
+  block?.kind === "var_binary_operation" && block.expressionFamily === "comparison";
+
+const collectOperationCounts = (blocks: Array<ReturnType<typeof projectProgramToEditorBlocks>[number]>): Record<string, number> => {
+  const counts: Record<string, number> = {};
+
+  const visit = (block: (typeof blocks)[number] | null | undefined): void => {
+    if (!block) {
+      return;
+    }
+
+    if (isStructureOperationBlock(block) && block.operation) {
+      counts[block.operation] = (counts[block.operation] ?? 0) + 1;
+    }
+
+    if (block.inputBlock) {
+      visit(block.inputBlock);
+    }
+
+    block.inputBlocks?.forEach(visit);
+    block.bodyBlocks?.forEach(visit);
+    block.alternateBodyBlocks?.forEach(visit);
+  };
+
+  blocks.forEach(visit);
+  return counts;
+};
+
+const analyzeDocumentTutorialMetrics = (document: EditorDocument): DocumentTutorialMetrics => {
+  const mainRoutine =
+    document.routines.find((routine) => ["main", "principal"].includes(routine.name.trim().toLowerCase())) ??
+    document.routines[0] ??
+    null;
+
+  const metrics: DocumentTutorialMetrics = {
+    comparisonBlocks: 0,
+    conditionalBlocks: 0,
+    conditionalWithComparisonCondition: 0,
+    conditionalTransferReady: 0,
+    whileBlocks: 0,
+    whileWithComparisonCondition: 0,
+    whileTransferReady: 0,
+    helperRoutineCount: 0,
+    helperDefinitionCount: 0,
+    helperTransferReadyCount: 0,
+    mainRoutineCallCount: 0
+  };
+
+  document.routines.forEach((routine) => {
+    const blocks = projectProgramToEditorBlocks(routine.program);
+    const opCounts = collectOperationCounts(blocks);
+    let routineHasFunctionDefinition = false;
+
+    const visit = (block: (typeof blocks)[number] | null | undefined): void => {
+      if (!block) {
+        return;
+      }
+
+      if (isComparisonBlock(block)) {
+        metrics.comparisonBlocks += 1;
+      }
+
+      if (block.kind === "conditional") {
+        metrics.conditionalBlocks += 1;
+        if (isComparisonBlock(block.inputBlock)) {
+          metrics.conditionalWithComparisonCondition += 1;
+        }
+
+        const bodyOps = collectOperationCounts(block.bodyBlocks ?? []);
+        if ((bodyOps.POP ?? 0) >= 1 && (bodyOps.PUSH ?? 0) >= 1) {
+          metrics.conditionalTransferReady += 1;
+        }
+      }
+
+      if (block.kind === "while") {
+        metrics.whileBlocks += 1;
+        if (isComparisonBlock(block.inputBlock)) {
+          metrics.whileWithComparisonCondition += 1;
+        }
+
+        const bodyOps = collectOperationCounts(block.bodyBlocks ?? []);
+        if ((bodyOps.DEQUEUE ?? 0) >= 1 && (bodyOps.ENQUEUE ?? 0) >= 1) {
+          metrics.whileTransferReady += 1;
+        }
+      }
+
+      if (block.kind === "function_definition") {
+        routineHasFunctionDefinition = true;
+        if (routine.id !== mainRoutine?.id) {
+          metrics.helperDefinitionCount += 1;
+        }
+      }
+
+      if (block.kind === "routine_call" && routine.id === mainRoutine?.id && block.routineCallMode !== "reference") {
+        metrics.mainRoutineCallCount += 1;
+      }
+
+      if (block.inputBlock) {
+        visit(block.inputBlock);
+      }
+
+      block.inputBlocks?.forEach(visit);
+      block.bodyBlocks?.forEach(visit);
+      block.alternateBodyBlocks?.forEach(visit);
+    };
+
+    blocks.forEach(visit);
+
+    if (routine.id !== mainRoutine?.id) {
+      metrics.helperRoutineCount += 1;
+      if (routineHasFunctionDefinition && (opCounts.REMOVE_FIRST ?? 0) >= 1 && (opCounts.APPEND ?? 0) >= 1) {
+        metrics.helperTransferReadyCount += 1;
+      }
+    }
+  });
+
+  return metrics;
+};
+
 export function PlayLevelScreen() {
   const { t } = useTranslation();
   const { levelId } = useParams<{ levelId: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const [sessionState, setSessionState] = useState<PlaySessionState>(initialSessionState);
   const [isShowingGoalPreview, setIsShowingGoalPreview] = useState(false);
@@ -240,7 +419,19 @@ export function PlayLevelScreen() {
   const previousOutcomeRef = useRef(sessionState.lastEvaluationOutcome);
   const uiSessionIdRef = useRef<string>(crypto.randomUUID());
   const tutorialEventStateRef = useRef<GuidedTutorialProgressState>(createGuidedTutorialProgressState());
+  const levelWasCompletedOnEntryRef = useRef(false);
   const { activeTutorialId, activeStepId, startTutorial, notifyTutorialEvent } = useTutorial();
+  const handleBack = (fallbackRoute: string) => {
+    const returnTo =
+      typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string"
+        ? (location.state as { returnTo: string }).returnTo
+        : null;
+    if (returnTo) {
+      navigate(returnTo);
+      return;
+    }
+    navigate(fallbackRoute);
+  };
 
   const dialog = useDialogManager();
   const isCompactLayout = viewportWidth <= 640;
@@ -315,7 +506,8 @@ export function PlayLevelScreen() {
       const currentLevel = sessionState.level;
       void (async () => {
         let nextLevelId: string | null = null;
-        if (currentLevel.id.startsWith("campaign-")) {
+        const isCampaignLevel = currentLevel.id.startsWith("campaign-");
+        if (isCampaignLevel) {
           try {
             const worlds = await campaignWorldRepository.listWorlds();
             const orderedCampaignLevelIds = worlds.flatMap((world) =>
@@ -325,10 +517,53 @@ export function PlayLevelScreen() {
             );
             const idx = orderedCampaignLevelIds.findIndex((id) => id === currentLevel.id);
             nextLevelId = idx >= 0 ? orderedCampaignLevelIds[idx + 1] ?? null : null;
+
+            if (!levelWasCompletedOnEntryRef.current) {
+              const currentWorldIndex = worlds.findIndex((world) =>
+                world.nodes.some((node) => node.levelId === currentLevel.id)
+              );
+              const currentWorld = currentWorldIndex >= 0 ? worlds[currentWorldIndex] ?? null : null;
+              const nextWorld = currentWorldIndex >= 0 ? worlds[currentWorldIndex + 1] ?? null : null;
+              const playableNodes = currentWorld?.nodes.filter(
+                (node) => typeof node.levelId === "string" && node.levelId.length > 0
+              ) ?? [];
+              const currentNodeIndex = playableNodes.findIndex((node) => node.levelId === currentLevel.id);
+              const currentNode = currentNodeIndex >= 0 ? playableNodes[currentNodeIndex] ?? null : null;
+              const nextNode = currentNodeIndex >= 0 ? playableNodes[currentNodeIndex + 1] ?? null : null;
+
+              if (currentWorld && currentNode) {
+                if (nextNode) {
+                  savePendingCampaignCompletion({
+                    kind: "advance-level",
+                    worldId: currentWorld.id,
+                    completedNodeId: currentNode.id,
+                    nextNodeId: nextNode.id
+                  });
+                } else {
+                  savePendingCampaignCompletion({
+                    kind: "world-complete",
+                    worldId: currentWorld.id,
+                    completedNodeId: currentNode.id,
+                    nextWorldId: nextWorld?.id ?? null
+                  });
+                }
+              }
+            }
           } catch {
             // ignore — no next level
           }
         }
+
+        if (isCampaignLevel) {
+          await dialog.showAlert({
+            title: t("messages.levelSolvedTitle"),
+            message: t("messages.levelSolvedBody", { level: currentLevel.title }),
+            confirmLabel: t("common.backToMap")
+          });
+          navigate(APP_ROUTES.campaign);
+          return;
+        }
+
         const action = await dialog.showLevelComplete({
           title: t("messages.levelSolvedTitle"),
           message: t("messages.levelSolvedBody", { level: currentLevel.title }),
@@ -351,6 +586,7 @@ export function PlayLevelScreen() {
     }
 
     tutorialEventStateRef.current = createGuidedTutorialProgressState(sessionState.level.id);
+    levelWasCompletedOnEntryRef.current = sessionState.completedLevelIds.includes(sessionState.level.id);
 
     const guidedTutorialId = getGuidedCampaignTutorialId(sessionState.level.id);
     const timeoutId = window.setTimeout(() => {
@@ -392,6 +628,7 @@ export function PlayLevelScreen() {
     }
 
     const metrics = analyzeActiveRoutineEditorMetrics(sessionState.document);
+    const documentMetrics = analyzeDocumentTutorialMetrics(sessionState.document);
 
     if (guidedTutorialId === GUIDED_W1_L1_TUTORIAL_ID) {
       if (metrics.structureBlocks >= 1 && !tutorialEventStateRef.current.structureGoalReached) {
@@ -435,6 +672,65 @@ export function PlayLevelScreen() {
       if (metrics.valueBlocks >= 1 && !tutorialEventStateRef.current.valuePlaced) {
         tutorialEventStateRef.current.valuePlaced = true;
         notifyTutorialEvent(W1_L3_TUTORIAL_EVENTS.literalPlaced);
+      }
+      return;
+    }
+
+    if (guidedTutorialId === GUIDED_W2_L4_TUTORIAL_ID) {
+      if (documentMetrics.conditionalBlocks >= 1 && !tutorialEventStateRef.current.structureGoalReached) {
+        tutorialEventStateRef.current.structureGoalReached = true;
+        notifyTutorialEvent(W2_L4_TUTORIAL_EVENTS.conditionalPlaced);
+      }
+
+      if (documentMetrics.conditionalWithComparisonCondition >= 1 && !tutorialEventStateRef.current.operationGoalReached) {
+        tutorialEventStateRef.current.operationGoalReached = true;
+        notifyTutorialEvent(W2_L4_TUTORIAL_EVENTS.comparisonReady);
+      }
+
+      if (documentMetrics.conditionalTransferReady >= 1 && !tutorialEventStateRef.current.valuePlaced) {
+        tutorialEventStateRef.current.valuePlaced = true;
+        notifyTutorialEvent(W2_L4_TUTORIAL_EVENTS.bodyReady);
+      }
+      return;
+    }
+
+    if (guidedTutorialId === GUIDED_W3_L3_TUTORIAL_ID) {
+      if (documentMetrics.whileBlocks >= 1 && !tutorialEventStateRef.current.structureGoalReached) {
+        tutorialEventStateRef.current.structureGoalReached = true;
+        notifyTutorialEvent(W3_L3_TUTORIAL_EVENTS.whilePlaced);
+      }
+
+      if (documentMetrics.whileWithComparisonCondition >= 1 && !tutorialEventStateRef.current.operationGoalReached) {
+        tutorialEventStateRef.current.operationGoalReached = true;
+        notifyTutorialEvent(W3_L3_TUTORIAL_EVENTS.conditionReady);
+      }
+
+      if (documentMetrics.whileTransferReady >= 1 && !tutorialEventStateRef.current.valuePlaced) {
+        tutorialEventStateRef.current.valuePlaced = true;
+        notifyTutorialEvent(W3_L3_TUTORIAL_EVENTS.bodyReady);
+      }
+      return;
+    }
+
+    if (guidedTutorialId === GUIDED_W4_L3_TUTORIAL_ID) {
+      if (documentMetrics.helperRoutineCount >= 1 && !tutorialEventStateRef.current.structureGoalReached) {
+        tutorialEventStateRef.current.structureGoalReached = true;
+        notifyTutorialEvent(W4_L3_TUTORIAL_EVENTS.helperCreated);
+      }
+
+      if (documentMetrics.helperDefinitionCount >= 1 && !tutorialEventStateRef.current.operationGoalReached) {
+        tutorialEventStateRef.current.operationGoalReached = true;
+        notifyTutorialEvent(W4_L3_TUTORIAL_EVENTS.definitionPlaced);
+      }
+
+      if (documentMetrics.helperTransferReadyCount >= 1 && !tutorialEventStateRef.current.valuePlaced) {
+        tutorialEventStateRef.current.valuePlaced = true;
+        notifyTutorialEvent(W4_L3_TUTORIAL_EVENTS.helperLogicReady);
+      }
+
+      if (documentMetrics.mainRoutineCallCount >= 1 && !tutorialEventStateRef.current.runPressed) {
+        tutorialEventStateRef.current.runPressed = true;
+        notifyTutorialEvent(W4_L3_TUTORIAL_EVENTS.mainCallReady);
       }
     }
   }, [activeTutorialId, notifyTutorialEvent, sessionState.document, sessionState.level]);
@@ -545,14 +841,15 @@ export function PlayLevelScreen() {
       <Screen mode="player">
         <div className="settings-shell">
           <header className="topbar">
-            <Link
+            <button
+              type="button"
               className="back-link back-link--icon"
-              to={APP_ROUTES.play}
+              onClick={() => handleBack(APP_ROUTES.play)}
               aria-label={t("common.back")}
               title={t("common.back")}
             >
               <ArrowLeft size={20} aria-hidden="true" />
-            </Link>
+            </button>
             <div>
               <p className="eyebrow">{t("common.playMode")}</p>
               <h1>{t("common.loadingLevel")}</h1>
@@ -722,14 +1019,15 @@ export function PlayLevelScreen() {
       <div className="play-shell">
         <div className="topbar primary-screen-topbar play-level-topbar">
           <div className="play-level-topbar-left">
-            <Link
+            <button
+              type="button"
               className="back-link back-link--icon"
-              to={APP_ROUTES.campaign}
+              onClick={() => handleBack(APP_ROUTES.campaign)}
               aria-label={t("common.levels")}
               title={t("common.levels")}
             >
               <ArrowLeft size={20} aria-hidden="true" />
-            </Link>
+            </button>
             <div className="play-level-title-group">
               <p className="eyebrow">{level.id.startsWith("campaign-") ? t("menu.campaign") : t("common.playMode")}</p>
               <h1>{level.title}</h1>

@@ -403,7 +403,7 @@
 
 .ide-editor-block-counter {
 	position: absolute;
-	right: 1.15rem;
+	left: 1.15rem;
 	bottom: 126px;
 	z-index: 3;
 	padding: 0.32rem 0.68rem;
@@ -1733,7 +1733,7 @@
 
 .editor-operator-popover {
 	position: fixed;
-	z-index: 60;
+	z-index: 240;
 	background: rgba(255, 255, 255, 0.97);
 	border: 2px solid rgba(158, 197, 229, 0.9);
 	border-radius: 14px;
@@ -2094,7 +2094,7 @@
 /* ── Command Palette overlay ───────────────────────────────────── */
 .op-palette-overlay {
 	position: fixed;
-	z-index: 50;
+	z-index: 240;
 	width: 220px;
 	max-height: 340px;
 	display: flex;

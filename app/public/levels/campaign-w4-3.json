@@ -1,0 +1,215 @@
+{
+  "id": "campaign-w4-3",
+  "title": "W4-L4 · Reusar helper para cerrar",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "list",
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "list",
+      "values": [],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "list",
+      "values": [],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "list",
+      "values": [
+        1,
+        2,
+        3
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "forbidden",
+      "PUSH": "forbidden",
+      "DEQUEUE": "forbidden",
+      "ENQUEUE": "forbidden",
+      "APPEND": "required",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "required",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden",
+      "PEEK": "forbidden",
+      "IS_EMPTY": "forbidden",
+      "GET_AT": "forbidden",
+      "INSERT_AT": "forbidden",
+      "REMOVE_AT": "forbidden",
+      "CONTAINS": "forbidden",
+      "FIND": "forbidden",
+      "REVERSE": "forbidden",
+      "CLEAR": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 1,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 12,
+    "maxBlocksGlobal": 7,
+    "allowAdditionalRoutines": true,
+    "maxRoutineCount": 2,
+    "minRoutineCount": 2,
+    "requiresRoutineCall": true
+  },
+  "playLayout": {
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": [
+      "A",
+      "B"
+    ],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": [
+      "list"
+    ],
+    "difficulty": 4.1,
+    "author": "Core Team",
+    "description": "Cierra el mundo reusando una función helper varias veces para transferir una lista completa sin duplicar la lógica principal.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": [
+      "list"
+    ],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": [
+      "Reuso deliberado de una función helper para reducir bloques en la rutina principal"
+    ],
+    "reinforces": [
+      "llamadas repetidas",
+      "abstracción",
+      "transferencia por extremos"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Ahora el helper debe ahorrar trabajo",
+        "body": "Ya no basta con crear una función. Debe valer la pena usarla varias veces para que la rutina principal quede más simple.",
+        "concepts": [
+          "reuso",
+          "rutina principal"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "No repitas bloques donde puedes repetir llamadas",
+        "body": "Si la rutina principal está creciendo demasiado, la abstracción no está cumpliendo su objetivo. Mueve la lógica repetible al helper.",
+        "concepts": [
+          "menos bloques",
+          "repetición de llamadas"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "El mismo movimiento, varias veces",
+        "body": "Cada llamada debe hacer exactamente una transferencia desde el primer elemento de A hacia el final de B. Repite la llamada, no el diseño.",
+        "concepts": [
+          "helper estable",
+          "repetición controlada"
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "Reuso deliberado de una función helper para reducir bloques en la rutina principal"
+    ],
+    "reinforces": [
+      "llamadas repetidas",
+      "abstracción",
+      "transferencia por extremos"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Ahora el helper debe ahorrar trabajo",
+        "body": "Ya no basta con crear una función. Debe valer la pena usarla varias veces para que la rutina principal quede más simple.",
+        "concepts": [
+          "reuso",
+          "rutina principal"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "No repitas bloques donde puedes repetir llamadas",
+        "body": "Si la rutina principal está creciendo demasiado, la abstracción no está cumpliendo su objetivo. Mueve la lógica repetible al helper.",
+        "concepts": [
+          "menos bloques",
+          "repetición de llamadas"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "El mismo movimiento, varias veces",
+        "body": "Cada llamada debe hacer exactamente una transferencia desde el primer elemento de A hacia el final de B. Repite la llamada, no el diseño.",
+        "concepts": [
+          "helper estable",
+          "repetición controlada"
+        ]
+      }
+    ]
+  }
+}

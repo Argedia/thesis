@@ -38,6 +38,13 @@ type CampaignScreenCopy = {
   welcomeMeta: string;
   startNodeTitle: string;
   startNodeBody: string;
+  worldCompleteEyebrow: string;
+  worldCompleteTitle: string;
+  worldCompleteBody: string;
+  worldCompleteConceptLabel: string;
+  worldCompleteNextLabel: string;
+  worldCompleteContinue: string;
+  worldCompleteFinalBody: string;
 };
 
 const CAMPAIGN_SCREEN_COPY: Record<SupportedLanguage, CampaignScreenCopy> = {
@@ -69,7 +76,14 @@ const CAMPAIGN_SCREEN_COPY: Record<SupportedLanguage, CampaignScreenCopy> = {
     welcomeBody: "You will learn the basics of this software here and how to use it.",
     welcomeMeta: "Click level 1 to get started. Then click Play, or click the same level again, to start playing.",
     startNodeTitle: "Starting point",
-    startNodeBody: "This node marks the entrance to the world. Move to the next level to continue."
+    startNodeBody: "This node marks the entrance to the world. Move to the next level to continue.",
+    worldCompleteEyebrow: "World complete",
+    worldCompleteTitle: "Great! You cleared this world!",
+    worldCompleteBody: "Now you know how to work with these ideas:",
+    worldCompleteConceptLabel: "Now you know",
+    worldCompleteNextLabel: "Next world",
+    worldCompleteContinue: "Continue",
+    worldCompleteFinalBody: "You closed the final world of the campaign. Take a look at everything you can solve now."
   },
   es: {
     eyebrow: "Campaña INF261",
@@ -99,94 +113,53 @@ const CAMPAIGN_SCREEN_COPY: Record<SupportedLanguage, CampaignScreenCopy> = {
     welcomeBody: "Aquí aprenderás lo básico de este software y cómo usarlo.",
     welcomeMeta: "Haz clic en el nivel 1 para empezar. Luego pulsa Jugar, o vuelve a hacer clic en el mismo nivel, para comenzar.",
     startNodeTitle: "Punto de inicio",
-    startNodeBody: "Este nodo marca la entrada al mundo. Muévete al siguiente nivel para continuar."
+    startNodeBody: "Este nodo marca la entrada al mundo. Muévete al siguiente nivel para continuar.",
+    worldCompleteEyebrow: "Mundo completado",
+    worldCompleteTitle: "¡Genial! Superaste este mundo",
+    worldCompleteBody: "Ahora sabes trabajar con estas ideas:",
+    worldCompleteConceptLabel: "Ahora sabes",
+    worldCompleteNextLabel: "Siguiente mundo",
+    worldCompleteContinue: "Continuar",
+    worldCompleteFinalBody: "Cerraste el último mundo de la campaña. Mira todo lo que ya sabes resolver."
   }
 };
 
 const CAMPAIGN_PLAN_TEMPLATES_BY_LANGUAGE: Record<SupportedLanguage, CampaignPlanTemplate[]> = {
   en: [
-    { id: "w1-l1", name: "W1-L1 · Drag, drop, run", worldId: "w1", worldName: "Editor onboarding", difficulty: 1.5, maxSteps: 4, description: "Goal: drag a block, choose an operation, and run it." },
-    { id: "w1-l2", name: "W1-L2 · Step, pause, reset", worldId: "w1", worldName: "Editor onboarding", difficulty: 1.5, maxSteps: 5, description: "Goal: understand step-by-step execution and reset." },
-    { id: "w1-l3", name: "W1-L3 · Read initial state/goal", worldId: "w1", worldName: "Editor onboarding", difficulty: 1.5, maxSteps: 6, description: "Goal: interpret the board and validate changes." },
-    { id: "w1-l4", name: "W1-L4 · Mini guided challenge", worldId: "w1", worldName: "Editor onboarding", difficulty: 1.5, maxSteps: 7, description: "Goal: solve a simple case without contextual help." },
-    { id: "w2-l1", name: "W2-L1 · Stack top transfer", worldId: "w2", worldName: "Default structures", difficulty: 1.5, maxSteps: 6, description: "Stack: move top from A to B (basic LIFO)." },
-    { id: "w2-l2", name: "W2-L2 · Build stack from scratch", worldId: "w2", worldName: "Default structures", difficulty: 1.5, maxSteps: 12, description: "Stack: empty A and build B." },
-    { id: "w2-l3", name: "W2-L3 · Queue front transfer", worldId: "w2", worldName: "Default structures", difficulty: 1.5, maxSteps: 8, description: "Queue: extract the front and rebuild." },
-    { id: "w2-l4", name: "W2-L4 · Queue rotation", worldId: "w2", worldName: "Default structures", difficulty: 3, maxSteps: 12, description: "Queue: simple rotation with a specific target." },
-    { id: "w2-l5", name: "W2-L5 · List append/prepend", worldId: "w2", worldName: "Default structures", difficulty: 1.5, maxSteps: 10, description: "List: build a sequence using both ends." },
-    { id: "w2-l6", name: "W2-L6 · List trim edges", worldId: "w2", worldName: "Default structures", difficulty: 3, maxSteps: 8, description: "List: remove_first/remove_last." },
-    { id: "w2-l7", name: "W2-L7 · Mixed basics", worldId: "w2", worldName: "Default structures", difficulty: 3, maxSteps: 14, description: "Basic challenge combining 2 structures." },
-    { id: "w2-l8", name: "W2-L8 · Default DS checkpoint", worldId: "w2", worldName: "Default structures", difficulty: 3, maxSteps: 16, description: "Checkpoint for default structures." },
-    { id: "w2-l1", name: "W2-L1 · Reverse sequence", worldId: "w2", worldName: "Transformation patterns", difficulty: 3, maxSteps: 16, description: "Pattern: reverse a sequence with an auxiliary structure." },
-    { id: "w2-l2", name: "W2-L2 · Stable transfer", worldId: "w2", worldName: "Transformation patterns", difficulty: 3, maxSteps: 14, description: "Pattern: transfer while preserving order." },
-    { id: "w2-l3", name: "W2-L3 · Filter by rule", worldId: "w2", worldName: "Transformation patterns", difficulty: 3, maxSteps: 18, description: "Pattern: filter elements by a rule." },
-    { id: "w2-l4", name: "W2-L4 · Partition in two", worldId: "w2", worldName: "Transformation patterns", difficulty: 3, maxSteps: 18, description: "Pattern: split into two structures." },
-    { id: "w2-l5", name: "W2-L5 · Rotational constraint", worldId: "w2", worldName: "Transformation patterns", difficulty: 4.5, maxSteps: 12, description: "Pattern: rotation under a strict budget." },
-    { id: "w2-l6", name: "W2-L6 · Transformation checkpoint", worldId: "w2", worldName: "Transformation patterns", difficulty: 4.5, maxSteps: 20, description: "Pattern checkpoint." },
-    { id: "w3-l1", name: "W3-L1 · Stack + queue", worldId: "w3", worldName: "Structure composition", difficulty: 3, maxSteps: 18, description: "Composition: stack + queue." },
-    { id: "w3-l2", name: "W3-L2 · Queue + list", worldId: "w3", worldName: "Structure composition", difficulty: 3, maxSteps: 18, description: "Composition: queue + list." },
-    { id: "w3-l3", name: "W3-L3 · Stack + list", worldId: "w3", worldName: "Structure composition", difficulty: 3, maxSteps: 18, description: "Composition: stack + list." },
-    { id: "w3-l4", name: "W3-L4 · Triple mix I", worldId: "w3", worldName: "Structure composition", difficulty: 4.5, maxSteps: 22, description: "Composition of 3 structures with a partial goal." },
-    { id: "w3-l5", name: "W3-L5 · Triple mix II", worldId: "w3", worldName: "Structure composition", difficulty: 4.5, maxSteps: 24, description: "Composition of 3 structures with an exact goal." },
-    { id: "w3-l6", name: "W3-L6 · Composition checkpoint", worldId: "w3", worldName: "Structure composition", difficulty: 4.5, maxSteps: 24, description: "Composition checkpoint." },
-    { id: "w4-l1", name: "W4-L1 · Create helper function", worldId: "w4", worldName: "Abstraction with functions", difficulty: 3, maxSteps: 12, description: "Create a helper and use it." },
-    { id: "w4-l2", name: "W4-L2 · Reuse helper N times", worldId: "w4", worldName: "Abstraction with functions", difficulty: 3, maxSteps: 14, description: "Reuse a function across multiple steps." },
-    { id: "w4-l3", name: "W4-L3 · Two coordinated helpers", worldId: "w4", worldName: "Abstraction with functions", difficulty: 4.5, maxSteps: 16, description: "Design two coordinated helpers." },
-    { id: "w4-l4", name: "W4-L4 · Function with conditionals", worldId: "w4", worldName: "Abstraction with functions", difficulty: 4.5, maxSteps: 18, description: "Function with basic control flow." },
-    { id: "w4-l5", name: "W4-L5 · Refactor for fewer blocks", worldId: "w4", worldName: "Abstraction with functions", difficulty: 4.5, maxSteps: 16, description: "Reduce blocks using abstraction." },
-    { id: "w4-l6", name: "W4-L6 · Functions checkpoint", worldId: "w4", worldName: "Abstraction with functions", difficulty: 4.5, maxSteps: 18, description: "Functions checkpoint." },
-    { id: "w5-l1", name: "W5-L1 · Define basic type", worldId: "w5", worldName: "Type modeling", difficulty: 3, maxSteps: 14, description: "Define a type with simple fields." },
-    { id: "w5-l2", name: "W5-L2 · Create and assign fields", worldId: "w5", worldName: "Type modeling", difficulty: 3, maxSteps: 16, description: "Instantiate a type and assign fields." },
-    { id: "w5-l3", name: "W5-L3 · Typed objects inside DS", worldId: "w5", worldName: "Type modeling", difficulty: 4.5, maxSteps: 20, description: "Use typed objects inside data structures." },
-    { id: "w5-l4", name: "W5-L4 · Read/update fields in flow", worldId: "w5", worldName: "Type modeling", difficulty: 4.5, maxSteps: 22, description: "Read and update fields during execution." },
-    { id: "w5-l5", name: "W5-L5 · Type + helper function", worldId: "w5", worldName: "Type modeling", difficulty: 4.5, maxSteps: 24, description: "Integrate types with functions." },
-    { id: "w5-l6", name: "W5-L6 · Types checkpoint", worldId: "w5", worldName: "Type modeling", difficulty: 4.5, maxSteps: 24, description: "Type modeling checkpoint." },
-    { id: "w6-l1", name: "W6-L1 · Capstone I", worldId: "w6", worldName: "Final integration", difficulty: 4.5, maxSteps: 24, description: "Capstone with multiple structures and a function." },
-    { id: "w6-l2", name: "W6-L2 · Capstone II", worldId: "w6", worldName: "Final integration", difficulty: 4.5, maxSteps: 26, description: "Capstone with strong constraints." },
-    { id: "w6-l3", name: "W6-L3 · Capstone III with custom type", worldId: "w6", worldName: "Final integration", difficulty: 4.5, maxSteps: 28, description: "Capstone with a required custom type." },
-    { id: "w6-l4", name: "W6-L4 · Final castle", worldId: "w6", worldName: "Final integration", difficulty: 4.5, maxSteps: 30, description: "Final integrative campaign challenge." }
+    { id: "w1-l1", name: "W1-L1 · First contact", worldId: "w1", worldName: "Editor onboarding", difficulty: 1.5, maxSteps: 1, description: "Drag the structure block, pick the only action, and run it." },
+    { id: "w1-l2", name: "W1-L2 · Step and reset", worldId: "w1", worldName: "Editor onboarding", difficulty: 1.8, maxSteps: 2, description: "Use step-by-step execution and reset to inspect a short two-action solution." },
+    { id: "w1-l3", name: "W1-L3 · Description, blocks, and output", worldId: "w1", worldName: "Editor onboarding", difficulty: 2.1, maxSteps: 2, description: "Read the level description, open the left palette, and use output feedback to finish the level." },
+    { id: "w2-l1", name: "W2-L1 · Stack top transfer", worldId: "w2", worldName: "Stack", difficulty: 1.8, maxSteps: 2, description: "Introduce LIFO by moving the top value from one stack to another." },
+    { id: "w2-l2", name: "W2-L2 · Build target stack", worldId: "w2", worldName: "Stack", difficulty: 2.2, maxSteps: 4, description: "Build a target stack while respecting LIFO order." },
+    { id: "w2-l3", name: "W2-L3 · Uncover and restore", worldId: "w2", worldName: "Stack", difficulty: 2.6, maxSteps: 8, description: "Use an auxiliary stack to uncover a hidden value and then restore the main stack." },
+    { id: "w2-l4", name: "W2-L4 · Verify before moving", worldId: "w2", worldName: "Stack", difficulty: 3.2, maxSteps: 8, description: "Introduce a simple conditional to verify the stack top before transferring it." },
+    { id: "w3-l1", name: "W3-L1 · Front and rear", worldId: "w3", worldName: "Queue + a bit of stack", difficulty: 1.6, maxSteps: 2, description: "Introduce FIFO by taking from the front and placing at the rear." },
+    { id: "w3-l2", name: "W3-L2 · Rotate without reversing", worldId: "w3", worldName: "Queue + a bit of stack", difficulty: 2.2, maxSteps: 4, description: "Rotate a queue by moving the front to the rear without reversing it." },
+    { id: "w3-l3", name: "W3-L3 · While elements remain", worldId: "w3", worldName: "Queue + a bit of stack", difficulty: 3.6, maxSteps: 14, description: "Introduce a while loop using queue size as the stopping condition." },
+    { id: "w3-l4", name: "W3-L4 · Reverse queue with helper stack", worldId: "w3", worldName: "Queue + a bit of stack", difficulty: 3.8, maxSteps: 12, description: "Combine FIFO and LIFO to reverse a queue using an auxiliary stack." },
+    { id: "w4-l1", name: "W4-L1 · Build from both ends", worldId: "w4", worldName: "List + simple functions", difficulty: 2.4, maxSteps: 6, description: "Introduce append and prepend as the basic advantage of a list." },
+    { id: "w4-l2", name: "W4-L2 · Trim the edges", worldId: "w4", worldName: "List + simple functions", difficulty: 2.9, maxSteps: 4, description: "Remove the first and last items while preserving the middle." },
+    { id: "w4-l3", name: "W4-L3 · First list helper", worldId: "w4", worldName: "List + simple functions", difficulty: 3.4, maxSteps: 8, description: "Introduce a tiny helper function to move a value from one list to another." },
+    { id: "w4-l4", name: "W4-L4 · Reuse the helper", worldId: "w4", worldName: "List + simple functions", difficulty: 4.1, maxSteps: 12, description: "Reuse the same helper to avoid duplicating the main routine." },
+    { id: "w5-l1", name: "W5-L1 · Linear final boss", worldId: "w5", worldName: "Final boss", difficulty: 4.7, maxSteps: 16, description: "Integrate stack, queue, and list in one short final challenge." }
   ],
   es: [
-    { id: "w1-l1", name: "W1-L1 · Arrastrar, soltar, ejecutar", worldId: "w1", worldName: "Onboarding del editor", difficulty: 1.5, maxSteps: 4, description: "Objetivo: arrastrar un bloque, elegir una operación y ejecutarla." },
-    { id: "w1-l2", name: "W1-L2 · Paso, pausa, reinicio", worldId: "w1", worldName: "Onboarding del editor", difficulty: 1.5, maxSteps: 5, description: "Objetivo: comprender la ejecución paso a paso y el reinicio." },
-    { id: "w1-l3", name: "W1-L3 · Leer estado inicial/meta", worldId: "w1", worldName: "Onboarding del editor", difficulty: 1.5, maxSteps: 6, description: "Objetivo: interpretar el tablero y validar cambios." },
-    { id: "w1-l4", name: "W1-L4 · Mini reto guiado", worldId: "w1", worldName: "Onboarding del editor", difficulty: 1.5, maxSteps: 7, description: "Objetivo: resolver un caso simple sin ayuda contextual." },
-    { id: "w2-l1", name: "W2-L1 · Transferencia del tope de pila", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 1.5, maxSteps: 6, description: "Pila: mover el tope de A a B (LIFO básico)." },
-    { id: "w2-l2", name: "W2-L2 · Construir pila desde cero", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 1.5, maxSteps: 12, description: "Pila: vaciar A y construir B." },
-    { id: "w2-l3", name: "W2-L3 · Transferencia del frente de cola", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 1.5, maxSteps: 8, description: "Cola: extraer el frente y reconstruir." },
-    { id: "w2-l4", name: "W2-L4 · Rotación de cola", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 3, maxSteps: 12, description: "Cola: rotación simple con una meta específica." },
-    { id: "w2-l5", name: "W2-L5 · Append/prepend en lista", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 1.5, maxSteps: 10, description: "Lista: construir una secuencia usando ambos extremos." },
-    { id: "w2-l6", name: "W2-L6 · Recortar bordes de lista", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 3, maxSteps: 8, description: "Lista: remove_first/remove_last." },
-    { id: "w2-l7", name: "W2-L7 · Fundamentos mixtos", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 3, maxSteps: 14, description: "Reto básico combinando 2 estructuras." },
-    { id: "w2-l8", name: "W2-L8 · Checkpoint de estructuras base", worldId: "w2", worldName: "Estructuras por defecto", difficulty: 3, maxSteps: 16, description: "Checkpoint de estructuras por defecto." },
-    { id: "w2-l1", name: "W2-L1 · Invertir secuencia", worldId: "w2", worldName: "Patrones de transformación", difficulty: 3, maxSteps: 16, description: "Patrón: invertir una secuencia con una estructura auxiliar." },
-    { id: "w2-l2", name: "W2-L2 · Transferencia estable", worldId: "w2", worldName: "Patrones de transformación", difficulty: 3, maxSteps: 14, description: "Patrón: transferir preservando el orden." },
-    { id: "w2-l3", name: "W2-L3 · Filtrar por regla", worldId: "w2", worldName: "Patrones de transformación", difficulty: 3, maxSteps: 18, description: "Patrón: filtrar elementos según una regla." },
-    { id: "w2-l4", name: "W2-L4 · Particionar en dos", worldId: "w2", worldName: "Patrones de transformación", difficulty: 3, maxSteps: 18, description: "Patrón: dividir en dos estructuras." },
-    { id: "w2-l5", name: "W2-L5 · Restricción rotacional", worldId: "w2", worldName: "Patrones de transformación", difficulty: 4.5, maxSteps: 12, description: "Patrón: rotación bajo un presupuesto estricto." },
-    { id: "w2-l6", name: "W2-L6 · Checkpoint de transformación", worldId: "w2", worldName: "Patrones de transformación", difficulty: 4.5, maxSteps: 20, description: "Checkpoint de patrones." },
-    { id: "w3-l1", name: "W3-L1 · Pila + cola", worldId: "w3", worldName: "Composición de estructuras", difficulty: 3, maxSteps: 18, description: "Composición: pila + cola." },
-    { id: "w3-l2", name: "W3-L2 · Cola + lista", worldId: "w3", worldName: "Composición de estructuras", difficulty: 3, maxSteps: 18, description: "Composición: cola + lista." },
-    { id: "w3-l3", name: "W3-L3 · Pila + lista", worldId: "w3", worldName: "Composición de estructuras", difficulty: 3, maxSteps: 18, description: "Composición: pila + lista." },
-    { id: "w3-l4", name: "W3-L4 · Mezcla triple I", worldId: "w3", worldName: "Composición de estructuras", difficulty: 4.5, maxSteps: 22, description: "Composición de 3 estructuras con una meta parcial." },
-    { id: "w3-l5", name: "W3-L5 · Mezcla triple II", worldId: "w3", worldName: "Composición de estructuras", difficulty: 4.5, maxSteps: 24, description: "Composición de 3 estructuras con una meta exacta." },
-    { id: "w3-l6", name: "W3-L6 · Checkpoint de composición", worldId: "w3", worldName: "Composición de estructuras", difficulty: 4.5, maxSteps: 24, description: "Checkpoint de composición." },
-    { id: "w4-l1", name: "W4-L1 · Crear función helper", worldId: "w4", worldName: "Abstracción con funciones", difficulty: 3, maxSteps: 12, description: "Crear un helper y usarlo." },
-    { id: "w4-l2", name: "W4-L2 · Reutilizar helper N veces", worldId: "w4", worldName: "Abstracción con funciones", difficulty: 3, maxSteps: 14, description: "Reutilizar una función en varios pasos." },
-    { id: "w4-l3", name: "W4-L3 · Dos helpers coordinados", worldId: "w4", worldName: "Abstracción con funciones", difficulty: 4.5, maxSteps: 16, description: "Diseñar dos helpers coordinados." },
-    { id: "w4-l4", name: "W4-L4 · Función con condicionales", worldId: "w4", worldName: "Abstracción con funciones", difficulty: 4.5, maxSteps: 18, description: "Función con flujo de control básico." },
-    { id: "w4-l5", name: "W4-L5 · Refactorizar para menos bloques", worldId: "w4", worldName: "Abstracción con funciones", difficulty: 4.5, maxSteps: 16, description: "Reducir bloques usando abstracción." },
-    { id: "w4-l6", name: "W4-L6 · Checkpoint de funciones", worldId: "w4", worldName: "Abstracción con funciones", difficulty: 4.5, maxSteps: 18, description: "Checkpoint de funciones." },
-    { id: "w5-l1", name: "W5-L1 · Definir tipo básico", worldId: "w5", worldName: "Modelado con tipos", difficulty: 3, maxSteps: 14, description: "Definir un tipo con campos simples." },
-    { id: "w5-l2", name: "W5-L2 · Crear y asignar campos", worldId: "w5", worldName: "Modelado con tipos", difficulty: 3, maxSteps: 16, description: "Instanciar un tipo y asignar campos." },
-    { id: "w5-l3", name: "W5-L3 · Objetos tipados dentro de ED", worldId: "w5", worldName: "Modelado con tipos", difficulty: 4.5, maxSteps: 20, description: "Usar objetos tipados dentro de estructuras de datos." },
-    { id: "w5-l4", name: "W5-L4 · Leer/actualizar campos en flujo", worldId: "w5", worldName: "Modelado con tipos", difficulty: 4.5, maxSteps: 22, description: "Leer y actualizar campos durante la ejecución." },
-    { id: "w5-l5", name: "W5-L5 · Tipo + función helper", worldId: "w5", worldName: "Modelado con tipos", difficulty: 4.5, maxSteps: 24, description: "Integrar tipos con funciones." },
-    { id: "w5-l6", name: "W5-L6 · Checkpoint de tipos", worldId: "w5", worldName: "Modelado con tipos", difficulty: 4.5, maxSteps: 24, description: "Checkpoint de modelado con tipos." },
-    { id: "w6-l1", name: "W6-L1 · Capstone I", worldId: "w6", worldName: "Integración final", difficulty: 4.5, maxSteps: 24, description: "Capstone con múltiples estructuras y una función." },
-    { id: "w6-l2", name: "W6-L2 · Capstone II", worldId: "w6", worldName: "Integración final", difficulty: 4.5, maxSteps: 26, description: "Capstone con restricciones fuertes." },
-    { id: "w6-l3", name: "W6-L3 · Capstone III con tipo personalizado", worldId: "w6", worldName: "Integración final", difficulty: 4.5, maxSteps: 28, description: "Capstone con un tipo personalizado obligatorio." },
-    { id: "w6-l4", name: "W6-L4 · Final del castillo", worldId: "w6", worldName: "Integración final", difficulty: 4.5, maxSteps: 30, description: "Reto final integrador de toda la campaña." }
+    { id: "w1-l1", name: "W1-L1 · Primer contacto", worldId: "w1", worldName: "Familiarización con el editor", difficulty: 1.5, maxSteps: 1, description: "Arrastra el bloque de estructura, elige la única acción disponible y ejecútala." },
+    { id: "w1-l2", name: "W1-L2 · Step y reset", worldId: "w1", worldName: "Familiarización con el editor", difficulty: 1.8, maxSteps: 2, description: "Usa la ejecución paso a paso y reinicio para inspeccionar una solución corta de dos acciones." },
+    { id: "w1-l3", name: "W1-L3 · Descripción, bloques y salida", worldId: "w1", worldName: "Familiarización con el editor", difficulty: 2.1, maxSteps: 2, description: "Lee la descripción, abre la paleta izquierda y usa la salida para completar el nivel." },
+    { id: "w2-l1", name: "W2-L1 · Transferencia de tope", worldId: "w2", worldName: "Pila", difficulty: 1.8, maxSteps: 2, description: "Introduce LIFO moviendo el valor superior de una pila a otra." },
+    { id: "w2-l2", name: "W2-L2 · Construir pila objetivo", worldId: "w2", worldName: "Pila", difficulty: 2.2, maxSteps: 4, description: "Construye una pila objetivo respetando el orden LIFO." },
+    { id: "w2-l3", name: "W2-L3 · Destapar y restaurar", worldId: "w2", worldName: "Pila", difficulty: 2.6, maxSteps: 8, description: "Usa una pila auxiliar para destapar un valor interno y luego restaurar la pila principal." },
+    { id: "w2-l4", name: "W2-L4 · Verificar antes de mover", worldId: "w2", worldName: "Pila", difficulty: 3.2, maxSteps: 8, description: "Introduce un condicional simple para verificar el tope antes de transferirlo." },
+    { id: "w3-l1", name: "W3-L1 · Frente y final", worldId: "w3", worldName: "Cola + un poco de pila", difficulty: 1.6, maxSteps: 2, description: "Introduce FIFO sacando del frente y colocando al final." },
+    { id: "w3-l2", name: "W3-L2 · Rotar sin invertir", worldId: "w3", worldName: "Cola + un poco de pila", difficulty: 2.2, maxSteps: 4, description: "Rota una cola moviendo el frente al final sin invertirla." },
+    { id: "w3-l3", name: "W3-L3 · Mientras queden elementos", worldId: "w3", worldName: "Cola + un poco de pila", difficulty: 3.6, maxSteps: 14, description: "Introduce `while` usando el tamaño de una cola como condición de parada." },
+    { id: "w3-l4", name: "W3-L4 · Invertir cola con pila auxiliar", worldId: "w3", worldName: "Cola + un poco de pila", difficulty: 3.8, maxSteps: 12, description: "Combina FIFO y LIFO para invertir una cola usando una pila auxiliar." },
+    { id: "w4-l1", name: "W4-L1 · Construir desde extremos", worldId: "w4", worldName: "Lista + funciones sencillas", difficulty: 2.4, maxSteps: 6, description: "Introduce append y prepend como ventaja básica de la lista." },
+    { id: "w4-l2", name: "W4-L2 · Recorte de bordes", worldId: "w4", worldName: "Lista + funciones sencillas", difficulty: 2.9, maxSteps: 4, description: "Quita el primer y último elemento conservando el interior." },
+    { id: "w4-l3", name: "W4-L3 · Primer helper sobre lista", worldId: "w4", worldName: "Lista + funciones sencillas", difficulty: 3.4, maxSteps: 8, description: "Introduce una función helper pequeña para mover un valor entre listas." },
+    { id: "w4-l4", name: "W4-L4 · Reusar helper para cerrar", worldId: "w4", worldName: "Lista + funciones sencillas", difficulty: 4.1, maxSteps: 12, description: "Reutiliza el mismo helper para evitar duplicar la rutina principal." },
+    { id: "w5-l1", name: "W5-L1 · Final boss lineal", worldId: "w5", worldName: "Final boss", difficulty: 4.7, maxSteps: 16, description: "Integra stack, queue y list en un reto final corto." }
   ]
 };
 

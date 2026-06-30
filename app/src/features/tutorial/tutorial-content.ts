@@ -65,11 +65,11 @@ const TUTORIAL_TEXT_BY_LANGUAGE: Record<SupportedLanguage, TutorialTextMap> = {
       steps: {
         "editor-drafts-topbar": {
           title: "Editor entry point",
-          description: "This screen manages your saved level drafts and campaign scaffolds."
+          description: "This screen manages your saved level drafts."
         },
         "editor-drafts-actions": {
-          title: "Create or scaffold",
-          description: "Use these actions to create a new level or generate the planned campaign draft structure."
+          title: "Create new draft",
+          description: "Use the plus button to create a new level draft."
         },
         "editor-drafts-list": {
           title: "Open existing drafts",
@@ -221,6 +221,73 @@ const TUTORIAL_TEXT_BY_LANGUAGE: Record<SupportedLanguage, TutorialTextMap> = {
         }
       }
     },
+    "campaign-w2-l4-guided": {
+      label: "Campaign W2-L4 guided",
+      steps: {
+        "w2-l4-intro": {
+          title: "Now the level asks you to verify first",
+          description: "This time moving is not enough by itself. You must justify the move by checking the visible value first. Click anywhere to continue."
+        },
+        "w2-l4-place-if": {
+          title: "Place an if block",
+          description: "Open the left palette if needed and drag an if block into the program area. The transfer will live inside that decision."
+        },
+        "w2-l4-build-condition": {
+          title: "Build the check",
+          description: "Give that if block a comparison as its condition. Use the stack read you need and compare it before moving anything."
+        },
+        "w2-l4-build-transfer": {
+          title: "Put the transfer inside the if",
+          description: "Now place the stack actions inside the if body so the move only happens after the check passes."
+        }
+      }
+    },
+    "campaign-w3-l3-guided": {
+      label: "Campaign W3-L3 guided",
+      steps: {
+        "w3-l3-intro": {
+          title: "This is where repetition starts",
+          description: "Queue A has several values, but the move is always the same. Instead of copying blocks again and again, you will build a while loop. Click anywhere to continue."
+        },
+        "w3-l3-place-while": {
+          title: "Place a while block",
+          description: "Drag a while block into the program area. It will repeat the transfer until the queue is done."
+        },
+        "w3-l3-build-condition": {
+          title: "Tell while when to stop",
+          description: "Complete the while condition with a comparison based on the size of queue A, so the loop stops when no elements remain."
+        },
+        "w3-l3-build-loop-body": {
+          title: "Build one transfer inside the loop",
+          description: "Inside the while body, place the dequeue and enqueue actions. The loop will take care of repeating that same transfer."
+        }
+      }
+    },
+    "campaign-w4-l3-guided": {
+      label: "Campaign W4-L3 guided",
+      steps: {
+        "w4-l3-intro": {
+          title: "Now you will separate the solution",
+          description: "This level introduces a helper function. The reusable action should live in another script, and main should only call it. Click anywhere to continue."
+        },
+        "w4-l3-create-helper": {
+          title: "Create the helper script",
+          description: "Use the + tab button to create the second script. That new script will hold the reusable action."
+        },
+        "w4-l3-place-definition": {
+          title: "Turn that script into a helper",
+          description: "In the new script, place the definition block so the editor treats it as a callable helper."
+        },
+        "w4-l3-build-helper-body": {
+          title: "Write the reusable action there",
+          description: "Inside the helper, place the two list actions that move the first element from A into B."
+        },
+        "w4-l3-call-helper-from-main": {
+          title: "Return to main and call the helper",
+          description: "Go back to the main tab, find the helper call block on the right, and place that call in main."
+        }
+      }
+    },
     "campaign-world-basics": {
       label: "Campaign world basics",
       steps: {
@@ -291,11 +358,11 @@ const TUTORIAL_TEXT_BY_LANGUAGE: Record<SupportedLanguage, TutorialTextMap> = {
       steps: {
         "editor-drafts-topbar": {
           title: "Punto de entrada del editor",
-          description: "Esta pantalla gestiona tus borradores guardados y las plantillas base de campaña."
+          description: "Esta pantalla gestiona tus borradores guardados."
         },
         "editor-drafts-actions": {
-          title: "Crear o generar base",
-          description: "Usa estas acciones para crear un nivel nuevo o generar la estructura planificada de la campaña."
+          title: "Crear nuevo borrador",
+          description: "Usa el botón con + para crear un nuevo borrador de nivel."
         },
         "editor-drafts-list": {
           title: "Abrir borradores existentes",
@@ -444,6 +511,73 @@ const TUTORIAL_TEXT_BY_LANGUAGE: Record<SupportedLanguage, TutorialTextMap> = {
         "w1-l3-executing": {
           title: "",
           description: ""
+        }
+      }
+    },
+    "campaign-w2-l4-guided": {
+      label: "Campaña W2-L4 guiada",
+      steps: {
+        "w2-l4-intro": {
+          title: "Ahora el nivel te pide verificar primero",
+          description: "Esta vez no basta con mover. Debes justificar el movimiento revisando antes el valor visible. Haz clic en cualquier parte para continuar."
+        },
+        "w2-l4-place-if": {
+          title: "Coloca un bloque if",
+          description: "Abre la paleta izquierda si hace falta y arrastra un bloque if al área del programa. La transferencia vivirá dentro de esa decisión."
+        },
+        "w2-l4-build-condition": {
+          title: "Construye la verificación",
+          description: "Dale a ese if una comparación como condición. Usa la lectura de pila que necesites y compárala antes de mover nada."
+        },
+        "w2-l4-build-transfer": {
+          title: "Pon la transferencia dentro del if",
+          description: "Ahora coloca las acciones de pila dentro del cuerpo del if para que el movimiento ocurra solo después de pasar la verificación."
+        }
+      }
+    },
+    "campaign-w3-l3-guided": {
+      label: "Campaña W3-L3 guiada",
+      steps: {
+        "w3-l3-intro": {
+          title: "Aquí empieza la repetición",
+          description: "La cola A tiene varios valores, pero el movimiento siempre es el mismo. En vez de copiar bloques una y otra vez, construirás un while. Haz clic en cualquier parte para continuar."
+        },
+        "w3-l3-place-while": {
+          title: "Coloca un bloque while",
+          description: "Arrastra un bloque while al área del programa. Ese bloque repetirá la transferencia hasta que la cola termine."
+        },
+        "w3-l3-build-condition": {
+          title: "Dile al while cuándo parar",
+          description: "Completa la condición del while con una comparación basada en el tamaño de la cola A, para que el ciclo se detenga cuando ya no queden elementos."
+        },
+        "w3-l3-build-loop-body": {
+          title: "Construye una transferencia dentro del ciclo",
+          description: "Dentro del cuerpo del while, coloca las acciones dequeue y enqueue. El ciclo se encargará de repetir esa misma transferencia."
+        }
+      }
+    },
+    "campaign-w4-l3-guided": {
+      label: "Campaña W4-L3 guiada",
+      steps: {
+        "w4-l3-intro": {
+          title: "Ahora separarás la solución",
+          description: "Este nivel introduce una función helper. La acción reusable debe vivir en otro script, y principal solo debe llamarla. Haz clic en cualquier parte para continuar."
+        },
+        "w4-l3-create-helper": {
+          title: "Crea el script helper",
+          description: "Usa el botón + de pestañas para crear el segundo script. Ese nuevo script contendrá la acción reusable."
+        },
+        "w4-l3-place-definition": {
+          title: "Convierte ese script en helper",
+          description: "En el nuevo script, coloca el bloque de definición para que el editor lo trate como una helper invocable."
+        },
+        "w4-l3-build-helper-body": {
+          title: "Escribe ahí la acción reusable",
+          description: "Dentro de la helper, coloca las dos acciones de lista que mueven el primer elemento de A hacia B."
+        },
+        "w4-l3-call-helper-from-main": {
+          title: "Vuelve a principal y llama la helper",
+          description: "Regresa a la pestaña principal, busca a la derecha el bloque de llamada a la helper y colócalo en principal."
         }
       }
     },

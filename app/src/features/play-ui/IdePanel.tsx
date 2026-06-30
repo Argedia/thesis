@@ -247,6 +247,11 @@ export function IdePanel({
             disabled={runState === "running"}
             forceSidePaletteExpanded={forceSidePaletteExpanded}
             highlightedNodeId={highlightedNodeId}
+            diagnosticNodeIds={
+              activeRoutineCompiled.diagnosticDetails
+                ?.map((diagnostic) => diagnostic.nodeId)
+                .filter((nodeId): nodeId is string => typeof nodeId === "string" && nodeId.length > 0) ?? []
+            }
             breakpointNodeIds={breakpointNodeIds}
             onToggleBreakpoint={onToggleBreakpoint}
             onChange={onChange}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { LevelDefinition } from "@thesis/game-system";
@@ -19,6 +19,10 @@ import {
   hasSeenTutorial,
   markTutorialSeen
 } from "../features/tutorial/storage";
+import {
+  clearPendingCampaignCompletion,
+  loadPendingCampaignCompletion
+} from "../features/campaign/completion-flow";
 
 const levelRepository = new JsonLevelRepository();
 const worldRepository = new JsonCampaignWorldRepository();
@@ -36,6 +40,13 @@ interface AvatarPosition {
   y: number;
 }
 
+interface WorldCelebrationState {
+  completedWorldName: string;
+  nextWorldName: string | null;
+  concepts: string[];
+  nextWorldId: string | null;
+}
+
 type PositionedNode = CampaignWorldDefinition["nodes"][number] & {
   x: number;
   y: number;
@@ -43,6 +54,7 @@ type PositionedNode = CampaignWorldDefinition["nodes"][number] & {
 
 const CAMPAIGN_FIRST_VISIT_KEY = "visual-data-structures-campaign-first-visit-v1";
 const CAMPAIGN_POSITION_KEY = "visual-data-structures-campaign-position-v2";
+const CAMPAIGN_ACTIVE_WORLD_KEY = "visual-data-structures-campaign-active-world-v1";
 
 const formatWorldName = (name: string): string => name.replace(/^W\d+\s*·\s*/i, "");
 const easeInOut = (t: number): number => 0.5 - Math.cos(Math.PI * t) / 2;
@@ -154,6 +166,19 @@ const saveCampaignPosition = (worldId: string, nodeId: string): void => {
   localStorage.setItem(CAMPAIGN_POSITION_KEY, JSON.stringify({ ...previous, [worldId]: nodeId }));
 };
 
+const loadActiveCampaignWorldId = (): string | null => {
+  try {
+    const stored = localStorage.getItem(CAMPAIGN_ACTIVE_WORLD_KEY);
+    return stored && stored.trim().length > 0 ? stored : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveActiveCampaignWorldId = (worldId: string): void => {
+  localStorage.setItem(CAMPAIGN_ACTIVE_WORLD_KEY, worldId);
+};
+
 const resolveCurrentNodeId = (world: CampaignWorldDefinition): string | null => {
   if (world.nodes.length === 0) return null;
   const stored = loadCampaignPosition()[world.id];
@@ -229,9 +254,16 @@ export function CampaignScreen() {
   const [avatarPosition, setAvatarPosition] = useState<AvatarPosition>({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const [worldCelebration, setWorldCelebration] = useState<WorldCelebrationState | null>(null);
   const hasHandledFirstVisitRef = useRef(false);
   const worldTransitionRef = useRef<{ targetWorldId: string } | null>(null);
   const hasAttemptedAutoTutorialRef = useRef(false);
+  const pendingCompletionHandledRef = useRef<string | null>(null);
+
+  const persistCurrentCampaignLocation = (worldId: string, nodeId: string) => {
+    saveActiveCampaignWorldId(worldId);
+    saveCampaignPosition(worldId, nodeId);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -250,7 +282,12 @@ export function CampaignScreen() {
         setLevelsById(nextLevelsById);
         setCompletedLevelIds(progress.completedLevelIds);
         setWorlds(loadedWorlds);
-        setActiveWorldId(loadedWorlds[0]?.id ?? "");
+        const storedWorldId = loadActiveCampaignWorldId();
+        const initialWorldId =
+          storedWorldId && loadedWorlds.some((world) => world.id === storedWorldId)
+            ? storedWorldId
+            : loadedWorlds[0]?.id ?? "";
+        setActiveWorldId(initialWorldId);
         setError("");
 
         if (!hasHandledFirstVisitRef.current && !localStorage.getItem(CAMPAIGN_FIRST_VISIT_KEY)) {
@@ -273,7 +310,11 @@ export function CampaignScreen() {
   useEffect(() => {
     if (progressByWorld.length === 0) return;
     if (progressByWorld.some((worldProgress) => worldProgress.world.id === activeWorldId)) return;
-    setActiveWorldId(progressByWorld[0]?.world.id ?? "");
+    const fallbackWorldId = progressByWorld[0]?.world.id ?? "";
+    setActiveWorldId(fallbackWorldId);
+    if (fallbackWorldId) {
+      saveActiveCampaignWorldId(fallbackWorldId);
+    }
   }, [activeWorldId, progressByWorld]);
 
   const activeWorldProgress = useMemo(
@@ -312,6 +353,8 @@ export function CampaignScreen() {
     );
   }, [activeWorld, completedLevelIds]);
 
+  const pendingCompletion = useMemo(() => loadPendingCampaignCompletion(), [activeWorldId, completedLevelIds]);
+
   useEffect(() => {
     if (!activeWorld || activeWorld.nodes.length === 0) {
       setSelectedNodeId("");
@@ -334,8 +377,72 @@ export function CampaignScreen() {
     setSelectedNodeId(currentNode.id);
     setAvatarPosition({ x: currentNode.x, y: currentNode.y });
     setIsMobilePanelOpen(false);
-    saveCampaignPosition(activeWorld.id, currentNode.id);
+    persistCurrentCampaignLocation(activeWorld.id, currentNode.id);
   }, [activeWorld, nodesById]);
+
+  useEffect(() => {
+    if (!activeWorld || !currentNodeId || isAnimating || worldCelebration) {
+      return;
+    }
+
+    const pending = pendingCompletion;
+    if (!pending) {
+      pendingCompletionHandledRef.current = null;
+      return;
+    }
+
+    const pendingKey = `${pending.kind}:${pending.worldId}:${pending.completedNodeId}`;
+    if (pendingCompletionHandledRef.current === pendingKey) {
+      return;
+    }
+
+    if (pending.worldId !== activeWorld.id || currentNodeId !== pending.completedNodeId) {
+      return;
+    }
+
+    pendingCompletionHandledRef.current = pendingKey;
+
+    if (pending.kind === "advance-level") {
+      const nextNode = nodesById.get(pending.nextNodeId);
+      if (!nextNode) {
+        clearPendingCampaignCompletion();
+        return;
+      }
+
+      void (async () => {
+        setIsAnimating(true);
+        try {
+          await animatePathWithinWorld(activeWorld, nodesById, pending.completedNodeId, pending.nextNodeId);
+          clearPendingCampaignCompletion();
+        } finally {
+          setIsAnimating(false);
+        }
+      })();
+      return;
+    }
+
+    const completedWorld = worlds.find((world) => world.id === pending.worldId) ?? activeWorld;
+    const nextWorld = pending.nextWorldId
+      ? worlds.find((world) => world.id === pending.nextWorldId) ?? null
+      : null;
+    const concepts = completedWorld.nodes
+      .map((node) => node.levelId ? levelsById[node.levelId] : null)
+      .flatMap((level) => level?.teachingPlan?.introduces ?? [])
+      .map((concept) => concept.trim())
+      .filter((concept) => concept.length > 0);
+
+    setWorldCelebration({
+      completedWorldName: formatWorldName(completedWorld.name),
+      nextWorldName: nextWorld ? formatWorldName(nextWorld.name) : null,
+      concepts: Array.from(new Set(concepts)).slice(0, 3),
+      nextWorldId: pending.nextWorldId
+    });
+  }, [activeWorld, currentNodeId, isAnimating, levelsById, nodesById, pendingCompletion, worldCelebration, worlds]);
+
+  useEffect(() => {
+    if (!activeWorldId) return;
+    saveActiveCampaignWorldId(activeWorldId);
+  }, [activeWorldId]);
 
   const selectedNode = selectedNodeId ? nodesById.get(selectedNodeId) ?? null : null;
   const selectedLevel = selectedNode?.levelId ? levelsById[selectedNode.levelId] : null;
@@ -395,7 +502,7 @@ export function CampaignScreen() {
         setSelectedNodeId(targetNode.id);
       }
       if (options?.savePositionAtEnd !== false) {
-        saveCampaignPosition(world.id, targetNode.id);
+        persistCurrentCampaignLocation(world.id, targetNode.id);
       }
       return;
     }
@@ -418,7 +525,7 @@ export function CampaignScreen() {
       setSelectedNodeId(targetNode.id);
     }
     if (options?.savePositionAtEnd !== false) {
-      saveCampaignPosition(world.id, targetNode.id);
+      persistCurrentCampaignLocation(world.id, targetNode.id);
     }
   };
 
@@ -504,10 +611,19 @@ export function CampaignScreen() {
         { x: arrivalNode.x, y: arrivalNode.y },
         460
       );
-      saveCampaignPosition(targetWorldId, arrivalNode.id);
+      persistCurrentCampaignLocation(targetWorldId, arrivalNode.id);
     } finally {
       worldTransitionRef.current = null;
       setIsAnimating(false);
+    }
+  };
+
+  const handleWorldCelebrationContinue = async () => {
+    const nextWorldId = worldCelebration?.nextWorldId ?? null;
+    setWorldCelebration(null);
+    clearPendingCampaignCompletion();
+    if (nextWorldId) {
+      await handleWorldSelect(nextWorldId);
     }
   };
 
@@ -519,7 +635,8 @@ export function CampaignScreen() {
     setIsMobilePanelOpen(true);
     if (currentNodeId === node.id) {
       if (level) {
-        navigate(`${APP_ROUTES.play}/${level.id}`);
+        persistCurrentCampaignLocation(activeWorldId, node.id);
+        navigate(`${APP_ROUTES.play}/${level.id}`, { state: { returnTo: APP_ROUTES.campaign } });
       }
       return;
     }
@@ -593,6 +710,7 @@ export function CampaignScreen() {
                   type="button"
                   className={`campaign-world-strip-node${worldProgress.unlocked ? " unlocked" : " locked"}${isSelected ? " current" : ""}`}
                   onClick={() => void handleWorldSelect(worldProgress.world.id)}
+                  disabled={isAnimating || worldCelebration !== null}
                 >
                   <b>{campaignCopy.worldLabel(index + 1)}</b>
                   <span>{worldProgress.completed}/{worldProgress.total}</span>
@@ -688,10 +806,66 @@ export function CampaignScreen() {
                 <p>{campaignCopy.emptyWorldBody}</p>
               </div>
             )}
+
+            {worldCelebration ? (
+              <div className="campaign-world-celebration" role="dialog" aria-modal="true">
+                <div className="campaign-world-celebration-confetti" aria-hidden>
+                  {Array.from({ length: 18 }).map((_, index) => (
+                    <span
+                      key={`confetti-${index}`}
+                      className={`campaign-confetti-piece piece-${(index % 6) + 1}`}
+                      style={
+                        {
+                          "--piece-left": `${8 + ((index * 5) % 82)}%`,
+                          "--piece-delay": `${(index % 6) * 80}ms`,
+                          "--piece-duration": `${1700 + (index % 5) * 120}ms`
+                        } as CSSProperties
+                      }
+                    />
+                  ))}
+                </div>
+                <div className="campaign-world-celebration-card">
+                  <p className="eyebrow">{campaignCopy.worldCompleteEyebrow}</p>
+                  <h2>{campaignCopy.worldCompleteTitle}</h2>
+                  <p>
+                    {worldCelebration.nextWorldId
+                      ? campaignCopy.worldCompleteBody
+                      : campaignCopy.worldCompleteFinalBody}
+                  </p>
+                  {worldCelebration.concepts.length > 0 ? (
+                    <div className="campaign-world-celebration-summary">
+                      <span className="campaign-world-celebration-label">
+                        {campaignCopy.worldCompleteConceptLabel}
+                      </span>
+                      <div className="campaign-node-tags">
+                        {worldCelebration.concepts.map((concept) => (
+                          <span key={concept} className="mini-tag">{concept}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="campaign-world-celebration-footer">
+                    <div>
+                      <strong>{worldCelebration.completedWorldName}</strong>
+                      {worldCelebration.nextWorldName ? (
+                        <p>{campaignCopy.worldCompleteNextLabel}: {worldCelebration.nextWorldName}</p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="menu-link campaign-world-celebration-button"
+                      onClick={() => void handleWorldCelebrationContinue()}
+                    >
+                      {campaignCopy.worldCompleteContinue}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </article>
 
           <aside
-            className={`campaign-world-sidepanel${isMobilePanelOpen ? " open" : ""}`}
+            className={`campaign-world-sidepanel${isMobilePanelOpen ? " open" : ""}${worldCelebration ? " is-disabled" : ""}`}
             {...tutorialAnchorProps("campaign-sidepanel")}
           >
             <button
@@ -738,7 +912,16 @@ export function CampaignScreen() {
                         </span>
                       ))}
                     </div>
-                    <Link className="menu-link campaign-play-link" to={`${APP_ROUTES.play}/${selectedLevel.id}`}>
+                    <Link
+                      className="menu-link campaign-play-link"
+                      to={`${APP_ROUTES.play}/${selectedLevel.id}`}
+                      state={{ returnTo: APP_ROUTES.campaign }}
+                      onClick={() => {
+                        if (activeWorldId && selectedNode) {
+                          persistCurrentCampaignLocation(activeWorldId, selectedNode.id);
+                        }
+                      }}
+                    >
                       {completedNodeIds.has(selectedNode.id) ? campaignCopy.replayLabel : t("actions.play")}
                     </Link>
                   </>

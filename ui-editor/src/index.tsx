@@ -292,6 +292,8 @@ export function StructuresBoard({
 	const cardSizesRef = useRef<Map<string, { w: number; h: number }>>(new Map());
 	// localStorage key for this board layout (derived from stable structure+variable ids)
 	const layoutStorageKeyRef = useRef<string | null>(null);
+	const hasAutoFittedRef = useRef(false);
+	const previousStructureIdsRef = useRef<string[] | null>(null);
 	// card drag state
 	const cardDragRef = useRef<{ id: string; startCx: number; startCy: number; startCardX: number; startCardY: number } | null>(null);
 	// card resize state
@@ -676,6 +678,24 @@ export function StructuresBoard({
 				return { w: Math.max(200, Math.min(600, w)), h: Math.max(180, Math.min(500, h)) };
 			});
 
+			const currentStructureIds = normalizedStructures.map((structure) => structure.id);
+			const previousStructureIds = previousStructureIdsRef.current;
+			if (previousStructureIds) {
+				const addedStructureIds = currentStructureIds.filter((id) => !previousStructureIds.includes(id));
+				addedStructureIds.forEach((id) => {
+					const cardKey = `structure:${id}`;
+					const structureIndex = normalizedStructures.findIndex((structure) => structure.id === id);
+					const nextSize = idealSizes[structureIndex] ?? { w: CARD_W, h: CARD_H };
+					const visibleCenterX = (vw / 2 - panRef.current.x) / Math.max(scaleRef.current, 0.001);
+					const visibleCenterY = (vh / 2 - panRef.current.y) / Math.max(scaleRef.current, 0.001);
+					cardPositionsRef.current.set(cardKey, {
+						x: visibleCenterX - nextSize.w / 2,
+						y: visibleCenterY - nextSize.h / 2
+					});
+				});
+			}
+			previousStructureIdsRef.current = currentStructureIds;
+
 			// Bin-pack positions: row by row, wrap when exceeding max canvas width
 			const BIN_MAX_W = Math.max(800, vw * 1.4);
 			const binPackedPositions = (() => {
@@ -784,17 +804,11 @@ export function StructuresBoard({
 				ctx.fillStyle = "#355070";
 				ctx.fillText(structure.id, frameX + labelPad + iconSize + Math.round(10 * layoutScale), row1Y);
 
-				// Clip all subsequent drawing to the body region (below header)
-				ctx.save();
-				ctx.beginPath();
-				ctx.rect(frameX, graphicTop, frameWidth, frameHeight - headerH);
-				ctx.clip();
-
 				if (showStructureConfigActions) {
 					const actionWidth = Math.max(24, Math.round(28 * layoutScale));
 					const actionHeight = Math.max(24, Math.round(28 * layoutScale));
-					const actionX = frameX + Math.round(14 * layoutScale);
-					const actionY = frameY + frameHeight - actionHeight - Math.round(12 * layoutScale);
+					const actionX = frameX + frameWidth - actionWidth - Math.round(12 * layoutScale);
+					const actionY = frameY + Math.round(12 * layoutScale);
 
 					ctx.fillStyle = "rgba(255, 255, 255, 0.62)";
 					drawRoundedRect(ctx, actionX, actionY, actionWidth, actionHeight, Math.max(6, Math.round(8 * layoutScale)));
@@ -817,6 +831,12 @@ export function StructuresBoard({
 						height: actionHeight
 					});
 				}
+
+				// Clip all subsequent drawing to the body region (below header)
+				ctx.save();
+				ctx.beginPath();
+				ctx.rect(frameX, graphicTop, frameWidth, frameHeight - headerH);
+				ctx.clip();
 
 				if (structure.kind === "stack") {
 					const slotWidth = Math.min(Math.round(120 * layoutScale), frameWidth * 0.34);
@@ -2287,8 +2307,10 @@ export function StructuresBoard({
 		canvas.addEventListener("wheel", handleWheel, { passive: false });
 		canvas.style.cursor = "grab";
 
-		// fit on first render
-		fitToView();
+		if (!hasAutoFittedRef.current) {
+			fitToView();
+			hasAutoFittedRef.current = true;
+		}
 
 		let animationFrame = 0;
 		if (shouldAnimateListPointers) {

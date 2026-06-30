@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus, Trash2 } from "lucide-react";
 import { Screen } from "@thesis/ui-editor";
 import { APP_ROUTES, buildEditorDraftRoute } from "../types/routes";
 import { useDialogManager } from "../features/play-ui/useDialogManager";
@@ -11,7 +12,7 @@ import {
   deleteEditorDraftRecord,
   listEditorDraftRecords,
   saveEditorDraftRecord,
-  seedCampaignPlanDraftRecords
+  seedInitialExampleDraftRecords
 } from "../features/level-editor-drafts/storage";
 import type { LevelEditorDraftRecord } from "../features/level-editor-drafts/types";
 
@@ -33,6 +34,7 @@ export function EditorDraftsScreen() {
   };
 
   useEffect(() => {
+    seedInitialExampleDraftRecords();
     refreshDrafts();
     const onFocus = () => refreshDrafts();
     window.addEventListener("focus", onFocus);
@@ -48,24 +50,12 @@ export function EditorDraftsScreen() {
     if (requestedName === null) return;
     const draft = createEditorDraftRecord(requestedName);
     saveEditorDraftRecord(draft);
-    navigate(buildEditorDraftRoute(draft.id));
+    navigate(buildEditorDraftRoute(draft.id), { state: { returnTo: APP_ROUTES.editor } });
   };
 
   const handleDelete = (id: string) => {
     deleteEditorDraftRecord(id);
     refreshDrafts();
-  };
-
-  const handleSeedCampaignPlan = async () => {
-    const result = seedCampaignPlanDraftRecords();
-    refreshDrafts();
-    await dialog.showAlert({
-      title: "Plantillas de campaña",
-      message:
-        result.createdCount > 0
-          ? `Se crearon ${result.createdCount} niveles base de ${result.totalTemplates} planificados.`
-          : "Todas las plantillas de campaña ya estaban creadas."
-    });
   };
 
   return (
@@ -80,11 +70,15 @@ export function EditorDraftsScreen() {
           tutorialAnchorId="editor-drafts-topbar"
           actions={
             <div className="editor-drafts-topbar-actions" {...tutorialAnchorProps("editor-drafts-actions")}>
-              <button type="button" className="menu-link" onClick={() => void handleSeedCampaignPlan()}>
-                Generar estructura campaña
-              </button>
-              <button type="button" className="menu-link" onClick={() => void handleCreate()}>
-                + Nuevo nivel
+              <button
+                type="button"
+                className="menu-link editor-drafts-create-button"
+                onClick={() => void handleCreate()}
+                aria-label="Nuevo nivel"
+                title="Nuevo nivel"
+              >
+                <Plus size={20} aria-hidden="true" />
+                <span>Nuevo nivel</span>
               </button>
             </div>
           }
@@ -102,29 +96,32 @@ export function EditorDraftsScreen() {
             drafts.map((draft) => (
               <article key={draft.id} className="editor-draft-card">
                 <div className="editor-draft-card-head">
-                  <h2>{draft.name}</h2>
-                  <span className={`mini-tag ${draft.publishedAt ? "is-published" : "is-draft"}`}>
-                    {draft.publishedAt ? "Publicado" : "Borrador"}
-                  </span>
+                  <div className="editor-draft-card-title-group">
+                    <h2>{draft.name}</h2>
+                    <p>{draft.publishedAt ? `Publicado: ${formatDate(draft.publishedAt)}` : `Última edición: ${formatDate(draft.updatedAt)}`}</p>
+                  </div>
+                  <div className="editor-draft-card-head-actions">
+                    <span className={`mini-tag ${draft.publishedAt ? "is-published" : "is-draft"}`}>
+                      {draft.publishedAt ? "Publicado" : "Borrador"}
+                    </span>
+                    <button
+                      type="button"
+                      className="icon-only-button icon-only-button-danger editor-draft-delete-button"
+                      onClick={() => handleDelete(draft.id)}
+                      aria-label={`Eliminar ${draft.name}`}
+                      title="Eliminar"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
-                <p>Última edición: {formatDate(draft.updatedAt)}</p>
-                {draft.publishedAt ? (
-                  <p>Publicado: {formatDate(draft.publishedAt)}</p>
-                ) : null}
                 <div className="editor-draft-card-actions">
                   <button
                     type="button"
                     className="menu-link"
-                    onClick={() => navigate(buildEditorDraftRoute(draft.id))}
+                    onClick={() => navigate(buildEditorDraftRoute(draft.id), { state: { returnTo: APP_ROUTES.editor } })}
                   >
                     Abrir editor
-                  </button>
-                  <button
-                    type="button"
-                    className="menu-link danger"
-                    onClick={() => handleDelete(draft.id)}
-                  >
-                    Eliminar
                   </button>
                 </div>
               </article>

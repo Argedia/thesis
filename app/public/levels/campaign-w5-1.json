@@ -1,0 +1,246 @@
+{
+  "id": "campaign-w5-1",
+  "title": "W5-L1 · Final boss lineal",
+  "initialState": [
+    {
+      "id": "S",
+      "kind": "stack",
+      "values": [
+        1,
+        2
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "Q",
+      "kind": "queue",
+      "values": [
+        3,
+        4
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "L",
+      "kind": "list",
+      "values": [],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "S",
+      "kind": "stack",
+      "values": [],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "Q",
+      "kind": "queue",
+      "values": [],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "L",
+      "kind": "list",
+      "values": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "properties": {
+        "color": "#c6a8ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "required",
+      "PUSH": "forbidden",
+      "DEQUEUE": "required",
+      "ENQUEUE": "forbidden",
+      "APPEND": "required",
+      "PREPEND": "required",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "forbidden",
+      "PEEK": "forbidden",
+      "IS_EMPTY": "forbidden",
+      "GET_AT": "forbidden",
+      "INSERT_AT": "forbidden",
+      "REMOVE_AT": "forbidden",
+      "CONTAINS": "forbidden",
+      "FIND": "forbidden",
+      "REVERSE": "forbidden",
+      "CLEAR": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 0,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 0,
+      "conditional": 0,
+      "while": 0,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 16,
+    "maxBlocksGlobal": 8,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": [
+      "S",
+      "Q",
+      "L"
+    ],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": [
+      "stack",
+      "queue",
+      "list"
+    ],
+    "difficulty": 4.7,
+    "author": "Core Team",
+    "description": "Reto final corto: vacía pila y cola en una lista conservando el orden correcto de cada estructura.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": [
+      "stack",
+      "queue",
+      "list"
+    ],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": [
+      "Integración final de stack, queue y list con una estrategia compuesta"
+    ],
+    "reinforces": [
+      "PREPEND para preservar orden desde pila",
+      "APPEND para preservar FIFO",
+      "integración de semánticas"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Final boss: cada estructura pide un trato distinto",
+        "body": "La pila y la cola no pueden vaciarse de la misma manera si quieres llegar al mismo orden final en la lista. El reto es escoger la operación correcta según la semántica de origen.",
+        "concepts": [
+          "stack",
+          "queue",
+          "list",
+          "estrategia"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Conservar orden no significa usar la misma operación",
+        "body": "Desde la pila probablemente necesites trabajar con PREPEND; desde la cola, con APPEND. La lista final revela si confundiste ambas semánticas.",
+        "concepts": [
+          "PREPEND",
+          "APPEND",
+          "orden"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Cada origen pide una operación distinta",
+        "body": "Si el orden final no coincide, revisa qué estructura estás vaciando en cada paso. La pila entrega desde arriba y la cola entrega desde el frente; por eso la lista no debe recibir ambos flujos igual.",
+        "concepts": [
+          "LIFO",
+          "FIFO",
+          "integración final"
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "Integración final de stack, queue y list con una estrategia compuesta"
+    ],
+    "reinforces": [
+      "PREPEND para preservar orden desde pila",
+      "APPEND para preservar FIFO",
+      "integración de semánticas"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "Final boss: cada estructura pide un trato distinto",
+        "body": "La pila y la cola no pueden vaciarse de la misma manera si quieres llegar al mismo orden final en la lista. El reto es escoger la operación correcta según la semántica de origen.",
+        "concepts": [
+          "stack",
+          "queue",
+          "list",
+          "estrategia"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Conservar orden no significa usar la misma operación",
+        "body": "Desde la pila probablemente necesites trabajar con PREPEND; desde la cola, con APPEND. La lista final revela si confundiste ambas semánticas.",
+        "concepts": [
+          "PREPEND",
+          "APPEND",
+          "orden"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Cada origen pide una operación distinta",
+        "body": "Si el orden final no coincide, revisa qué estructura estás vaciando en cada paso. La pila entrega desde arriba y la cola entrega desde el frente; por eso la lista no debe recibir ambos flujos igual.",
+        "concepts": [
+          "LIFO",
+          "FIFO",
+          "integración final"
+        ]
+      }
+    ]
+  }
+}

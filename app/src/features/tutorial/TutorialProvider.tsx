@@ -550,7 +550,7 @@ const showInlineStep = async (options: {
     highlightPadding: Math.max(10, tutorial.stagePadding ?? 12),
     blockOutsideInteraction: step.blockOutsideInteraction === true,
     cardStyle: computeInlineTutorialCardStyle(targetRect, step),
-    canGoBack: index > 0,
+    canGoBack: false,
     canGoNext:
       step.advanceOn !== "event" &&
       step.advanceOn !== "targetClick" &&
@@ -601,6 +601,9 @@ const APP_ROUTE_PREFIXES: Record<TutorialId, string> = {
   "campaign-w1-l1-guided": "/play/",
   "campaign-w1-l2-guided": "/play/",
   "campaign-w1-l3-guided": "/play/",
+  "campaign-w2-l4-guided": "/play/",
+  "campaign-w3-l3-guided": "/play/",
+  "campaign-w4-l3-guided": "/play/",
   "campaign-world-basics": "/campaign"
 };
 

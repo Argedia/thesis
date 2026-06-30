@@ -408,6 +408,113 @@
 	stroke-opacity: 0.4;
 }
 
+.campaign-world-celebration {
+	position: absolute;
+	inset: 0;
+	z-index: 6;
+	display: grid;
+	place-items: center;
+	padding: 1.2rem;
+	background: rgba(231, 242, 252, 0.72);
+	backdrop-filter: blur(4px);
+}
+
+.campaign-world-celebration-confetti {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.campaign-confetti-piece {
+	position: absolute;
+	left: var(--piece-left);
+	top: -10%;
+	width: 10px;
+	height: 22px;
+	border-radius: 999px;
+	opacity: 0.92;
+	animation: campaign-confetti-fall var(--piece-duration) ease-in infinite;
+	animation-delay: var(--piece-delay);
+	transform: rotate(12deg);
+}
+
+.campaign-confetti-piece.piece-1 { background: #ffd36e; }
+.campaign-confetti-piece.piece-2 { background: #7ad3ba; }
+.campaign-confetti-piece.piece-3 { background: #c6a8ff; }
+.campaign-confetti-piece.piece-4 { background: #7aa9d5; }
+.campaign-confetti-piece.piece-5 { background: #ff9f9f; }
+.campaign-confetti-piece.piece-6 { background: #9ed3ff; }
+
+@keyframes campaign-confetti-fall {
+	0% {
+		transform: translate3d(0, 0, 0) rotate(0deg) scale(0.9);
+		opacity: 0;
+	}
+	12% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate3d(-12px, 128%, 0) rotate(320deg) scale(1.04);
+		opacity: 0;
+	}
+}
+
+.campaign-world-celebration-card {
+	position: relative;
+	z-index: 1;
+	width: min(520px, 100%);
+	display: grid;
+	gap: 0.85rem;
+	padding: 1.2rem 1.25rem;
+	border: 2px solid #cfe3f5;
+	border-radius: 24px;
+	background: rgba(255, 255, 255, 0.96);
+	box-shadow: 0 24px 48px rgba(53, 80, 112, 0.18);
+}
+
+.campaign-world-celebration-card h2 {
+	margin: 0;
+	color: #2f557c;
+}
+
+.campaign-world-celebration-card p {
+	margin: 0;
+	color: #55748b;
+	line-height: 1.35;
+}
+
+.campaign-world-celebration-summary {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.campaign-world-celebration-label {
+	font-size: 0.82rem;
+	font-weight: 900;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: #315a82;
+}
+
+.campaign-world-celebration-footer {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.85rem;
+}
+
+.campaign-world-celebration-footer strong {
+	display: block;
+	color: #2f557c;
+	font-size: 1rem;
+}
+
+.campaign-world-celebration-button {
+	min-width: 160px;
+}
+
 .campaign-map-node-badge {
 	position: absolute;
 	left: 50%;
@@ -433,6 +540,11 @@
 	overflow: hidden;
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr);
+}
+
+.campaign-world-sidepanel.is-disabled {
+	pointer-events: none;
+	opacity: 0.72;
 }
 
 .campaign-world-checklist {
@@ -618,6 +730,7 @@
 .campaign-play-link {
 	text-decoration: none;
 	text-align: center;
+	justify-content: center;
 }
 
 .campaign-play-link.is-locked {

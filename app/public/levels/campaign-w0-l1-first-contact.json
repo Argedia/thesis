@@ -1,12 +1,17 @@
 {
   "id": "campaign-w0-l1-first-contact",
-  "title": "W1-L1 · First Contact",
+  "title": "W1-L1 · Primer contacto",
   "initialState": [
     {
       "id": "A",
       "kind": "stack",
-      "values": [1],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "values": [
+        1
+      ],
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "goalState": [
@@ -14,7 +19,10 @@
       "id": "A",
       "kind": "stack",
       "values": [],
-      "properties": { "color": "#f6b457", "nodeAutoTaint": false }
+      "properties": {
+        "color": "#f6b457",
+        "nodeAutoTaint": false
+      }
     }
   ],
   "constraints": {
@@ -55,74 +63,125 @@
     "allowAdditionalRoutines": false
   },
   "playLayout": {
-    "panelOrder": ["board", "steps", "timeline"],
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
     "initialPanel": "board"
   },
   "editorLayout": {
-    "structureOrder": ["A"],
+    "structureOrder": [
+      "A"
+    ],
     "leftPanel": "palette",
     "rightPanel": "inspector",
     "bottomPanel": "timeline",
-    "openTabs": ["canvas", "preview"]
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
   },
   "metadata": {
     "source": "community",
-    "structuresUsed": ["stack"],
-    "difficulty": 1.0,
+    "structuresUsed": [
+      "stack"
+    ],
+    "difficulty": 1,
     "author": "Core Team",
-    "description": "Place the stack block, use its only available operation, and run it. The goal is simply to remove the only element in the stack.",
+    "description": "Primera práctica para arrastrar un bloque de estructura, elegir una operación y ejecutar.",
     "catalog": "campaign"
   },
   "tooling": {
-    "availableStructures": ["stack"],
+    "availableStructures": [
+      "stack"
+    ],
     "advancedToolsEnabled": true
   },
   "teachingPlan": {
-    "introduces": ["colocar un bloque de estructura, seleccionar una operación y ejecutarla"],
-    "reinforces": ["read initial state", "read goal state", "top element of a stack"],
+    "introduces": [
+      "colocar un bloque de estructura, seleccionar una operación y ejecutarla"
+    ],
+    "reinforces": [
+      "read initial state",
+      "read goal state",
+      "top element of a stack"
+    ],
     "messages": [
       {
         "trigger": "level_start",
-      "title": "Place the stack block and use its operation",
-      "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
-      "concepts": ["structure block", "structure operation", "run", "top value"]
-    },
-    {
-      "trigger": "first_failure",
-      "title": "Open the action menu and run the stack operation",
-      "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
-      "concepts": ["POP", "structure operation", "run"]
-    },
+        "title": "Place the stack block and use its operation",
+        "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+        "concepts": [
+          "structure block",
+          "structure operation",
+          "run",
+          "top value"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Open the action menu and run the stack operation",
+        "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+        "concepts": [
+          "POP",
+          "structure operation",
+          "run"
+        ]
+      },
       {
         "trigger": "repeated_failure",
-      "title": "Match the exact visible difference",
-      "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
-      "concepts": ["goal comparison", "top element", "single operation"]
-    }
-  ]
+        "title": "Match the exact visible difference",
+        "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+        "concepts": [
+          "goal comparison",
+          "top element",
+          "single operation"
+        ]
+      }
+    ]
   },
   "teaching": {
-    "introduces": ["colocar un bloque de estructura, seleccionar una operación y ejecutarla"],
-    "reinforces": ["read initial state", "read goal state", "top element of a stack"],
+    "introduces": [
+      "colocar un bloque de estructura, seleccionar una operación y ejecutarla"
+    ],
+    "reinforces": [
+      "read initial state",
+      "read goal state",
+      "top element of a stack"
+    ],
     "messages": [
       {
         "trigger": "level_start",
-      "title": "Place the stack block and use its operation",
-      "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
-      "concepts": ["structure block", "structure operation", "run", "top value"]
-    },
-    {
-      "trigger": "first_failure",
-      "title": "Open the action menu and run the stack operation",
-      "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
-      "concepts": ["POP", "structure operation", "run"]
-    },
+        "title": "Place the stack block and use its operation",
+        "body": "Look at the initial and goal boards first. Stack A has only one element, and the goal is to remove it. Drag structure A into the program, open its action menu, choose the only available operation, then press Play and watch what happens. This is how the software applies actions to data structures.",
+        "concepts": [
+          "structure block",
+          "structure operation",
+          "run",
+          "top value"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "Open the action menu and run the stack operation",
+        "body": "This first level only uses one stack action. Place A, open its menu, select the available operation, and run the program to remove the single element.",
+        "concepts": [
+          "POP",
+          "structure operation",
+          "run"
+        ]
+      },
       {
         "trigger": "repeated_failure",
-      "title": "Match the exact visible difference",
-      "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
-      "concepts": ["goal comparison", "top element", "single operation"]
-    }
-  ]
+        "title": "Match the exact visible difference",
+        "body": "The goal board is an empty stack. Use the stack action available in the block, then run again and observe the board.",
+        "concepts": [
+          "goal comparison",
+          "top element",
+          "single operation"
+        ]
+      }
+    ]
   }
 }

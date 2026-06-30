@@ -47,7 +47,7 @@
 }
 
 .menu-card {
-	width: min(420px, 100%);
+	width: min(460px, 100%);
 	padding: 2rem;
 	text-align: center;
 }
@@ -118,15 +118,89 @@
 	font-weight: 700;
 }
 
+.menu-tagline {
+	margin: 0.5rem 0 0;
+	color: #5a7a9a;
+	font-size: 0.9rem;
+	font-weight: 600;
+}
+
+.menu-feature-chips {
+	display: flex;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	margin: 1rem 0 0;
+}
+
+.menu-feature-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.25rem 0.65rem;
+	border-radius: 999px;
+	background: #eaf4ff;
+	border: 1px solid #c2ddf5;
+	color: #355070;
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
 .menu-link {
-	display: block;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
 	border: 2px solid #9ec5e5;
 	border-radius: 18px;
-	padding: 1rem 1.5rem;
+	padding: 0.85rem 1.25rem;
 	background: #ffffff;
 	color: #355070;
-	font-size: 1.05rem;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background 0.12s ease,
+		border-color 0.12s ease,
+		transform 0.12s ease,
+		box-shadow 0.12s ease;
+}
+
+.menu-link:hover,
+.menu-link:focus-visible {
+	background: #f0f8ff;
+	border-color: #6aadd8;
+	transform: translateY(-1px);
+	box-shadow: 0 10px 22px rgba(106, 173, 216, 0.14);
+}
+
+.menu-link-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.6rem;
+	height: 2.6rem;
+	border-radius: 12px;
+	background: #dff0ff;
+	color: #2a6496;
+	flex-shrink: 0;
+}
+
+.menu-link-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.menu-link-title {
+	font-size: 1rem;
 	font-weight: 900;
+	color: #355070;
+}
+
+.menu-link-desc {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: #7a9ab8;
 }
 
 .topbar,
@@ -171,12 +245,26 @@
 	background: #ffffff;
 	color: #355070;
 	font-weight: 900;
+	cursor: pointer;
+	transition:
+		background 0.12s ease,
+		border-color 0.12s ease,
+		transform 0.12s ease,
+		box-shadow 0.12s ease;
 }
 
 .back-link--icon {
 	min-width: 52px;
 	width: 52px;
 	padding: 0;
+}
+
+.back-link:hover,
+.back-link:focus-visible {
+	background: #f0f8ff;
+	border-color: #6aadd8;
+	transform: translateY(-1px);
+	box-shadow: 0 10px 22px rgba(106, 173, 216, 0.14);
 }
 
 .player-status {
@@ -219,7 +307,7 @@
 }
 
 .community-topbar {
-	padding: 1.1rem 1.25rem;
+	padding: 0.85rem 1rem;
 	margin-bottom: 0;
 	background:
 		linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(241, 249, 255, 0.96)),
@@ -227,7 +315,8 @@
 }
 
 .primary-screen-topbar {
-	padding: 1.1rem 1.25rem;
+	min-height: 76px;
+	padding: 0.85rem 1rem;
 	margin-bottom: 0;
 	background:
 		linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(241, 249, 255, 0.96)),
@@ -235,13 +324,13 @@
 }
 
 .primary-screen-topbar h1 {
-	font-size: clamp(1.7rem, 3.2vw, 2.65rem);
-	line-height: 1.05;
+	font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+	line-height: 1.02;
 }
 
 .primary-screen-topbar .eyebrow {
-	margin: 0 0 0.35rem;
-	font-size: 1rem;
+	margin: 0 0 0.15rem;
+	font-size: 0.9rem;
 	font-weight: 800;
 	color: #4b6380;
 }
@@ -255,7 +344,7 @@
 
 .screen-header-copy {
 	display: grid;
-	gap: 0.25rem;
+	gap: 0.15rem;
 	min-width: 0;
 }
 
@@ -266,8 +355,9 @@
 .screen-header-description {
 	margin: 0;
 	color: #55748b;
+	font-size: 0.94rem;
 	font-weight: 700;
-	line-height: 1.45;
+	line-height: 1.3;
 }
 
 .screen-header-actions {
@@ -331,6 +421,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
+	min-height: 76px;
 	align-items: start;
 }
 

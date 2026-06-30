@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { useEffect, useMemo } from "react";
 import { Button, Tooltip, TooltipTrigger } from "react-aria-components";
+import { useTranslation } from "react-i18next";
 import { useUiPreferencesSync } from "../hooks/useUiPreferencesSync";
 import { APP_ROUTES } from "../types/routes";
 import { useTutorial } from "../features/tutorial/TutorialProvider";
@@ -12,6 +13,7 @@ import type { TutorialId } from "../features/tutorial/tutorials";
 import { tutorialAnchorProps } from "../features/tutorial/anchors";
 
 export function AppShell() {
+  const { t } = useTranslation();
   useUiPreferencesSync();
   const location = useLocation();
   const { startTutorial } = useTutorial();
@@ -70,13 +72,13 @@ export function AppShell() {
         <TooltipTrigger delay={180} closeDelay={80}>
           <Button
             className="app-help-fab"
-            aria-label="Open help guide"
+            aria-label={t("common.openHelpGuide")}
             onPress={() => void startTutorial(currentTutorialId)}
             {...tutorialAnchorProps("app-help-fab")}
           >
             ?
           </Button>
-          <Tooltip className="app-tooltip">A little lost? Click this!</Tooltip>
+          <Tooltip className="app-tooltip">{t("common.helpFabTooltip")}</Tooltip>
         </TooltipTrigger>
       ) : null}
     </div>

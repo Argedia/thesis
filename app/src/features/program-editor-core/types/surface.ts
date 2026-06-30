@@ -27,6 +27,7 @@ export interface PlayEditorSurfaceProps extends EditorSurfaceAdapter {
 	disabled?: boolean;
 	forceSidePaletteExpanded?: boolean;
 	highlightedNodeId?: string | null;
+	diagnosticNodeIds?: string[];
 	breakpointNodeIds?: string[];
 	onToggleBreakpoint?: (nodeId: string) => void;
 	onStatus?: (message: string) => void;

@@ -64,6 +64,7 @@ export const getRequiredOperationsFromPolicy = (
 export interface LevelConstraints {
   operationPolicy: LevelOperationPolicy;
   forbiddenBlocks: string[];
+  requiredBlockKinds?: string[];
   blockLimits?: Record<string, number>;
   maxSteps: number;
   allowAdditionalRoutines?: boolean;

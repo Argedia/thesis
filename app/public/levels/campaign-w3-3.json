@@ -1,0 +1,214 @@
+{
+  "id": "campaign-w3-3",
+  "title": "W3-L3 · Mientras queden elementos",
+  "initialState": [
+    {
+      "id": "A",
+      "kind": "queue",
+      "values": [
+        4,
+        5,
+        6
+      ],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "queue",
+      "values": [],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "goalState": [
+    {
+      "id": "A",
+      "kind": "queue",
+      "values": [],
+      "properties": {
+        "color": "#7ad3ba",
+        "nodeAutoTaint": false
+      }
+    },
+    {
+      "id": "B",
+      "kind": "queue",
+      "values": [
+        4,
+        5,
+        6
+      ],
+      "properties": {
+        "color": "#8ec5ff",
+        "nodeAutoTaint": false
+      }
+    }
+  ],
+  "constraints": {
+    "operationPolicy": {
+      "POP": "forbidden",
+      "PUSH": "forbidden",
+      "DEQUEUE": "required",
+      "ENQUEUE": "required",
+      "APPEND": "forbidden",
+      "PREPEND": "forbidden",
+      "REMOVE_FIRST": "forbidden",
+      "REMOVE_LAST": "forbidden",
+      "GET_HEAD": "forbidden",
+      "GET_TAIL": "forbidden",
+      "SIZE": "required",
+      "PEEK": "forbidden",
+      "IS_EMPTY": "forbidden",
+      "GET_AT": "forbidden",
+      "INSERT_AT": "forbidden",
+      "REMOVE_AT": "forbidden",
+      "CONTAINS": "forbidden",
+      "FIND": "forbidden",
+      "REVERSE": "forbidden",
+      "CLEAR": "forbidden"
+    },
+    "forbiddenBlocks": [],
+    "blockLimits": {
+      "value": 1,
+      "var_binary_operation:arithmetic": 0,
+      "var_binary_operation:logical": 0,
+      "var_binary_operation:comparison": 1,
+      "conditional": 0,
+      "while": 1,
+      "for_each": 0,
+      "break": 0,
+      "function_definition": 0,
+      "type_definition": 0,
+      "return": 0,
+      "var_declaration": 0,
+      "var_assign": 0,
+      "var_reference": 0,
+      "var_operation": 0
+    },
+    "maxSteps": 14,
+    "maxBlocksGlobal": 6,
+    "allowAdditionalRoutines": false
+  },
+  "playLayout": {
+    "panelOrder": [
+      "board",
+      "steps",
+      "timeline"
+    ],
+    "initialPanel": "board"
+  },
+  "editorLayout": {
+    "structureOrder": [
+      "A",
+      "B"
+    ],
+    "leftPanel": "palette",
+    "rightPanel": "inspector",
+    "bottomPanel": "timeline",
+    "openTabs": [
+      "canvas",
+      "preview"
+    ]
+  },
+  "metadata": {
+    "source": "community",
+    "structuresUsed": [
+      "queue"
+    ],
+    "difficulty": 3.6,
+    "author": "Core Team",
+    "description": "Introduce un while para repetir una misma transferencia mientras la cola A todavía tenga elementos.",
+    "catalog": "campaign"
+  },
+  "tooling": {
+    "availableStructures": [
+      "queue"
+    ],
+    "advancedToolsEnabled": true
+  },
+  "teachingPlan": {
+    "introduces": [
+      "Repetición con while usando el tamaño de una cola como condición"
+    ],
+    "reinforces": [
+      "SIZE",
+      "comparación con 0",
+      "una acción por iteración"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "El while evita duplicar bloques",
+        "body": "Hay varios elementos y todos requieren la misma acción. En vez de copiar el patrón muchas veces, usa un while que repita mientras A tenga tamaño mayor que 0.",
+        "concepts": [
+          "while",
+          "SIZE",
+          "repetición"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "La condición controla cuándo termina",
+        "body": "Si el programa se queda corto o se pasa, revisa la condición del while. El cuerpo puede ser correcto y aun así fallar si la repetición termina mal.",
+        "concepts": [
+          "condición de salida",
+          "while"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Una transferencia por vuelta",
+        "body": "Cada iteración debería hacer exactamente el mismo movimiento: sacar del frente de A y enviar al final de B. El while se encarga de repetir.",
+        "concepts": [
+          "cuerpo del while",
+          "FIFO"
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "introduces": [
+      "Repetición con while usando el tamaño de una cola como condición"
+    ],
+    "reinforces": [
+      "SIZE",
+      "comparación con 0",
+      "una acción por iteración"
+    ],
+    "messages": [
+      {
+        "trigger": "level_start",
+        "title": "El while evita duplicar bloques",
+        "body": "Hay varios elementos y todos requieren la misma acción. En vez de copiar el patrón muchas veces, usa un while que repita mientras A tenga tamaño mayor que 0.",
+        "concepts": [
+          "while",
+          "SIZE",
+          "repetición"
+        ]
+      },
+      {
+        "trigger": "first_failure",
+        "title": "La condición controla cuándo termina",
+        "body": "Si el programa se queda corto o se pasa, revisa la condición del while. El cuerpo puede ser correcto y aun así fallar si la repetición termina mal.",
+        "concepts": [
+          "condición de salida",
+          "while"
+        ]
+      },
+      {
+        "trigger": "repeated_failure",
+        "title": "Una transferencia por vuelta",
+        "body": "Cada iteración debería hacer exactamente el mismo movimiento: sacar del frente de A y enviar al final de B. El while se encarga de repetir.",
+        "concepts": [
+          "cuerpo del while",
+          "FIFO"
+        ]
+      }
+    ]
+  }
+}

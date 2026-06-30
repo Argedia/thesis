@@ -141,6 +141,28 @@ button:disabled {
 	color: #355070;
 }
 
+.app-dialog--compact {
+	width: min(320px, calc(100vw - 3rem));
+	padding: 0.85rem;
+	gap: 0.7rem;
+}
+
+.app-dialog--select .app-dialog-title {
+	font-size: 1rem;
+}
+
+.app-dialog--select .app-text-dialog-input {
+	min-height: 40px;
+	padding: 0.55rem 0.8rem;
+	border-radius: 12px;
+}
+
+.app-dialog--select .app-dialog-button {
+	min-height: 36px;
+	padding: 0.45rem 0.85rem;
+	font-size: 0.88rem;
+}
+
 .app-dialog-title {
 	margin: 0;
 	font-size: 1.15rem;
