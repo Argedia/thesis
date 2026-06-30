@@ -8,6 +8,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const resolvePagesBase = () => {
   const explicitBase = process.env.VITE_BASE_PATH?.trim();
   if (explicitBase) {
+    if (explicitBase === "." || explicitBase === "./") {
+      return "./";
+    }
     return explicitBase.startsWith("/") ? explicitBase : `/${explicitBase}`;
   }
   const repository = process.env.GITHUB_REPOSITORY?.split("/")[1];

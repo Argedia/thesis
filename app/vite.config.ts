@@ -5,6 +5,9 @@ import { resolve } from "node:path";
 const resolvePagesBase = () => {
   const explicitBase = process.env.VITE_BASE_PATH?.trim();
   if (explicitBase) {
+    if (explicitBase === "." || explicitBase === "./") {
+      return "./";
+    }
     return explicitBase.startsWith("/") ? explicitBase : `/${explicitBase}`;
   }
 

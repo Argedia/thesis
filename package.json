@@ -12,6 +12,8 @@
   "scripts": {
     "check:generated-src": "node scripts/check-no-generated-in-src.mjs",
     "build": "npm run check:generated-src && npm run build -w core-engine && npm run build -w game-system && npm run build -w storage && npm run build -w ui-editor && npm run build -w app && npm run check:generated-src",
+    "build:desktop": "npm run build -w core-engine && npm run build -w game-system && npm run build -w storage && npm run build -w ui-editor && npm run build:desktop -w app",
+    "desktop:dev": "npm run desktop:dev -w app",
     "dev": "npm run dev -w app"
   },
   "dependencies": {
